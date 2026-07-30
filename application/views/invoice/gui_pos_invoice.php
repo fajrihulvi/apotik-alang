@@ -212,7 +212,7 @@ echo html_escape($text);
                                         </div> 
                                        
                                           <div class="form-group row guifooterpanel">
-                                            <div class="col-sm-12"> <label for="date" class="col-sm-5 col-form-label"><?php echo display('change') ?>:</label><div class="col-sm-5">  <input type="text" id="change" class="form-control text-right" name="change" value="" readonly="readonly"/></div></div> 
+                                            <div class="col-sm-12"> <label for="date" class="col-sm-5 col-form-label">Kembalian:</label><div class="col-sm-5">  <input type="text" id="change" class="form-control text-right" name="change" value="" readonly="readonly"/></div></div> 
 
                                         </div> 
                                         

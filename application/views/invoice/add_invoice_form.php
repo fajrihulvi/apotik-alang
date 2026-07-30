@@ -345,7 +345,7 @@
                                             <input type="text" id="dueAmmount" class="form-control text-right" name="due_amount" value="0.00" readonly="readonly"/>
                                         </td>
                                     </tr>
-                                    <tr id="change_m"><td class="text-right" colspan="8" id="ch_l"><b>Change:</b></td>
+                                    <tr id="change_m"><td class="text-right" colspan="8" id="ch_l"><b>Kembalian:</b></td>
                                         <td class="text-right">
                                             <input type="text" id="change" class="form-control text-right" name="change" value="" readonly="readonly"/>
                                         </td></tr>
