@@ -103,7 +103,7 @@ public function getProductList($postData=null){
 
          $generic_name = '<a href="'.$base_url.'Cproduct/medicine_search_details/'.$record->product_id.'">'.$record->generic_name.'</a>';
         
-          $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.$record->product_name.'('.$record->strength.')'.'</a>';
+          $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
                
             $data[] = array( 
             	'sl'               =>$sl,
@@ -208,7 +208,7 @@ public function getProductList($postData=null){
 			$this->db->where('status',1);
 			$query = $this->db->get();
 			foreach ($query->result() as $row) {
-				$json_product[] = array('label'=>$row->product_name."-(".$row->product_model.")",'value'=>$row->product_id);
+				$json_product[] = array('label'=>medicine_name($row->product_name,$row->product_model,"-"),'value'=>$row->product_id);
 			}
 			$cache_file = './my-assets/js/admin_js/json/product.json';
 			$productList = json_encode($json_product);
@@ -289,7 +289,7 @@ public function getProductList($postData=null){
 
 		$query = $this->db->get();
 		foreach ($query->result() as $row) {
-			$json_product[] = array('label'=>$row->product_name."-(".$row->strength.")",'value'=>$row->product_id);
+			$json_product[] = array('label'=>medicine_name($row->product_name,$row->strength,"-"),'value'=>$row->product_id);
 		}
 		$cache_file = './my-assets/js/admin_js/json/product.json';
 		$productList = json_encode($json_product);

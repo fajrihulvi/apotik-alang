@@ -220,7 +220,7 @@ class Cinvoice extends CI_Controller {
 
 			$tr .= "<tr id=\"row_".$product_details->product_id."\">
 						<td class=\"\" style=\"width:220px\">
-							<input type=\"text\" name=\"product_name\" onkeypress=\"invoice_productList('".$product_details->product_id."');\" class=\"form-control productSelection \" value='".$product_details->product_name."- (".$product_details->strength.")"."' placeholder='".display('product_name')."' required=\"\" id=\"product_name_".$product_details->product_id."\" tabindex=\"\" >
+							<input type=\"text\" name=\"product_name\" onkeypress=\"invoice_productList('".$product_details->product_id."');\" class=\"form-control productSelection \" value='".medicine_name($product_details->product_name,$product_details->strength,"- ")."' placeholder='".display('product_name')."' required=\"\" id=\"product_name_".$product_details->product_id."\" tabindex=\"\" >
 							<input type=\"hidden\" class=\"form-control autocomplete_hidden_value product_id_".$product_details->product_id."\" name=\"product_id[]\" id=\"product_id_".$product_details->product_id."\" value = \"$product_details->product_id\" />
 						</td>
 						<td>$html</td>
@@ -283,7 +283,7 @@ class Cinvoice extends CI_Controller {
        if(!empty($product_info)){
 		$json_product[''] = '';
 		foreach ($product_info as $value) {
-			$json_product[] = array('label'=>$value['product_name'].'('.$value['strength'].')','value'=>$value['product_id']);
+			$json_product[] = array('label'=>medicine_name($value['product_name'],$value['strength']),'value'=>$value['product_id']);
 		} 
 	}else{
 		$json_product[] = 'No Medicine Found';
@@ -715,7 +715,7 @@ class Cinvoice extends CI_Controller {
 
 			$tr .= "<tr id=\"row_".$product_details->product_id."\">
 						<td class=\"\" style=\"width:220px\">
-							<input type=\"text\" name=\"product_name\" onkeypress=\"invoice_productList(".$product_details->product_id.");\" class=\"form-control productSelection \" value='".$product_details->product_name."- (".$product_details->strength.")"."' placeholder='".display('product_name')."' required=\"\" id=\"product_name_".$product_details->product_id."\" tabindex=\"\" >
+							<input type=\"text\" name=\"product_name\" onkeypress=\"invoice_productList(".$product_details->product_id.");\" class=\"form-control productSelection \" value='".medicine_name($product_details->product_name,$product_details->strength,"- ")."' placeholder='".display('product_name')."' required=\"\" id=\"product_name_".$product_details->product_id."\" tabindex=\"\" >
 							<input type=\"hidden\" class=\"form-control autocomplete_hidden_value product_id_".$product_details->product_id."\" name=\"product_id[]\" id=\"product_id_".$product_details->product_id."\" value = \"$product_details->product_id\" />
 						</td>
 						<td>$html</td>

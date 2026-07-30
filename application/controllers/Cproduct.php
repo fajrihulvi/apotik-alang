@@ -385,7 +385,7 @@ class Cproduct extends CI_Controller {
 		$this->db->where('status',1);
 		$query = $this->db->get();
 		foreach ($query->result() as $row) {
-			$json_product[] = array('label'=>$row->product_name."-(".$row->product_model.")",'value'=>$row->product_id);
+			$json_product[] = array('label'=>medicine_name($row->product_name,$row->product_model,"-"),'value'=>$row->product_id);
 		}
 		$cache_file = './my-assets/js/admin_js/json/product.json';
 		$productList = json_encode($json_product);

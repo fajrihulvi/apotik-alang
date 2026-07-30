@@ -100,7 +100,7 @@ class reports extends CI_Model {
          foreach($records as $record ){
             $data[] = array( 
                 'sl'               =>  $sl,
-                'product_name'     =>  $record->product_name.'('.$record->strength.')',
+                'product_name'     =>  medicine_name($record->product_name,$record->strength),
                 'manufacturer_name'=>  $record->manufacturer_name,
                 'generic_name'     =>  $record->generic_name,
                 'stock'            =>  $record->stock,
@@ -235,7 +235,7 @@ class reports extends CI_Model {
          $sl =1;
         $base_url = base_url();
          foreach($records as $record ){
-            $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.$record->product_name.'('.$record->strength.')'.'</a>';
+            $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
             $data[] = array( 
                 'sl'               =>  $sl,
                 'product_id'       =>  $medicine_name,
@@ -559,7 +559,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          foreach($records as $record ){
           $stockin = $this->db->select('sum(quantity) as totalSalesQnty')->from('invoice_details')->where('product_id',$record->product_id)->get()->row();
          $stockout = $this->db->select('sum(quantity) as totalPurchaseQnty')->from('product_purchase_details')->where('product_id',$record->product_id)->get()->row();
-             $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.$record->product_name.'('.$record->strength.')'.'</a>';
+             $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
                
             $data[] = array( 
                 'sl'            =>   $sl,
@@ -1025,7 +1025,7 @@ public function stock_report_batch_bydate($perpage,$page){
          foreach($records as $record ){
           $stockout = $this->db->select('sum(quantity) as totalSalesQnty')->from('invoice_details')->where('product_id',$record->product_id)->where('batch_id',$record->batch_id)->get()->row();
          $stockin = $this->db->select('sum(quantity) as totalPurchaseQnty')->from('product_purchase_details')->where('product_id',$record->product_id)->where('batch_id',$record->batch_id)->get()->row();
-          $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.$record->product_name.'('.$record->strength.')'.'</a>';
+          $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
             
                
             $data[] = array( 

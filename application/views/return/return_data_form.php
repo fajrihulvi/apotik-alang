@@ -109,7 +109,7 @@
 
                                     <tr>
                                         <td class="product_field">
-                                            <input type="text" name="product_name" onclick="invoice_productList(<?php echo $sl;?>);" value="<?php echo $retdata['product_name'].' ('.$retdata['strength'].')';?>" class="form-control productSelection" required placeholder='<?php echo display('product_name') ?>' id="product_names" tabindex="3" readonly="">
+                                            <input type="text" name="product_name" onclick="invoice_productList(<?php echo $sl;?>);" value="<?php echo medicine_name($retdata['product_name'],$retdata['strength'],' ');?>" class="form-control productSelection" required placeholder='<?php echo display('product_name') ?>' id="product_names" tabindex="3" readonly="">
 
                                             <input type="hidden" class="product_id_<?php echo $sl;?> autocomplete_hidden_value"  value="<?php echo $retdata['product_id'];?>" id="product_id_<?php echo $sl;?>"/>
                                              <input type="hidden" class="batch_id_<?php echo $sl;?>"  value="<?php echo $retdata['batch_id'];?>" name="batch_id[]" id="batch_id_<?php echo $sl;?>"/>

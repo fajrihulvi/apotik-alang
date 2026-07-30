@@ -201,6 +201,12 @@ public function return_form()
 			$i=0;
 			foreach($invoice_detail as $k=>$v){$i++;
 			   $invoice_detail[$k]['sl']=$i;
+			   // Nama obat + model, tanda kurung dilewati bila model kosong.
+			   $invoice_detail[$k]['medicine_name'] = medicine_name(
+			   		$invoice_detail[$k]['product_name'],
+			   		(isset($invoice_detail[$k]['product_model']) ? $invoice_detail[$k]['product_model'] : ''),
+			   		' - '
+			   	);
 			}
 		}
 
@@ -256,6 +262,12 @@ public function return_form()
 			$i=0;
 			foreach($return_detail as $k=>$v){$i++;
 			   $return_detail[$k]['sl']=$i;
+			   // Nama obat + model, tanda kurung dilewati bila model kosong.
+			   $return_detail[$k]['medicine_name'] = medicine_name(
+			   		$return_detail[$k]['product_name'],
+			   		(isset($return_detail[$k]['product_model']) ? $return_detail[$k]['product_model'] : ''),
+			   		' - '
+			   	);
 			}
 		}
 

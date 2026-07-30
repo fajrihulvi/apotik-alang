@@ -126,7 +126,7 @@
 										{return_detail}
 										<tr>
 	                                    	<td class="text-center">{sl}</td>
-	                                        <td class="text-center"><div><strong>{product_name} - ({product_model})</strong></div></td>
+	                                        <td class="text-center"><div><strong>{medicine_name}</strong></div></td>
 	                                        <td align="center">{ret_qty}</td>
 
 	                                        <?php if ($discount_type == 1) { ?>

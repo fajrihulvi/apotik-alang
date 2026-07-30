@@ -61,7 +61,7 @@
                             <select name="product_id" class="form-control">
                              <option value="">Select Medicine</option>
                              <?php foreach($medicine_list as $medicine){?>
-                           <option value="<?php echo html_escape($medicine['product_id'])?>" <?php if($medicine['product_id'] == $product_id){'selected';}?>><?php echo html_escape($medicine['product_name']).' ('.html_escape($medicine['strength']).')'?></option>
+                           <option value="<?php echo html_escape($medicine['product_id'])?>" <?php if($medicine['product_id'] == $product_id){'selected';}?>><?php echo medicine_name(html_escape($medicine['product_name']),html_escape($medicine['strength']),' ')?></option>
                              <?php }?>
                            </select>
                             </div>

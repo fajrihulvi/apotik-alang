@@ -120,7 +120,7 @@ public function CheckExpireList(){
 			echo "<select class=\"form-control\" id=\"manufacturer_id\" name=\"manufacturer_id\">
 	                <option value=\"\">".display('select_one')."</option>";
 			foreach ($product_info_by_manufacturer as $product) {
-				echo "<option value='".$product->product_id."'>".$product->product_name.'-('.$product->product_model.')'." </option>";
+				echo "<option value='".$product->product_id."'>".medicine_name($product->product_name,$product->product_model,'-')." </option>";
 			}
 			echo " </select>";
 		}

@@ -210,8 +210,14 @@ class Lpurchase {
 
 			foreach($purchase_detail as $k=>$v){
 			   $purchase_detail[$k]['convert_date'] = $CI->occational->dateConvert($purchase_detail[$k]['purchase_date']);
+			   // Nama obat + strength, tanda kurung dilewati bila strength kosong.
+			   $purchase_detail[$k]['medicine_name'] = medicine_name(
+			   		$purchase_detail[$k]['product_name'],
+			   		(isset($purchase_detail[$k]['strength']) ? $purchase_detail[$k]['strength'] : ''),
+			   		'-'
+			   	);
 			}
-			
+
 		}
 
 		$currency_details = $CI->Web_settings->retrieve_setting_editdata();

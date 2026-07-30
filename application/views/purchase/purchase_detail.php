@@ -105,7 +105,7 @@
 										<td>{sl}</td>
 										<td>
 											<a href="<?php echo base_url().'Cproduct/product_details/{product_id}'; ?>">
-											{product_name}-({strength})
+											{medicine_name}
 											</a>
 										</td>
 										<td class="text-right">{quantity}</td>

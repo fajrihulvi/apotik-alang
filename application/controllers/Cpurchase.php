@@ -95,7 +95,7 @@ public function product_search_by_manufacturer(){
        if(!empty($product_info)){
 		$list[''] = '';
 		foreach ($product_info as $value) {
-			$json_product[] = array('label'=>$value['product_name'].'('.$value['strength'].')','value'=>$value['product_id']);
+			$json_product[] = array('label'=>medicine_name($value['product_name'],$value['strength']),'value'=>$value['product_id']);
 		} 
 	}else{
 		$json_product[] = 'No Medicine Found';

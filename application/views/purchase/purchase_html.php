@@ -118,7 +118,7 @@
 									 foreach($details as $purdetails){?>
 										<tr>
 	                                    	<td class="text-center"><?php echo $sl;?></td>
-	                                        <td class="text-center"><div><strong><?php echo html_escape($purdetails['product_name']).' - ('.html_escape($purdetails['strength']).')'; 
+	                                        <td class="text-center"><div><strong><?php echo medicine_name(html_escape($purdetails['product_name']),html_escape($purdetails['strength']),' - ');
 	                                        if($purdetails['quantity'] < 0){
 	                                        	echo '('.' <span class="text-danger">Returned</span> '.')';
 	                                        }

@@ -164,7 +164,7 @@
                                 ?>
                                     <tr>
                                         <td class="productSelection">
-                                            <input type="text" name="product_name" onkeyup="invoice_productList(<?php echo $invoice['sl']?>);" value="<?php echo html_escape($invoice['product_name'])?>-(<?php echo html_escape($invoice['product_model'])?>)" class="form-control productSelection" required placeholder='<?php echo display('product_name') ?>' id="product_name_<?php echo html_escape($invoice['sl'])?>" tabindex="<?php echo html_escape($invoice['sl'])+2?>)">
+                                            <input type="text" name="product_name" onkeyup="invoice_productList(<?php echo $invoice['sl']?>);" value="<?php echo medicine_name(html_escape($invoice['product_name']),html_escape($invoice['product_model']),'-')?>" class="form-control productSelection" required placeholder='<?php echo display('product_name') ?>' id="product_name_<?php echo html_escape($invoice['sl'])?>" tabindex="<?php echo html_escape($invoice['sl'])+2?>)">
 
                                             <input type="hidden" class="product_id_<?php echo $invoice['sl']?> autocomplete_hidden_value" name="product_id[]" value="<?php echo html_escape($invoice['product_id'])?>" id="product_id_<?php echo $invoice['sl']?>"/>
                                         </td>

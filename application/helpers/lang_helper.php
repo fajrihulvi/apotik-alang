@@ -1,6 +1,30 @@
 <?php 
 defined('BASEPATH') OR exit('No direct script access allowed');
 
+if (!function_exists('medicine_name')) {
+
+    /**
+     * Tampilkan nama obat saja.
+     *
+     * Bagian dalam kurung (strength / product_model) tidak lagi ikut
+     * ditampilkan, baik saat isinya kosong maupun terisi. Jadi tidak
+     * pernah muncul "Nama Obat ()" atau "Nama Obat (500mg)".
+     *
+     * Parameter $strength dan $separator sengaja dipertahankan supaya
+     * seluruh pemanggil lama tetap jalan tanpa perlu diubah.
+     *
+     * @param  string $product_name
+     * @param  string $strength     diabaikan
+     * @param  string $separator    diabaikan
+     * @return string
+     */
+    function medicine_name($product_name = null, $strength = null, $separator = '')
+    {
+        return trim((string) $product_name);
+    }
+
+}
+
 if (!function_exists('display')) {
 
     function display($text = null)

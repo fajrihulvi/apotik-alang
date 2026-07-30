@@ -341,6 +341,12 @@ class Lmanufacturer {
             foreach ($sales_info as $k => $v) {
                 $sales_info[$k]['date'] = $CI->occational->dateConvert($sales_info[$k]['date']);
                 $sub_total += $sales_info[$k]['total'];
+                // Nama obat + model, tanda kurung dilewati bila model kosong.
+                $sales_info[$k]['medicine_name'] = medicine_name(
+                    $sales_info[$k]['product_name'],
+                    (isset($sales_info[$k]['product_model']) ? $sales_info[$k]['product_model'] : ''),
+                    '-'
+                );
             }
         }
 
