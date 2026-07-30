@@ -23,6 +23,13 @@ $Web_settings = $CI->Web_settings->retrieve_setting_editdata();
   #main-heades{
       display:none;
   }
+  /* Sidebar kiri tidak ikut tercetak */
+  .main-sidebar, .left-side{
+      display:none !important;
+  }
+  .content-wrapper{
+      margin-left:0 !important;
+  }
 }
 </style>
 
@@ -84,15 +91,6 @@ $Web_settings = $CI->Web_settings->retrieve_setting_editdata();
                     <td>
                         <table border="0" width="100%" >
                             <tr>
-                                {company_info}
-                                <td align="center" class="print_header"><span>
-                                        <img src="<?php if (isset($Web_settings[0]['invoice_logo'])) {echo $Web_settings[0]['invoice_logo']; }?>" class="" alt=""></span><br>
-                                    {address}<br>
-                                    {mobile}
-                                </td>
-                                {/company_info}
-                            </tr>
-                            <tr>
                                 <td align="center"><b>{customer_name}</b><br>
                                     {customer_address}
                                     <br>
@@ -125,7 +123,7 @@ $Web_settings = $CI->Web_settings->retrieve_setting_editdata();
                                                 echo $qty = $details['quantity'];
                                             }
                                               ?></nobr></td>
-                                <td align="center"><nobr><?php echo $details['product_name'].' - '.$details['strength'];
+                                <td align="center"><nobr><?php echo medicine_name($details['product_name']);
                                             if($details['quantity'] < 0){
                                                 echo '('.' <span class="text-danger">Returned</span> '.')';
                                             }?><nobr></td>
@@ -195,7 +193,7 @@ $Web_settings = $CI->Web_settings->retrieve_setting_editdata();
                                 <td align="left"><nobr></nobr></td>
                                 <td align="left" colspan="3"><nobr><?php echo display('total_discount') ?></nobr></td>
                                 <td align="right"><nobr><?php
-                                                  $dis = $total_discount + $return_discount + $invoice_discount;
+                                                  $dis = number_format($raw_total_discount + $return_discount + $raw_invoice_discount, 2, '.', ',');
                                                  echo (($position == 0) ? "$currency ".$dis : $dis." $currency") ?></nobr></td>
                             </tr>
                             

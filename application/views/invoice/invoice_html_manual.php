@@ -22,6 +22,13 @@
   #main-heades{
       display:none;
   }
+  /* Sidebar kiri tidak ikut tercetak */
+  .main-sidebar, .left-side{
+      display:none !important;
+  }
+  .content-wrapper{
+      margin-left:0 !important;
+  }
 }
 </style>
 
@@ -74,25 +81,12 @@
                 <div class="panel panel-bd">
 	                <div>
 	                    <div class="panel-body" id="printableArea">
-	                        <div class="row print_header"> 
+	                        <?php if (!empty($Web_settings[0]['receipt_header'])) { ?>
+	                            <div class="receipt-header" style="text-align:center; padding:10px;"><?php echo $Web_settings[0]['receipt_header']; ?></div>
+	                        <?php } ?>
+	                        <div class="row print_header">
                                 <div class="col-sm-8 company-content">
-                                    {company_info}
-                                    <img src="<?php
-                                    if (isset($Web_settings[0]['invoice_logo'])) {
-                                        echo html_escape($Web_settings[0]['invoice_logo']);
-                                    }
-                                    ?>" class="img-bottom-m" alt="" >
-                                    <br>
-                                    <span class="label label-success-outline m-r-15 p-10" ><?php echo display('billing_from') ?></span>
                                     <address class="margin-top10">
-                                        <strong class="company_name_p">{company_name}</strong><br>
-                                        {address}<br>
-                                        <abbr><b><?php echo display('mobile') ?>:</b></abbr> {mobile}<br>
-                                        <abbr><b><?php echo display('email') ?>:</b></abbr> 
-                                        {email}<br>
-                                        <abbr><b><?php echo display('website') ?>:</b></abbr> 
-                                        {website}<br>
-                                         {/company_info}
                                          <abbr>{tax_regno}</abbr>
                                     </address>
 
@@ -155,7 +149,7 @@
 										 foreach($invoice_all_data as $details){?>
 										<tr>
 	                                    	<td class="text-center"><?php echo $details['sl']?></td>
-	                                        <td class="text-center"><div><strong><?php echo html_escape($details['product_name']).' - '.html_escape($details['strength']);
+	                                        <td class="text-center"><div><strong><?php echo medicine_name(html_escape($details['product_name']));
 	                                        if($details['quantity'] < 0){
 	                                        	echo '('.' <span class="text-danger">Returned</span> '.')';
 	                                        }?></strong></div></td>
@@ -242,7 +236,7 @@
                                             <tr>
                                                 <th><?php echo display('total_discount') ?> : </th>
                                                 <td class="text-right"><?php
-                                                  $dis = $total_discount + $return_discount + $invoice_discount;
+                                                  $dis = number_format($raw_total_discount + $return_discount + $raw_invoice_discount, 2, '.', ',');
                                                  echo (($position == 0) ? "$currency ".html_escape($dis) : html_escape($dis)." $currency") ?> </td>
                                             </tr>
                                             <?php
@@ -262,8 +256,9 @@
                                         <tr>
                                             <th class="text-left grand_total"><?php echo  display('grand_total') ?> :</th>
                                             <td class="text-right grand_total"><?php
-                                            $tmnt = $total_amount-$return_amount;
-                                             echo (($position == 0) ? "$currency ".html_escape($tmnt)  : html_escape($tmnt)." $currency") ?></td>
+                                            $tmnt = $raw_total_amount - $return_amount;
+                                            $tmnt_show = number_format($tmnt, 2, '.', ',');
+                                             echo (($position == 0) ? "$currency ".html_escape($tmnt_show)  : html_escape($tmnt_show)." $currency") ?></td>
                                         </tr>
                                         <tr>
                                             <th class="text-left grand_total"><?php echo display('paid_ammount') ?> : </th>
@@ -275,8 +270,8 @@
                                             <tr>
                                                 <th class="text-left grand_total"><?php echo display('due') ?> : </th>
                                                 <td  class="text-right grand_total"><?php
-                                                 $due = $tmnt - $paid_amount;
-                                                 echo (($position == 0) ? "$currency ".html_escape($due) : html_escape($due)."{due_amount} $currency") ?></td>
+                                                 $due = number_format($tmnt - $raw_paid_amount, 2, '.', ',');
+                                                 echo (($position == 0) ? "$currency ".html_escape($due) : html_escape($due)." $currency") ?></td>
                                             </tr>
                                             <?php
                                         }
@@ -299,6 +294,9 @@
                                     </div></div>
                             </div>
 	                        </div>
+	                        <?php if (!empty($Web_settings[0]['receipt_footer'])) { ?>
+	                            <div class="receipt-footer" style="text-align:center; padding:10px;"><?php echo $Web_settings[0]['receipt_footer']; ?></div>
+	                        <?php } ?>
 	                    </div>
 	                </div>
 

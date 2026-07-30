@@ -56,8 +56,11 @@
             <div class="col-sm-12">
                 <div class="panel panel-bd">
 	                <div id="printableArea">
+	                    <?php if (!empty($Web_settings[0]['receipt_header'])) { ?>
+	                        <div class="receipt-header" style="text-align:center; padding:10px;"><?php echo $Web_settings[0]['receipt_header']; ?></div>
+	                    <?php } ?>
 	                    <div class="panel-body">
-	            <div class="row print_header"> 
+	            <div class="row print_header">
                                 <div class="col-sm-8 company-content">
                                     {company_info}
                                     <img src="<?php
@@ -196,6 +199,9 @@
                                     </div></div>
                             </div>
 	                    </div>
+	                    <?php if (!empty($Web_settings[0]['receipt_footer'])) { ?>
+	                        <div class="receipt-footer" style="text-align:center; padding:10px;"><?php echo $Web_settings[0]['receipt_footer']; ?></div>
+	                    <?php } ?>
 	                </div>
 
                      <div class="panel-footer text-left">

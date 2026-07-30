@@ -139,7 +139,7 @@
 										 foreach($invoice_all_data as $details){?>
 										<tr>
 	                                    	<td class="text-center"><?php echo $details['sl']?></td>
-	                                        <td class="text-center"><div><strong><?php echo html_escape($details['product_name']).' - '.html_escape($details['strength']);
+	                                        <td class="text-center"><div><strong><?php echo medicine_name(html_escape($details['product_name']));
 	                                        if($details['quantity'] < 0){
 	                                        	echo '('.' <span class="text-danger">Returned</span> '.')';
 	                                        }?></strong></div></td>
@@ -226,7 +226,7 @@
                                             <tr>
                                                 <th><?php echo display('total_discount') ?> : </th>
                                                 <td class="text-right"><?php
-                                                  $dis = $total_discount + $return_discount + $invoice_discount;
+                                                  $dis = number_format($raw_total_discount + $return_discount + $raw_invoice_discount, 2, '.', ',');
                                                  echo (($position == 0) ? "$currency ".html_escape($dis) : html_escape($dis)." $currency") ?> </td>
                                             </tr>
                                             <?php

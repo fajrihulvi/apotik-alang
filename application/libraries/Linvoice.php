@@ -291,6 +291,10 @@ public function invoice_edit_data($invoice_id)
 			'position' 			=> 	$currency_details[0]['currency_position'],
 			'discount_type'  	=>  $currency_details[0]['discount_type'],
 			'tax_regno'         =>  $txregname,
+			// Nilai mentah untuk perhitungan di view, lihat catatan di
+			// invoice_html_data_manual().
+			'raw_total_discount'  =>	(float) $invoice_detail[0]['total_discount'],
+			'raw_invoice_discount'=>	(float) $invoice_detail[0]['invoice_discount'],
 		);
 
 		$chapterList = $CI->parser->parse('invoice/invoice_html',$data,true);
@@ -358,6 +362,13 @@ public function invoice_edit_data($invoice_id)
 			'position' 			=> 	$currency_details[0]['currency_position'],
 			'discount_type'  	=> $currency_details[0]['discount_type'],
 			'tax_regno'         => $txregname,
+			// Nilai mentah (belum di-number_format) untuk perhitungan di view.
+			// number_format menghasilkan string ber-koma seperti "1,250.00" yang
+			// bila dipakai berhitung memicu "A non-numeric value encountered".
+			'raw_total_amount'	=>	(float) $invoice_detail[0]['total_amount'],
+			'raw_total_discount'=>	(float) $invoice_detail[0]['total_discount'],
+			'raw_invoice_discount'=>	(float) $invoice_detail[0]['invoice_discount'],
+			'raw_paid_amount'	=>	(float) $invoice_detail[0]['paid_amount'],
 		);
 
 		$chapterList = $CI->parser->parse('invoice/invoice_html_manual',$data,true);
@@ -418,6 +429,10 @@ public function invoice_edit_data($invoice_id)
 			'currency' 			=> $currency_details[0]['currency'],
 			'position' 			=> $currency_details[0]['currency_position'],
 			'discount_type'  	=>  $currency_details[0]['discount_type'],
+			// Nilai mentah untuk perhitungan di view, lihat catatan di
+			// invoice_html_data_manual().
+			'raw_total_discount'  =>	(float) $invoice_detail[0]['total_discount'],
+			'raw_invoice_discount'=>	(float) $invoice_detail[0]['invoice_discount'],
 			);
 
 		$chapterList = $CI->parser->parse('invoice/pos_invoice_html',$data,true);
@@ -477,6 +492,10 @@ public function invoice_edit_data($invoice_id)
 			'currency' 			=>  $currency_details[0]['currency'],
 			'position' 			=>  $currency_details[0]['currency_position'],
 			'discount_type'  	=>  $currency_details[0]['discount_type'],
+			// Nilai mentah untuk perhitungan di view, lihat catatan di
+			// invoice_html_data_manual().
+			'raw_total_discount'  =>	(float) $invoice_detail[0]['total_discount'],
+			'raw_invoice_discount'=>	(float) $invoice_detail[0]['invoice_discount'],
 			);
 
 		$chapterList = $CI->parser->parse('invoice/pos_invoice_html_direct',$data,true);

@@ -106,7 +106,7 @@ $Web_settings = $CI->Web_settings->retrieve_setting_editdata();
                                                 echo $qty = $details['quantity'];
                                             }
                                               ?></nobr></td>
-                                <td align="center"><nobr><?php echo $details['product_name'].' - '.$details['strength'];
+                                <td align="center"><nobr><?php echo medicine_name($details['product_name']);
                                             if($details['quantity'] < 0){
                                                 echo '('.' <span class="text-danger">Returned</span> '.')';
                                             }?><nobr></td>
@@ -176,7 +176,7 @@ $Web_settings = $CI->Web_settings->retrieve_setting_editdata();
                                 <td align="left"><nobr></nobr></td>
                                 <td align="left" colspan="3"><nobr><?php echo display('total_discount') ?></nobr></td>
                                 <td align="right"><nobr><?php
-                                                  $dis = $total_discount + $return_discount + $invoice_discount;
+                                                  $dis = number_format($raw_total_discount + $return_discount + $raw_invoice_discount, 2, '.', ',');
                                                  echo (($position == 0) ? "$currency ".$dis : $dis." $currency") ?></nobr></td>
                             </tr>
                             
