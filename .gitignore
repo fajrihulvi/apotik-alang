@@ -1,0 +1,2 @@
+application/ci_sessions/*
+!application/ci_sessions/.gitkeep
