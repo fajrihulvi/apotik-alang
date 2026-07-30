@@ -1,2 +1,5 @@
 application/ci_sessions/*
 !application/ci_sessions/.gitkeep
+
+# Kredensial database production, jangan ikut ke repository
+application/config/db_credentials.php
