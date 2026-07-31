@@ -99,11 +99,12 @@
 
 								</tbody>
 								<tfoot>
-                    <th colspan="5" class="text-right">Total:</th>
-
-                  <th></th>
-                  <th></th>
-                  <th></th>
+									<tr>
+										<th colspan="5" class="text-right">Total:</th>
+										<th></th>
+										<th></th>
+										<th></th>
+									</tr>
                                 </tfoot>
 		                    </table>
 		                </div>
