@@ -134,10 +134,11 @@ class Lpurchase {
 			$i=0;
 			
 			foreach($purchase_detail as $k=>$v){$i++;
+				// Tiap baris memakai 7 slot tabindex (termasuk kolom diskon).
 				if($i == 1){
-				 $tab = 5;	
+				 $tab = 5;
 			}else{
-				 $tab = $i*6;
+				 $tab = 5+(($i-1)*7);
 			}
 			   $purchase_detail[$k]['sl']=$i;
 			   $purchase_detail[$k]['medtap']=$tab+1;
@@ -145,8 +146,9 @@ class Lpurchase {
 			   $purchase_detail[$k]['expttap']=$tab+3;
 			   $purchase_detail[$k]['qtytap']=$tab+4;
 			   $purchase_detail[$k]['ratetap']=$tab+5;
-			   $purchase_detail[$k]['deletetap']=$tab+6;
-			   $purchase_detail[$k]['addtaps']=$tab+7;
+			   $purchase_detail[$k]['disctap']=$tab+6;
+			   $purchase_detail[$k]['deletetap']=$tab+7;
+			   $purchase_detail[$k]['addtaps']=$tab+8;
 			}
 		}
 

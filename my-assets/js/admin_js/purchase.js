@@ -88,11 +88,13 @@ function product_pur_or_list(sl) {
             tab7 = tabindex + 7,
             tab8 = tab7 + 1;
            
-            newdiv.innerHTML ='<td class="span3 manufacturer"><input type="text" name="product_name"  class="form-control product_name productSelection" onkeypress="product_pur_or_list('+ count +')" placeholder="Medicine Name" id="product_name_'+ count +'" tabindex="'+tab1+'" required> <input type="hidden" class="autocomplete_hidden_value product_id_'+ count +'" name="product_id[]" id="SchoolHiddenId"/>  <input type="hidden" class="sl" value="'+ count +'">  </td> <td> <input type="text" required="required" name="batch_id[]" id="batch_id_'+ count +'" tabindex="'+tab2+'" class="form-control text-right"  tabindex="11" placeholder="Batch Id" /></td><td><input type="text" name="expeire_date[]" onchange="checkExpiredate('+ count +')" id="expeire_date_'+ count +'" required="required" class="form-control datepicker" tabindex="'+tab3+'"  placeholder="Expire Date"/> </td>  <td class="wt"> <input type="text" id="available_quantity_'+ count +'" class="form-control text-right stock_ctn_'+ count +'" placeholder="0.00" readonly/> </td><td class="text-right"><input type="text" name="product_quantity[]" tabindex="'+tab4+'" required  id="quantity_'+ count +'" class="form-control text-right store_cal_' + count + '" onkeyup="calculate_store(' + count + '),checkqty(' + count + ');" onchange="calculate_store(' + count + ');" placeholder="0.00" value="" min="0"/>  </td><td class="test"><input type="text" name="product_rate[]"  required onkeyup="calculate_store('+ count +'),checkqty(' + count + ');" onchange="calculate_store('+ count +');" id="product_rate_'+ count +'" class="form-control product_rate_'+ count +' text-right" placeholder="0.00" value="" min="0" tabindex="'+tab5+'"/></td><td class="text-right"><input class="form-control total_price text-right total_price_'+ count +'" type="text" name="total_price[]" id="total_price_'+ count +'" value="0.00" readonly="readonly" /> </td><td> <input type="hidden" id="total_discount_1" class="" /><input type="hidden" id="all_discount_1" class="total_discount" /><button type="button" class="btn btn-danger" tabindex="'+tab6+'" onclick="deleteRow(this)"><i class="fa fa-close"></i></button></td>';
+            newdiv.innerHTML ='<td class="span3 manufacturer"><input type="text" name="product_name"  class="form-control product_name productSelection" onkeypress="product_pur_or_list('+ count +')" placeholder="Medicine Name" id="product_name_'+ count +'" tabindex="'+tab1+'" required> <input type="hidden" class="autocomplete_hidden_value product_id_'+ count +'" name="product_id[]" id="SchoolHiddenId"/>  <input type="hidden" class="sl" value="'+ count +'">  </td> <td> <input type="text" required="required" name="batch_id[]" id="batch_id_'+ count +'" tabindex="'+tab2+'" class="form-control text-right"  tabindex="11" placeholder="Batch Id" /></td><td><input type="text" name="expeire_date[]" onchange="checkExpiredate('+ count +')" id="expeire_date_'+ count +'" required="required" class="form-control datepicker" tabindex="'+tab3+'"  placeholder="Expire Date"/> </td>  <td class="wt"> <input type="text" id="available_quantity_'+ count +'" class="form-control text-right stock_ctn_'+ count +'" placeholder="0.00" readonly/> </td><td class="text-right"><input type="text" name="product_quantity[]" tabindex="'+tab4+'" required  id="quantity_'+ count +'" class="form-control text-right store_cal_' + count + '" onkeyup="calculate_store(' + count + '),checkqty(' + count + ');" onchange="calculate_store(' + count + ');" placeholder="0.00" value="" min="0"/>  </td><td class="test"><input type="text" name="product_rate[]"  required onkeyup="calculate_store('+ count +'),checkqty(' + count + ');" onchange="calculate_store('+ count +');" id="product_rate_'+ count +'" class="form-control product_rate_'+ count +' text-right" placeholder="0.00" value="" min="0" tabindex="'+tab5+'"/></td><td class="text-right"><input type="text" name="discount[]" onkeyup="calculate_store('+ count +');" onchange="calculate_store('+ count +');" id="discount_'+ count +'" class="form-control discount_'+ count +' text-right" placeholder="0.00" value="0" min="0" max="100" tabindex="'+tab6+'"/></td><td class="text-right"><input class="form-control total_price text-right total_price_'+ count +'" type="text" name="total_price[]" id="total_price_'+ count +'" value="0.00" readonly="readonly" /><input type="hidden" class="discount_amount" id="discount_amount_'+ count +'" value="0"/> </td><td> <button type="button" class="btn btn-danger" tabindex="'+tab7+'" onclick="deleteRow(this)"><i class="fa fa-close"></i></button></td>';
             document.getElementById(divName).appendChild(newdiv);
             document.getElementById(tabin).focus();
-            document.getElementById("add_invoice_item").setAttribute("tabindex", tab7);
-            document.getElementById("add_purchase").setAttribute("tabindex", tab8);
+            // tab7 sudah dipakai tombol hapus baris, jadi tombol tambah &
+            // simpan memakai slot sesudahnya.
+            document.getElementById("add_invoice_item").setAttribute("tabindex", tab8);
+            document.getElementById("add_purchase").setAttribute("tabindex", tab8 + 1);
         
            
             count++;
@@ -109,19 +111,38 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
     function calculate_store(sl) {
        
         var gr_tot = 0;
-        var item_ctn_qty    = $("#quantity_"+sl).val();
-        var vendor_rate = $("#product_rate_"+sl).val();
+        var gr_disc = 0;
+        var item_ctn_qty    = parseFloat($("#quantity_"+sl).val()) || 0;
+        var vendor_rate = parseFloat($("#product_rate_"+sl).val()) || 0;
 
-        var total_price     = item_ctn_qty * vendor_rate;
+        // Diskon per barang dalam persen, dibatasi 0-100.
+        var discount_percent = parseFloat($("#discount_"+sl).val()) || 0;
+        if (discount_percent < 0) { discount_percent = 0; }
+        if (discount_percent > 100) {
+            discount_percent = 100;
+            $("#discount_"+sl).val(100);
+        }
+
+        var sub_total       = item_ctn_qty * vendor_rate;
+        var discount_amount = sub_total * discount_percent / 100;
+        // Total sudah dikurangi diskon.
+        var total_price     = sub_total - discount_amount;
+
         $("#total_price_"+sl).val(total_price.toFixed(2));
+        $("#discount_amount_"+sl).val(discount_amount.toFixed(2));
 
-       
         //Total Price
-        $(".total_price").each(function() {
+        $("#purchaseTable .total_price").each(function() {
             isNaN(this.value) || 0 == this.value.length || (gr_tot += parseFloat(this.value))
         });
 
-        $("#grandTotal").val(gr_tot.toFixed(2,2));
+        //Total diskon seluruh barang
+        $("#purchaseTable .discount_amount").each(function() {
+            isNaN(this.value) || 0 == this.value.length || (gr_disc += parseFloat(this.value))
+        });
+
+        $("#grandTotal").val(gr_tot.toFixed(2));
+        $("#total_discount").val(gr_disc.toFixed(2));
     }
 
       "use strict";
@@ -363,8 +384,47 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
             var a = e.parentNode.parentNode;
             a.parentNode.removeChild(a)
         }
-        calculateSum()
+        // Hitung ulang grand total & total diskon setelah baris dihapus.
+        recalculate_purchase_total()
     }
+
+    // Jumlahkan ulang seluruh baris tabel pembelian.
+    "use strict";
+    function recalculate_purchase_total() {
+        var gr_tot = 0;
+        var gr_disc = 0;
+
+        $("#purchaseTable .total_price").each(function() {
+            isNaN(this.value) || 0 == this.value.length || (gr_tot += parseFloat(this.value))
+        });
+
+        $("#purchaseTable .discount_amount").each(function() {
+            isNaN(this.value) || 0 == this.value.length || (gr_disc += parseFloat(this.value))
+        });
+
+        $("#grandTotal").val(gr_tot.toFixed(2));
+        $("#total_discount").val(gr_disc.toFixed(2));
+    }
+
+    // Cadangan bila atribut onkeyup/onchange pada baris tidak terpasang
+    // (mis. baris hasil template parser). Nomor baris diambil dari input .sl
+    // pada baris yang sama, jadi tetap akurat walau urutan berubah.
+    $("body").on("keyup change input", "#purchaseTable input[name='discount[]']", function() {
+        var sl = $(this).closest("tr").find(".sl").val();
+        if (typeof sl !== "undefined" && sl !== "") {
+            calculate_store(sl);
+        }
+    });
+
+    // Hitung ulang saat halaman dibuka, supaya baris yang sudah tersimpan
+    // (form edit) langsung menampilkan total & diskon yang benar.
+    $(function() {
+        if ($("#purchaseTable").length) {
+            $("#purchaseTable .sl").each(function() {
+                calculate_store($(this).val());
+            });
+        }
+    });
 
     $(document).ready(function() { 
         "use strict";

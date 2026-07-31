@@ -165,7 +165,7 @@
                                             <th class="text-center"><?php echo display('quantity') ?> <i class="text-danger">*</i></th>
                                             <th class="text-center"><?php echo display('manufacturer_rate') ?><i class="text-danger">*</i></th>
 
-
+                                            <th class="text-center"><?php echo display('discount') ?> (%)</th>
 
                                             <th class="text-center"><?php echo display('total') ?></th>
 
@@ -201,9 +201,13 @@
                                                 <input type="text" name="product_rate[]" onkeyup="calculate_store({sl}),checkqty({sl});" onchange="calculate_store({sl});" id="product_rate_{sl}" class="form-control product_rate_{sl} text-right" placeholder="0.00" value="{rate}" required="required" min="0" tabindex="{ratetap}"/>
                                             </td>
 
+                                            <td class="text-right">
+                                                <input type="text" name="discount[]" onkeyup="calculate_store({sl});" onchange="calculate_store({sl});" id="discount_{sl}" class="form-control discount_{sl} text-right" placeholder="0.00" value="{discount}" min="0" max="100" tabindex="{disctap}"/>
+                                            </td>
 
                                             <td class="text-right">
                                                 <input class="form-control total_price text-right" type="text" name="total_price[]" id="total_price_{sl}" value="{total_amount}" readonly="readonly" />
+                                                <input type="hidden" class="discount_amount" id="discount_amount_{sl}" value="0"/>
                                             </td>
                                             <td>
 
@@ -220,8 +224,9 @@
                                           
 
                                             <input type="hidden" name="baseUrl" class="baseUrl" value="<?php echo base_url();?>"/>
+                                            <input type="hidden" name="total_discount" id="total_discount" value="0.00"/>
                                         </td>
-                                        <td class="text-right" colspan="4"><b><?php echo display('grand_total') ?>:</b></td>
+                                        <td class="text-right" colspan="5"><b><?php echo display('grand_total') ?>:</b></td>
                                         <td class="text-right">
                                             <input type="text" id="grandTotal" class="text-right form-control" name="grand_total_price" value="{grand_total}" readonly="readonly" />
                                         </td>

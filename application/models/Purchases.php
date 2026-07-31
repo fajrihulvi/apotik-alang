@@ -418,10 +418,11 @@ class Purchases extends CI_Model {
 			$product_rate = $rate[$i];
 			$product_id = $p_id[$i];
 			$total_price = $t_price[$i];
-			$disc = $discount[$i];
+			// Diskon per barang (persen). Aman bila field belum terkirim.
+			$disc = (isset($discount[$i]) && $discount[$i] !== '' ? $discount[$i] : 0);
 			$batch_id=$batch[$i];
 			$expre_date=$exp_date[$i];
-			
+
 			$data1 = array(
 				'purchase_detail_id'=>	$this->generator(15),
 				'purchase_id'		=>	$purchase_id,
@@ -649,8 +650,10 @@ public function update_purchase()
 			$total_price  = $t_price[$i];
 			$batch_id     = $batch[$i];
 			$expre_date   = $exp_date[$i];
-			$disc = $discount[$i];
-			
+			// Diskon per barang (persen). Aman bila field belum terkirim.
+			$disc = (isset($discount[$i]) && $discount[$i] !== '' ? $discount[$i] : 0);
+
+
 			$data1 = array(
 				'purchase_detail_id'=> $this->generator(15),
 				'purchase_id'       =>  $purchase_id,

@@ -171,6 +171,7 @@
                                             <th class="text-center"><?php echo display('stock_ctn') ?></th>
                                             <th class="text-center"><?php echo display('quantity') ?> <i class="text-danger">*</i></th>
                                             <th class="text-center"><?php echo display('manufacturer_rate') ?><i class="text-danger">*</i></th>
+                                            <th class="text-center"><?php echo display('discount') ?> (%)</th>
                                             <th class="text-center"><?php echo display('total') ?></th>
                                             <th class="text-center"><?php echo display('action') ?></th>
                                         </tr>
@@ -201,15 +202,19 @@
                                             <td class="test">
                                                 <input type="text" name="product_rate[]" onkeyup="calculate_store(1),checkqty(1);" onchange="calculate_store(1);" id="product_rate_1" class="form-control product_rate_1 text-right" placeholder="0.00" value="" min="0" tabindex="10" required="required" />
                                             </td>
-                                           
+
+                                            <td class="text-right">
+                                                <input type="text" name="discount[]" onkeyup="calculate_store(1);" onchange="calculate_store(1);" id="discount_1" class="form-control discount_1 text-right" placeholder="0.00" value="0" min="0" max="100" tabindex="11"/>
+                                            </td>
 
                                             <td class="text-right">
                                                 <input class="form-control total_price text-right" type="text" name="total_price[]" id="total_price_1" value="0.00" readonly="readonly" />
+                                                <input type="hidden" class="discount_amount" id="discount_amount_1" value="0"/>
                                             </td>
                                             <td>
 
                                                
-                                            <button type="button" class="btn btn-danger" tabindex="11" onclick="deleteRow(this)"><i class="fa fa-close"></i></button>
+                                            <button type="button" class="btn btn-danger" tabindex="12" onclick="deleteRow(this)"><i class="fa fa-close"></i></button>
                                                 
                                             </td>
                                     </tr>
@@ -220,13 +225,14 @@
                                            
 
                                             <input type="hidden" name="baseUrl" class="baseUrl" value="<?php echo base_url();?>"/>
+                                            <input type="hidden" name="total_discount" id="total_discount" value="0.00"/>
                                         </td>
-                                        <td class="text-right" colspan="4"><b><?php echo display('grand_total') ?>:</b></td>
+                                        <td class="text-right" colspan="5"><b><?php echo display('grand_total') ?>:</b></td>
                                         <td class="text-right">
                                             <input type="text" id="grandTotal" class="text-right form-control" name="grand_total_price" value="0.00" readonly="readonly" />
                                         </td>
                                         <td>
-                                        <button id="add_invoice_item" type="button" class="btn btn-info" name="add-invoice-item" onClick="addPurchaseOrderField1('addPurchaseItem')" tabindex="12"><i class="fa fa-plus"></i></button>
+                                        <button id="add_invoice_item" type="button" class="btn btn-info" name="add-invoice-item" onClick="addPurchaseOrderField1('addPurchaseItem')" tabindex="13"><i class="fa fa-plus"></i></button>
                                         </td>
                                     </tr>
                                 </tfoot>
