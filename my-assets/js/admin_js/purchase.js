@@ -437,7 +437,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
 
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,1,2,3,5,6] },
+                { "bSortable": false, "aTargets": [0,1,2,3,5,6,7] },
 
             ],
            'processing': true,
@@ -491,6 +491,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
              { data: 'manufacturer_name'},
              { data: 'purchase_date' },
              { data: 'total_amount',class:"total_sale text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
+             { data: 'status', class:"text-center"},
              { data: 'button'},
           ],
 

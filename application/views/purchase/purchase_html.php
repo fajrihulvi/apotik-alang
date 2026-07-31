@@ -110,6 +110,7 @@
 	                                        <th class="text-center"><?php echo display('product_name') ?></th>
 	                                        <th class="text-center"><?php echo display('quantity') ?></th>
 	                                        <th class="text-center"><?php echo display('purchase_price') ?></th>
+	                                        <th class="text-center">Status</th>
 	                                        <th class="text-center"><?php echo display('ammount') ?></th>
 	                                    </tr>
 	                                </thead>
@@ -133,6 +134,28 @@
 	                                         ?></td>
 
 	                                        <td align="center"><?php echo (($position==0)?$currency.' '.$purdetails['rate']:$purdetails['rate'].' '. $currency) ?></td>
+	                                        <td align="center"><?php
+	                                        // Status harga dibanding pembelian sebelumnya
+	                                        // untuk obat + distributor yang sama.
+	                                        $ps = (isset($price_status[$purdetails['product_id']])
+	                                                ? $price_status[$purdetails['product_id']] : null);
+	                                        if (empty($ps) || $ps['status'] == 'baru') {
+	                                            echo '<span class="label" style="background:#777;color:#fff;">'
+	                                               . '<i class="fa fa-star-o"></i> Baru</span>';
+	                                        } else {
+	                                            $prev_show = number_format($ps['prev_rate'], 2, '.', ',');
+	                                            if ($ps['status'] == 'naik') {
+	                                                echo '<span class="label" style="background:#d9534f;color:#fff;" title="Sebelumnya '.$prev_show.'">'
+	                                                   . '<i class="fa fa-arrow-up"></i> Naik</span>';
+	                                            } elseif ($ps['status'] == 'turun') {
+	                                                echo '<span class="label" style="background:#5cb85c;color:#fff;" title="Sebelumnya '.$prev_show.'">'
+	                                                   . '<i class="fa fa-arrow-down"></i> Turun</span>';
+	                                            } else {
+	                                                echo '<span class="label" style="background:#f0ad4e;color:#fff;" title="Sebelumnya '.$prev_show.'">'
+	                                                   . '<i class="fa fa-minus"></i> Sama</span>';
+	                                            }
+	                                        }
+	                                        ?></td>
 	                                        <td align="right"><?php
                                              if($purdetails['total_amount'] < 0){
                                              	$t_amount = number_format($purdetails['total_amount'] * -1, 2, '.', ',');
@@ -148,6 +171,7 @@
 	                                	<td align="center" colspan="1"><b><?php echo display('sub_total')?>:</b></td>
 	                                	<td></td>
 	                                	<td align="center" ><b><?php echo $subqty;?></b></td>
+	                                	<td></td>
 	                                	<td></td>
 	                                	<td class="text-right" align="center" ><b><?php echo (($position==0)?$currency.' '. $sub_total:$sub_total.' '.$currency) ?></b></td>
 	                                </tfoot>

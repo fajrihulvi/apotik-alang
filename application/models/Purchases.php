@@ -87,6 +87,14 @@ class Purchases extends CI_Model {
          $this->db->order_by($columnName, $columnSortOrder);
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
+
+         // Status perbandingan harga untuk seluruh nota di halaman ini.
+         $purchase_ids = array();
+         foreach($records as $record){
+            $purchase_ids[] = $record->purchase_id;
+         }
+         $price_status = $this->purchase_price_status_bulk($purchase_ids);
+
          $data = array();
          $sl =1;
          foreach($records as $record ){
@@ -101,7 +109,34 @@ class Purchases extends CI_Model {
 
       
                
-            $data[] = array( 
+            // Kolom status: ringkasan naik/turun/sama dibanding harga
+            // pembelian sebelumnya untuk obat + distributor yang sama.
+            $st     = (isset($price_status[$record->purchase_id])
+                        ? $price_status[$record->purchase_id]
+                        : array('naik'=>0,'turun'=>0,'sama'=>0,'baru'=>0));
+            $status = '';
+
+            if ($st['naik'] > 0) {
+               $status .= '<span class="label" style="background:#d9534f;color:#fff;margin-right:3px;" title="'.$st['naik'].' obat harganya naik">'
+                        . '<i class="fa fa-arrow-up"></i> '.$st['naik'].'</span>';
+            }
+            if ($st['turun'] > 0) {
+               $status .= '<span class="label" style="background:#5cb85c;color:#fff;margin-right:3px;" title="'.$st['turun'].' obat harganya turun">'
+                        . '<i class="fa fa-arrow-down"></i> '.$st['turun'].'</span>';
+            }
+            if ($st['sama'] > 0) {
+               $status .= '<span class="label" style="background:#f0ad4e;color:#fff;margin-right:3px;" title="'.$st['sama'].' obat harganya sama">'
+                        . '<i class="fa fa-minus"></i> '.$st['sama'].'</span>';
+            }
+            if ($st['baru'] > 0) {
+               $status .= '<span class="label" style="background:#777;color:#fff;margin-right:3px;" title="'.$st['baru'].' obat belum punya riwayat harga">'
+                        . '<i class="fa fa-star-o"></i> '.$st['baru'].'</span>';
+            }
+            if ($status === '') {
+               $status = '<span class="text-muted">-</span>';
+            }
+
+            $data[] = array(
                 'sl'               =>$sl,
                 'chalan_no'        =>$record->chalan_no,
                 'purchase_id'      =>$record->purchase_id,
@@ -109,9 +144,10 @@ class Purchases extends CI_Model {
                 'purchase_id'      =>$record->purchase_id,
                 'purchase_date'    =>$record->purchase_date,
                 'total_amount'     =>$record->grand_total_amount,
+                'status'           =>$status,
                 'button'           =>$button,
-                
-            ); 
+
+            );
             $sl++;
          }
 
@@ -800,6 +836,187 @@ public function update_purchase()
 		}
 		return false;
 	
+	}
+
+	/**
+	 * Bandingkan harga satuan tiap obat pada satu nota dengan harga
+	 * pembelian TERAKHIR SEBELUMNYA untuk obat + distributor yang sama.
+	 *
+	 * Mengembalikan array dengan key product_id:
+	 *   status      => 'naik' | 'turun' | 'sama' | 'baru'
+	 *   rate        => harga saat ini
+	 *   prev_rate   => harga sebelumnya (null bila belum pernah beli)
+	 *   selisih     => rate - prev_rate
+	 *
+	 * @param  string $purchase_id
+	 * @return array
+	 */
+	public function purchase_price_status($purchase_id)
+	{
+		// Data nota yang sedang dilihat: distributor & tanggalnya.
+		$current = $this->db->select('a.manufacturer_id, a.purchase_date')
+		                    ->from('product_purchase a')
+		                    ->where('a.purchase_id', $purchase_id)
+		                    ->get()->row();
+
+		if (empty($current)) {
+			return array();
+		}
+
+		$items = $this->db->select('product_id, rate')
+		                  ->from('product_purchase_details')
+		                  ->where('purchase_id', $purchase_id)
+		                  ->get()->result();
+
+		$result = array();
+
+		foreach ($items as $item) {
+			// Harga terakhir sebelum nota ini, untuk obat + distributor yang sama.
+			$prev = $this->db->select('d.rate')
+			                 ->from('product_purchase_details d')
+			                 ->join('product_purchase p', 'p.purchase_id = d.purchase_id')
+			                 ->where('d.product_id', $item->product_id)
+			                 ->where('p.manufacturer_id', $current->manufacturer_id)
+			                 ->where('d.purchase_id !=', $purchase_id)
+			                 ->where('p.purchase_date <=', $current->purchase_date)
+			                 ->order_by('p.purchase_date', 'desc')
+			                 ->order_by('d.id', 'desc')
+			                 ->limit(1)
+			                 ->get()->row();
+
+			$rate      = (float) $item->rate;
+			$prev_rate = (!empty($prev) ? (float) $prev->rate : null);
+
+			if ($prev_rate === null) {
+				$status = 'baru';
+			} elseif ($rate > $prev_rate) {
+				$status = 'naik';
+			} elseif ($rate < $prev_rate) {
+				$status = 'turun';
+			} else {
+				$status = 'sama';
+			}
+
+			$result[$item->product_id] = array(
+				'status'    => $status,
+				'rate'      => $rate,
+				'prev_rate' => $prev_rate,
+				'selisih'   => ($prev_rate === null ? 0 : $rate - $prev_rate),
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Ringkasan status harga satu nota: berapa obat yang naik/turun/sama/baru.
+	 *
+	 * @param  string $purchase_id
+	 * @return array
+	 */
+	public function purchase_price_status_summary($purchase_id)
+	{
+		$detail  = $this->purchase_price_status($purchase_id);
+		$summary = array('naik' => 0, 'turun' => 0, 'sama' => 0, 'baru' => 0);
+
+		foreach ($detail as $row) {
+			$summary[$row['status']]++;
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Versi massal dari purchase_price_status_summary() untuk daftar nota.
+	 *
+	 * Dipakai di halaman manage_purchase yang bisa menampilkan ratusan nota
+	 * sekaligus. Memakai 1 query untuk seluruh nota, bukan 1 query per obat,
+	 * supaya halaman tidak berat.
+	 *
+	 * @param  array $purchase_ids
+	 * @return array  key = purchase_id, value = array ringkasan
+	 */
+	public function purchase_price_status_bulk($purchase_ids = array())
+	{
+		$summary = array();
+
+		if (empty($purchase_ids)) {
+			return $summary;
+		}
+
+		foreach ($purchase_ids as $pid) {
+			$summary[$pid] = array('naik' => 0, 'turun' => 0, 'sama' => 0, 'baru' => 0);
+		}
+
+		// Ambil seluruh baris pembelian milik nota-nota terkait beserta
+		// distributor & tanggalnya, lalu bandingkan di PHP.
+		$this->db->select('d.purchase_id, d.product_id, d.rate, d.id,
+		                   p.manufacturer_id, p.purchase_date');
+		$this->db->from('product_purchase_details d');
+		$this->db->join('product_purchase p', 'p.purchase_id = d.purchase_id');
+		$this->db->where_in('d.purchase_id', $purchase_ids);
+		$target = $this->db->get()->result();
+
+		if (empty($target)) {
+			return $summary;
+		}
+
+		// Kumpulkan obat + distributor yang perlu dicari riwayatnya.
+		$product_ids      = array();
+		$manufacturer_ids = array();
+		foreach ($target as $t) {
+			$product_ids[$t->product_id]           = true;
+			$manufacturer_ids[$t->manufacturer_id] = true;
+		}
+
+		// Seluruh riwayat harga obat+distributor tersebut, diurutkan menaik.
+		$this->db->select('d.product_id, d.rate, d.id,
+		                   p.manufacturer_id, p.purchase_date, d.purchase_id');
+		$this->db->from('product_purchase_details d');
+		$this->db->join('product_purchase p', 'p.purchase_id = d.purchase_id');
+		$this->db->where_in('d.product_id', array_keys($product_ids));
+		$this->db->where_in('p.manufacturer_id', array_keys($manufacturer_ids));
+		$this->db->order_by('p.purchase_date', 'asc');
+		$this->db->order_by('d.id', 'asc');
+		$history_rows = $this->db->get()->result();
+
+		// Kelompokkan riwayat per obat+distributor.
+		$history = array();
+		foreach ($history_rows as $h) {
+			$history[$h->product_id.'|'.$h->manufacturer_id][] = $h;
+		}
+
+		foreach ($target as $t) {
+			$key       = $t->product_id.'|'.$t->manufacturer_id;
+			$prev_rate = null;
+
+			if (isset($history[$key])) {
+				foreach ($history[$key] as $h) {
+					// Berhenti begitu sampai ke baris nota ini sendiri.
+					if ($h->purchase_id == $t->purchase_id && $h->id == $t->id) {
+						break;
+					}
+					if ($h->purchase_date > $t->purchase_date) {
+						break;
+					}
+					$prev_rate = (float) $h->rate;
+				}
+			}
+
+			$rate = (float) $t->rate;
+
+			if ($prev_rate === null) {
+				$summary[$t->purchase_id]['baru']++;
+			} elseif ($rate > $prev_rate) {
+				$summary[$t->purchase_id]['naik']++;
+			} elseif ($rate < $prev_rate) {
+				$summary[$t->purchase_id]['turun']++;
+			} else {
+				$summary[$t->purchase_id]['sama']++;
+			}
+		}
+
+		return $summary;
 	}
 
 	// manufacturer info

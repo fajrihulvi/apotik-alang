@@ -91,17 +91,19 @@
 										<th><?php echo display('manufacturer_name') ?></th>
 										<th><?php echo display('purchase_date') ?></th>
 										<th><?php echo display('total_ammount') ?></th>
+										<th>Status</th>
 										<th><?php echo display('action') ?></th>
 									</tr>
 								</thead>
 								<tbody>
-						
+
 								</tbody>
 								<tfoot>
                     <th colspan="5" class="text-right">Total:</th>
-                
-                  <th></th>  
-                  <th></th> 
+
+                  <th></th>
+                  <th></th>
+                  <th></th>
                                 </tfoot>
 		                    </table>
 		                </div>

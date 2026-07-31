@@ -291,6 +291,9 @@ public function invoice_html($purchase_id){
     $data['company_info']    = $this->Purchases->retrieve_company();
     $data['currency']        = $currency_details[0]['currency'];
     $data['position']        = $currency_details[0]['currency_position'];
+    // Status harga tiap obat dibanding pembelian sebelumnya
+    // dari distributor yang sama.
+    $data['price_status']    = $this->Purchases->purchase_price_status($purchase_id);
     $content = $this->parser->parse('purchase/purchase_html', $data, true);
     $this->template->full_admin_html_view($content); 
   }
