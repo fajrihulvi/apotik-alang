@@ -1,5 +1,6 @@
 
-<script src="<?php echo base_url()?>my-assets/js/admin_js/purchase.js" type="text/javascript"></script>
+<?php $purchase_js = FCPATH.'my-assets/js/admin_js/purchase.js'; $purchase_js_ver = (file_exists($purchase_js) ? filemtime($purchase_js) : '1'); ?>
+<script src="<?php echo base_url()?>my-assets/js/admin_js/purchase.js?v=<?php echo $purchase_js_ver; ?>" type="text/javascript"></script>
 
 
 <!-- Add New Purchase Start -->
