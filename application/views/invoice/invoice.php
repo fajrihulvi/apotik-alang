@@ -118,7 +118,15 @@
                                 </tbody>
                                 <tfoot>
                                     <tr>
-                                        <th colspan="9" class="text-right"><?php echo display('total')?>:</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th class="text-right"><?php echo display('total')?>:</th>
                                         <th></th>
                                         <th></th>
                                     </tr>
