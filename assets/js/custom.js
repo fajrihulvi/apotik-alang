@@ -757,38 +757,38 @@ $(document).ready(function() {
 
              "aaSorting": [[ 1, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,2,3,4,5] },
+                { "bSortable": false, "aTargets": [0,2,3,4,5,6,7,8,9,10] },
 
             ],
            'processing': true,
            'serverSide': true,
 
-          
+
            'lengthMenu':[[10, 25, 50,100,250,500, total_invoice], [10, 25, 50,100,250,500, "All"]],
 
              dom:"'<'col-sm-4'l><'col-sm-4 text-center'><'col-sm-4'>Bfrtip", buttons:[ {
                 extend: "copy",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4 ] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "csv", title: "InvoiceList",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "excel",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
                            }, title: "InvoiceList", className: "btn-sm prints"
             }
             , {
                 extend: "pdf",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4 ] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
                            }, title: "Invoice List", className: "btn-sm prints"
             }
             , {
                 extend: "print",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4 ] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
                            }, title: "<center> Invoice List</center>", className: "btn-sm prints"
             }
             ],
@@ -808,6 +808,11 @@ $(document).ready(function() {
              { data: 'invoice' },
              { data: 'customer_name'},
              { data: 'final_date' },
+             { data: 'product_name'},
+             { data: 'product_qty', class:"text-right"},
+             { data: 'product_unit', class:"text-center"},
+             { data: 'product_rate', class:"text-right"},
+             { data: 'product_category'},
              { data: 'total_amount',class:"total_sale text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency )},
              { data: 'button'},
           ],

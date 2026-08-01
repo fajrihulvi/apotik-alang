@@ -104,18 +104,24 @@
                                         <th><?php echo display('invoice_no') ?></th>
                                         <th><?php echo display('customer_name') ?></th>
                                         <th><?php echo display('date') ?></th>
+                                        <th>Nama Barang</th>
+                                        <th>Jumlah Barang</th>
+                                        <th>Satuan</th>
+                                        <th>Harga</th>
+                                        <th>Kelompok</th>
                                         <th><?php echo display('total_amount') ?></th>
                                         <th><?php echo display('action') ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-             
+
                                 </tbody>
                                 <tfoot>
-                    <th colspan="4" class="text-right"><?php echo display('total')?>:</th>
-                
-                  <th></th>  
-                  <th></th> 
+                                    <tr>
+                                        <th colspan="9" class="text-right"><?php echo display('total')?>:</th>
+                                        <th></th>
+                                        <th></th>
+                                    </tr>
                                 </tfoot>
                             </table>
                             

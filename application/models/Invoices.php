@@ -83,31 +83,72 @@ class Invoices extends CI_Model {
          $this->db->order_by($columnName, $columnSortOrder);
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
+
+         // Rincian barang untuk seluruh faktur di halaman ini.
+         // Diambil sekali jalan (1 query) supaya halaman tidak berat.
+         $invoice_ids = array();
+         foreach($records as $record){
+            $invoice_ids[] = $record->invoice_id;
+         }
+         $items = array();
+         if(!empty($invoice_ids)){
+            $this->db->select('d.invoice_id, d.quantity, d.rate,
+                               p.product_name, p.unit, c.category_name');
+            $this->db->from('invoice_details d');
+            $this->db->join('product_information p','p.product_id = d.product_id','left');
+            $this->db->join('product_category c','c.category_id = p.category_id','left');
+            $this->db->where_in('d.invoice_id', $invoice_ids);
+            $this->db->order_by('d.id','asc');
+            foreach($this->db->get()->result() as $it){
+               $items[$it->invoice_id][] = $it;
+            }
+         }
+
          $data = array();
          $sl =1;
-  
+
          foreach($records as $record ){
           $button = '';
           $base_url = base_url();
           $jsaction = "return confirm('Are You Sure ?')";
 
-           $button .='  <a href="'.$base_url.'Cinvoice/invoice_inserted_data/'.$record->invoice_id.'" class="btn btn-success btn-sm" data-toggle="tooltip" data-placement="left" title="'.display('invoice').'"><i class="fa fa-window-restore" aria-hidden="true"></i></a>';
+           $button .='  <a href="'.$base_url.'Cinvoice/invoice_inserted_data/'.$record->invoice_id.'" class="btn btn-success btn-xs" data-toggle="tooltip" data-placement="left" title="'.display('invoice').'"><i class="fa fa-window-restore" aria-hidden="true"></i></a>';
 
       
 
-         $button .='  <a href="'.$base_url.'Cinvoice/pos_invoice_inserted_data/'.$record->invoice_id.'" class="btn btn-warning btn-sm" data-toggle="tooltip" data-placement="left" title="'.display('pos_invoice').'"><i class="fa fa-fax" aria-hidden="true"></i></a>';
+         $button .='  <a href="'.$base_url.'Cinvoice/pos_invoice_inserted_data/'.$record->invoice_id.'" class="btn btn-warning btn-xs" data-toggle="tooltip" data-placement="left" title="'.display('pos_invoice').'"><i class="fa fa-fax" aria-hidden="true"></i></a>';
 
       if($this->permission1->method('manage_invoice','update')->access()){
-         $button .=' <a href="'.$base_url.'Cinvoice/invoice_update_form/'.$record->invoice_id.'" class="btn btn-info btn-sm" data-toggle="tooltip" data-placement="left" title="'. display('update').'"><i class="fa fa-pencil" aria-hidden="true"></i></a>';
+         $button .=' <a href="'.$base_url.'Cinvoice/invoice_update_form/'.$record->invoice_id.'" class="btn btn-info btn-xs" data-toggle="tooltip" data-placement="left" title="'. display('update').'"><i class="fa fa-pencil" aria-hidden="true"></i></a>';
      }
 
        
                
-            $data[] = array( 
+            // Kolom rincian barang. Satu faktur bisa berisi lebih dari satu
+            // barang, jadi tiap sel menampilkannya baris per baris.
+            $c_nama = array(); $c_jml = array(); $c_satuan = array();
+            $c_harga = array(); $c_kelompok = array();
+
+            if(isset($items[$record->invoice_id])){
+               foreach($items[$record->invoice_id] as $it){
+                  $c_nama[]     = html_escape($it->product_name);
+                  $c_jml[]      = (float)$it->quantity;
+                  $c_satuan[]   = ($it->unit != '' ? html_escape($it->unit) : '-');
+                  $c_harga[]    = number_format((float)$it->rate, 2, '.', ',');
+                  $c_kelompok[] = ($it->category_name != '' ? html_escape($it->category_name) : '-');
+               }
+            }
+
+            $data[] = array(
                 'sl'               =>$sl,
                 'invoice'          =>$record->invoice,
                 'customer_name'    =>$record->customer_name,
                 'final_date'       =>$record->date,
+                'product_name'     =>(!empty($c_nama) ? implode('<br>', $c_nama) : '-'),
+                'product_qty'      =>(!empty($c_jml) ? implode('<br>', $c_jml) : '-'),
+                'product_unit'     =>(!empty($c_satuan) ? implode('<br>', $c_satuan) : '-'),
+                'product_rate'     =>(!empty($c_harga) ? implode('<br>', $c_harga) : '-'),
+                'product_category' =>(!empty($c_kelompok) ? implode('<br>', $c_kelompok) : '-'),
                 'total_amount'     =>$record->total_amount,
                 'button'           =>$button,
                 
