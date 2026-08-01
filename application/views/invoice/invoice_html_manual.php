@@ -29,6 +29,117 @@
   .content-wrapper{
       margin-left:0 !important;
   }
+
+  /* ---- Layout struk thermal kasir (kertas 80mm) ---- */
+  @page {
+      size: 80mm auto;   /* tinggi menyesuaikan isi */
+      margin: 0;
+  }
+  html, body{
+      width: 80mm;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff !important;
+      font-size: 7.5px !important;
+      color: #000 !important;
+  }
+  /* Samakan seluruh teks di area cetak, termasuk elemen yang
+     punya ukuran font bawaan sendiri (h1-h6, strong, address, dll). */
+  #printableArea, #printableArea *{
+      font-size: 7.5px !important;
+      line-height: 1.25 !important;
+  }
+  /* Hilangkan panel/box agar tidak makan lebar kertas */
+  .content-wrapper, .content, .container, .container-fluid,
+  .row, .col-sm-12, .panel, .panel-bd, .panel-body{
+      width: 100% !important;
+      max-width: 80mm !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      float: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: #fff !important;
+  }
+  #printableArea{
+      width: 80mm !important;
+      padding: 2mm !important;
+      box-sizing: border-box;
+  }
+  /* Tabel barang dibuat rapat & tanpa garis kotak */
+  #printableArea table{
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 7.5px !important;
+      table-layout: fixed;
+  }
+  #printableArea table th,
+  #printableArea table td{
+      border: none !important;
+      padding: 1px 2px !important;
+      word-wrap: break-word;
+      vertical-align: top;
+  }
+  /* Garis pemisah tipis khas struk */
+  #printableArea thead th{
+      border-bottom: 1px dashed #000 !important;
+      font-weight: bold;
+  }
+  #printableArea tfoot td, #printableArea tfoot th{
+      border-top: 1px dashed #000 !important;
+  }
+  #printableArea .table-striped > tbody > tr:nth-of-type(odd){
+      background: #fff !important;
+  }
+  /* Bagi lebar kolom: nama obat paling lebar, angka rata kanan */
+  #printableArea table th:first-child,
+  #printableArea table td:first-child{ width: 7mm !important; }
+  #printableArea table th:nth-child(2),
+  #printableArea table td:nth-child(2){ width: auto !important; text-align: left !important; }
+  #printableArea table th:nth-child(n+3),
+  #printableArea table td:nth-child(n+3){ width: 15mm !important; text-align: right !important; }
+
+  /* ---- Blok total (Sebelumnya / Jumlah Total / Dibayarkan) ----
+     Di kertas 80mm kolom col-xs-4 terlalu sempit sehingga tulisan
+     terpotong per huruf. Dibuat melebar penuh & digeser ke kiri. */
+  #printableArea .col-xs-4,
+  #printableArea .col-xs-8{
+      width: 100% !important;
+      max-width: 100% !important;
+      float: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+  }
+  /* Tabel total: label kiri, angka kanan, font lebih kecil */
+  #printableArea .col-xs-4 table{
+      width: 100% !important;
+      table-layout: auto !important;
+      font-size: 7.5px !important;
+      margin: 0 !important;
+  }
+  #printableArea .col-xs-4 table th{
+      width: auto !important;
+      text-align: left !important;
+      white-space: nowrap !important;   /* jangan pecah per huruf */
+      font-size: 7.5px !important;
+      padding: 0 2px 0 0 !important;
+  }
+  #printableArea .col-xs-4 table td{
+      width: auto !important;
+      text-align: right !important;
+      white-space: nowrap !important;
+      font-size: 7.5px !important;
+      padding: 0 !important;
+  }
+  #printableArea .grand_total{ font-size: 7.5px !important; }
+  /* Header & footer struk rata tengah */
+  .receipt-header, .receipt-footer{
+      padding: 1mm 0 !important;
+      font-size: 7.5px !important;
+  }
+  .receipt-header img{ max-width: 60mm !important; }
+  /* Jangan potong baris di tengah */
+  tr, td, th{ page-break-inside: avoid !important; }
 }
 </style>
 
@@ -93,31 +204,7 @@
                                 </div>
                                 
                                  
-                                <div class="col-sm-4 text-left invoice-address">
-                                    <h2 class="m-t-0"><?php echo display('invoice') ?></h2>
-                                    <div><?php echo display('invoice_no') ?>: {invoice_no}</div>
-                                    <div class="m-b-15"><?php echo display('billing_date') ?>: {final_date}</div>
-
-                                    <span class="label label-success-outline m-r-15"><?php echo display('billing_to') ?></span>
-
-                                    <address class="customer_name_p">  
-                                        <strong  class="c_name" >{customer_name} </strong><br>
-                                        <?php if ($customer_address) { ?>
-                                            {customer_address}
-                                        <?php } ?>
-                                        <br>
-                                        <abbr><b><?php echo display('mobile') ?>:</b></abbr>
-                                        <?php if ($customer_mobile) { ?>
-                                            {customer_mobile}
-                                        <?php }if ($customer_email) {
-                                            ?>
-                                            <br>
-                                            <abbr><b><?php echo display('email') ?>:</b></abbr> 
-                                            {customer_email}
-                                        <?php } ?>
-                                    </address>
-                                </div>
-                            </div> 
+                            </div>
 
 
 	                        <div class="table-responsive m-b-20">
@@ -281,18 +368,7 @@
 		                              
 
 		                        </div>
-		                        <div class="row">
-                                <div class="col-sm-4">
-                                 <div class="inv-footer-left">
-                                 	 <input type="hidden" name="" id="url" value="<?php echo base_url('Cinvoice');?>">
-                                        <?php echo display('received_by') ?>
-                                    </div>
-                                </div>
-                               <div class="col-sm-4"></div>
-                                     <div class="col-sm-4"> <div class="inv-footer-right">
-                                        <?php echo display('authorised_by') ?>
-                                    </div></div>
-                            </div>
+		                        <input type="hidden" name="" id="url" value="<?php echo base_url('Cinvoice');?>">
 	                        </div>
 	                        <?php if (!empty($Web_settings[0]['receipt_footer'])) { ?>
 	                            <div class="receipt-footer" style="text-align:center; padding:10px;"><?php echo $Web_settings[0]['receipt_footer']; ?></div>
