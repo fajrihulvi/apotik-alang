@@ -437,7 +437,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
 
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,1,2,3,5,6,7] },
+                { "bSortable": false, "aTargets": [0,1,2,3,5,6,7,8,9,10,11,12,13,14] },
 
             ],
            'processing': true,
@@ -448,27 +448,27 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
 
              dom:"'<'col-sm-4'l><'col-sm-4 text-center'><'col-sm-4'>Bfrtip", buttons:[ {
                 extend: "copy",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4,5] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "csv", title: "PurchaseLIst",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4,5] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "excel",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4,5] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "pdf",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4,5] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "print",exportOptions: {
-                       columns: [ 0, 1, 2, 3,4,5] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             ],
@@ -490,6 +490,13 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
              { data: 'purchase_id'},
              { data: 'manufacturer_name'},
              { data: 'purchase_date' },
+             { data: 'product_name'},
+             { data: 'batch_id'},
+             { data: 'expeire_date', class:"text-center"},
+             { data: 'product_qty', class:"text-right"},
+             { data: 'product_rate', class:"text-right"},
+             { data: 'product_discount', class:"text-right"},
+             { data: 'product_total', class:"text-right"},
              { data: 'total_amount',class:"total_sale text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
              { data: 'status', class:"text-center"},
              { data: 'button'},

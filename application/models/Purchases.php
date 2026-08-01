@@ -95,6 +95,22 @@ class Purchases extends CI_Model {
          }
          $price_status = $this->purchase_price_status_bulk($purchase_ids);
 
+         // Rincian barang untuk seluruh nota di halaman ini.
+         // Diambil sekali jalan (1 query) supaya halaman tidak berat.
+         $items = array();
+         if(!empty($purchase_ids)){
+            $this->db->select('d.purchase_id, d.batch_id, d.expeire_date,
+                               d.quantity, d.rate, d.discount, d.total_amount,
+                               p.product_name');
+            $this->db->from('product_purchase_details d');
+            $this->db->join('product_information p','p.product_id = d.product_id','left');
+            $this->db->where_in('d.purchase_id', $purchase_ids);
+            $this->db->order_by('d.id','asc');
+            foreach($this->db->get()->result() as $it){
+               $items[$it->purchase_id][] = $it;
+            }
+         }
+
          $data = array();
          $sl =1;
          foreach($records as $record ){
@@ -136,6 +152,23 @@ class Purchases extends CI_Model {
                $status = '<span class="text-muted">-</span>';
             }
 
+            // Kolom rincian barang. Satu nota bisa berisi banyak barang,
+            // jadi tiap sel menampilkannya baris per baris.
+            $c_nama = array(); $c_batch = array(); $c_exp = array();
+            $c_qty = array(); $c_rate = array(); $c_disc = array(); $c_total = array();
+
+            if(isset($items[$record->purchase_id])){
+               foreach($items[$record->purchase_id] as $it){
+                  $c_nama[]  = html_escape($it->product_name);
+                  $c_batch[] = ($it->batch_id != '' ? html_escape($it->batch_id) : '-');
+                  $c_exp[]   = ($it->expeire_date != '' ? html_escape($it->expeire_date) : '-');
+                  $c_qty[]   = (float)$it->quantity;
+                  $c_rate[]  = number_format((float)$it->rate, 2, '.', ',');
+                  $c_disc[]  = (float)$it->discount.'%';
+                  $c_total[] = number_format((float)$it->total_amount, 2, '.', ',');
+               }
+            }
+
             $data[] = array(
                 'sl'               =>$sl,
                 'chalan_no'        =>$record->chalan_no,
@@ -143,6 +176,13 @@ class Purchases extends CI_Model {
                 'manufacturer_name'=>$record->manufacturer_name,
                 'purchase_id'      =>$record->purchase_id,
                 'purchase_date'    =>$record->purchase_date,
+                'product_name'     =>(!empty($c_nama) ? implode('<br>', $c_nama) : '-'),
+                'batch_id'         =>(!empty($c_batch) ? implode('<br>', $c_batch) : '-'),
+                'expeire_date'     =>(!empty($c_exp) ? implode('<br>', $c_exp) : '-'),
+                'product_qty'      =>(!empty($c_qty) ? implode('<br>', $c_qty) : '-'),
+                'product_rate'     =>(!empty($c_rate) ? implode('<br>', $c_rate) : '-'),
+                'product_discount' =>(!empty($c_disc) ? implode('<br>', $c_disc) : '-'),
+                'product_total'    =>(!empty($c_total) ? implode('<br>', $c_total) : '-'),
                 'total_amount'     =>$record->grand_total_amount,
                 'status'           =>$status,
                 'button'           =>$button,

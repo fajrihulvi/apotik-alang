@@ -90,6 +90,13 @@
 										<th><?php echo display('purchase_id') ?></th>
 										<th><?php echo display('manufacturer_name') ?></th>
 										<th><?php echo display('purchase_date') ?></th>
+										<th>Nama Barang</th>
+										<th>ID Batch</th>
+										<th>Tanggal Kadaluwarsa</th>
+										<th>Kuantitas</th>
+										<th>Tarif Distributor</th>
+										<th>Diskon</th>
+										<th>Total Harga</th>
 										<th><?php echo display('total_ammount') ?></th>
 										<th>Status</th>
 										<th><?php echo display('action') ?></th>
@@ -100,6 +107,13 @@
 								</tbody>
 								<tfoot>
 									<tr>
+										<th></th>
+										<th></th>
+										<th></th>
+										<th></th>
+										<th></th>
+										<th></th>
+										<th></th>
 										<th></th>
 										<th></th>
 										<th></th>
