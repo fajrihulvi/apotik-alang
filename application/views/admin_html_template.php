@@ -142,7 +142,13 @@
         <script src="<?php echo base_url()?>assets/plugins/modals/classie.js" type="text/javascript"></script>
         <script src="<?php echo base_url()?>assets/plugins/modals/modalEffects.js" type="text/javascript"></script>
         <!-- Custom Theme JavaScript -->
-        <script src="<?php echo base_url() ?>assets/js/custom.js" type="text/javascript"></script>
+        <?php
+        // Penanda versi otomatis dari waktu ubah file, supaya browser tidak
+        // memakai custom.js versi lama dari cache setiap kali file diperbarui.
+        $custom_js = FCPATH.'assets/js/custom.js';
+        $custom_js_ver = (file_exists($custom_js) ? filemtime($custom_js) : '1');
+        ?>
+        <script src="<?php echo base_url() ?>assets/js/custom.js?v=<?php echo $custom_js_ver; ?>" type="text/javascript"></script>
         <!-- summernote js -->
 
  <script src="<?php echo base_url() ?>assets/js/jstree.min.js" ></script>
