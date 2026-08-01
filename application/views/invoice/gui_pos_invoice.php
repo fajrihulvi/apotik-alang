@@ -154,6 +154,7 @@ echo html_escape($text);
                                           <th class="text-center gui_productname"><?php echo display('item_information') ?> <i class="text-danger">*</i></th>
                                         <th class="text-center" width="150"><?php echo display('batch') ?><i class="text-danger">*</i></th>
                                        <th class="text-center"><?php echo display('expiry') ?></th>
+                                        <th class="text-center">Stok</th>
                                         <th class="text-center"><?php echo display('qty') ?> <i class="text-danger">*</i></th>
                                         <th class="text-center"><?php echo display('price') ?> <i class="text-danger">*</i></th>
                                         <?php if ($discount_type == 1) { ?>

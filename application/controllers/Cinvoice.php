@@ -721,7 +721,11 @@ class Cinvoice extends CI_Controller {
 						<td>$html</td>
 						
 
-                        <td> <span id=\"expire_date_".$product_details->product_id."\"></span> <input type=\"hidden\" name=\"available_quantity[]\" class=\"form-control text-right available_quantity_".$product_details->product_id."\" value=\"0\" readonly=\"\" id=\"available_quantity_".$product_details->product_id."\"/></td>
+                        <td> <span id=\"expire_date_".$product_details->product_id."\"></span></td>
+
+                        <td style=\"width:80px\">
+                            <input type=\"text\" name=\"available_quantity[]\" class=\"form-control text-right available_quantity_".$product_details->product_id."\" value=\"0\" readonly=\"readonly\" id=\"available_quantity_".$product_details->product_id."\"/>
+                        </td>
                     
                        
 
