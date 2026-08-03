@@ -438,6 +438,12 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [
                 { "bSortable": false, "aTargets": [0,1,2,3,5,6,7,8,9,10,11,12,13,14] },
+                // Kolom Aksi & Status jangan disembunyikan mode responsive
+                // saat tabel melebar (responsivePriority makin kecil = makin
+                // diprioritaskan untuk tetap tampil).
+                { "responsivePriority": 1, "targets": 14 },
+                { "responsivePriority": 2, "targets": 13 },
+                { "responsivePriority": 3, "targets": 0 },
 
             ],
            'processing': true,

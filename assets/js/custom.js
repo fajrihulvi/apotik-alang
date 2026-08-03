@@ -758,6 +758,9 @@ $(document).ready(function() {
              "aaSorting": [[ 1, "desc" ]],
              "columnDefs": [
                 { "bSortable": false, "aTargets": [0,2,3,4,5,6,7,8,9,10] },
+                // Kolom Aksi jangan disembunyikan mode responsive saat tabel melebar.
+                { "responsivePriority": 1, "targets": 10 },
+                { "responsivePriority": 2, "targets": 0 },
 
             ],
            'processing': true,
