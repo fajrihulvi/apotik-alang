@@ -235,7 +235,9 @@ $config['directory_trigger'] = 'd';
 | your log files will fill up very fast.
 |
 */
-$config['log_threshold'] = 0;
+// 1 = catat error PHP saja. Dibutuhkan agar penyebab error 500 di server
+// bisa terbaca di application/logs/, karena di production display_errors mati.
+$config['log_threshold'] = 1;
 
 /*
 |--------------------------------------------------------------------------
