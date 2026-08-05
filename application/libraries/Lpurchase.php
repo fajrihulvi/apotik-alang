@@ -153,6 +153,14 @@ class Lpurchase {
 		}
 
 		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
+
+		// Diskon keseluruhan. Dibaca aman supaya nota lama (yang tersimpan
+		// sebelum fitur ini ada) tetap bisa dibuka tanpa error.
+		$od_type  = (isset($purchase_detail[0]['overall_discount_type'])
+		             ? $purchase_detail[0]['overall_discount_type'] : 'percent');
+		$od_input = (isset($purchase_detail[0]['overall_discount_input'])
+		             ? $purchase_detail[0]['overall_discount_input'] : 0);
+
 		$data=array(
 			'title'				=>	display('purchase_edit'),
 			'purchase_id'		=>	$purchase_detail[0]['purchase_id'],
@@ -160,6 +168,9 @@ class Lpurchase {
 			'manufacturer_name'	=>	$purchase_detail[0]['manufacturer_name'],
 			'manufacturer_id'	=>	$purchase_detail[0]['manufacturer_id'],
 			'grand_total'		=>	$purchase_detail[0]['grand_total_amount'],
+			'overall_discount_input' => $od_input,
+			'selected_percent'  =>  ($od_type === 'fixed' ? '' : 'selected'),
+			'selected_fixed'    =>  ($od_type === 'fixed' ? 'selected' : ''),
 			'purchase_details'	=>	$purchase_detail[0]['purchase_details'],
 			'purchase_date'		=>	$purchase_detail[0]['purchase_date'],
 			'total_discount'	=>	$purchase_detail[0]['total_discount'],

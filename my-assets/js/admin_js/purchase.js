@@ -141,8 +141,69 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
             isNaN(this.value) || 0 == this.value.length || (gr_disc += parseFloat(this.value))
         });
 
-        $("#grandTotal").val(gr_tot.toFixed(2));
+        // Subtotal = jumlah seluruh barang, sesudah diskon per barang
+        // tetapi SEBELUM diskon keseluruhan.
+        $("#subTotal").val(gr_tot.toFixed(2));
         $("#total_discount").val(gr_disc.toFixed(2));
+
+        // Subtotal berubah, jadi diskon keseluruhan dihitung ulang.
+        calculate_overall_discount();
+    }
+
+    /**
+     * Diskon keseluruhan atas subtotal pembelian.
+     *
+     * Dua jenis:
+     *   percent -> nilai dianggap persen, dibatasi 0-100
+     *   fixed   -> nilai dianggap nominal rupiah
+     *
+     * Diskon dibatasi maksimal sebesar subtotal supaya grand total tidak
+     * pernah negatif.
+     */
+    "use strict";
+    function calculate_overall_discount() {
+
+        // Halaman lain yang memakai purchase.js belum tentu punya elemen ini.
+        if ($("#subTotal").length === 0) { return; }
+
+        var sub_total  = parseFloat($("#subTotal").val()) || 0;
+        var disc_type  = $("#overall_discount_type").val() || 'percent';
+        var disc_input = parseFloat($("#overall_discount_input").val()) || 0;
+
+        if (disc_input < 0) {
+            disc_input = 0;
+            $("#overall_discount_input").val(0);
+        }
+
+        var disc_amount = 0;
+
+        if (disc_type === 'percent') {
+            if (disc_input > 100) {
+                disc_input = 100;
+                $("#overall_discount_input").val(100);
+            }
+            disc_amount = sub_total * disc_input / 100;
+        } else {
+            disc_amount = disc_input;
+        }
+
+        // Diskon tidak boleh melebihi subtotal.
+        if (disc_amount > sub_total) {
+            disc_amount = sub_total;
+        }
+
+        var grand_total = sub_total - disc_amount;
+
+        $("#overall_discount_amount").val(disc_amount.toFixed(2));
+        $("#grandTotal").val(grand_total.toFixed(2));
+
+        // Keterangan singkat supaya operator bisa memastikan angkanya benar.
+        var info = '';
+        if (disc_amount > 0) {
+            info = '- ' + disc_amount.toFixed(2);
+            if (disc_type === 'percent') { info += ' (' + disc_input + '%)'; }
+        }
+        $("#overall_discount_info").text(info);
     }
 
       "use strict";
@@ -402,8 +463,11 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
             isNaN(this.value) || 0 == this.value.length || (gr_disc += parseFloat(this.value))
         });
 
-        $("#grandTotal").val(gr_tot.toFixed(2));
+        $("#subTotal").val(gr_tot.toFixed(2));
         $("#total_discount").val(gr_disc.toFixed(2));
+
+        // Baris berubah -> diskon keseluruhan ikut dihitung ulang.
+        calculate_overall_discount();
     }
 
     // Cadangan bila atribut onkeyup/onchange pada baris tidak terpasang

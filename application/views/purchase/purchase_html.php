@@ -190,6 +190,30 @@
                                                 <th><?php echo display('total_discount') ?> : </th>
                                                 <td class="text-right"><?php echo (($position == 0) ? $currency .' '.$purchase[0]['total_discount'] : $purchase[0]['total_discount'].' '. $currency); ?> </td>
                                             </tr>
+                                        <?php }
+
+                                        // Diskon keseluruhan. isset() dipakai supaya nota lama
+                                        // (tersimpan sebelum fitur ini ada) tetap bisa dicetak.
+                                        $od_amount = (isset($purchase[0]['overall_discount_amount'])
+                                                      ? (float) $purchase[0]['overall_discount_amount'] : 0);
+                                        if ($od_amount > 0) {
+                                            $od_type  = (isset($purchase[0]['overall_discount_type'])
+                                                         ? $purchase[0]['overall_discount_type'] : 'percent');
+                                            $od_input = (isset($purchase[0]['overall_discount_input'])
+                                                         ? (float) $purchase[0]['overall_discount_input'] : 0);
+                                            $od_label = display('overall_discount');
+                                            if ($od_type === 'percent') {
+                                                $od_label .= ' ('.rtrim(rtrim(number_format($od_input, 2, '.', ''), '0'), '.').'%)';
+                                            }
+                                            ?>
+                                            <tr>
+                                                <th><?php echo $od_label; ?> : </th>
+                                                <td class="text-right">- <?php echo (($position == 0) ? $currency.' '.number_format($od_amount, 2, '.', ',') : number_format($od_amount, 2, '.', ',').' '.$currency); ?></td>
+                                            </tr>
+                                            <tr>
+                                                <th><?php echo display('grand_total') ?> : </th>
+                                                <td class="text-right"><b><?php echo (($position == 0) ? $currency.' '.number_format((float)$purchase[0]['grand_total_amount'], 2, '.', ',') : number_format((float)$purchase[0]['grand_total_amount'], 2, '.', ',').' '.$currency); ?></b></td>
+                                            </tr>
                                         <?php }?>
                                            
                                       

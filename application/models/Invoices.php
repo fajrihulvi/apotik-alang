@@ -326,13 +326,16 @@ public function pos_invoice_setup($product_id){
 		
 		if ($this->form_validation->run()) {
 		$result = array();
-		foreach($available_quantity as $k => $v)
-		{
-		    if($v < $quantity[$k])
-		    {
-		       $this->session->set_userdata(array('error_message'=>display('you_can_not_buy_greater_than_available_qnty')));
-		       redirect('Cinvoice');
-		    }
+
+		// Validasi stok dihitung ulang dari database, bukan dari nilai
+		// available_quantity yang dikirim form (nilai itu bisa kosong atau
+		// diubah dari browser). Ini yang mencegah stok jadi minus.
+		$stock_errors = $this->check_stock_before_sale();
+		if (!empty($stock_errors)) {
+			$this->session->set_userdata(array(
+				'error_message' => 'Stok tidak mencukupi: '.implode('; ', $stock_errors)
+			));
+			redirect('Cinvoice');
 		}
 
 		
@@ -625,6 +628,17 @@ public function retrieve_invoice_editdata($invoice_id)
         $createby=$this->session->userdata('user_id');
         $quantity = $this->input->post('product_quantity',true);
         $createdate=date('Y-m-d H:i:s');
+
+        // Validasi stok. Penjualan invoice ini sendiri dikecualikan supaya
+        // jumlah lama tidak ikut terhitung sebagai pemakaian stok.
+        $stock_errors = $this->check_stock_before_sale($invoice_id);
+        if (!empty($stock_errors)) {
+            $this->session->set_userdata(array(
+                'error_message' => 'Stok tidak mencukupi: '.implode('; ', $stock_errors)
+            ));
+            redirect('Cinvoice/manage_invoice');
+        }
+
          $bank_id = $this->input->post('bank_id');
        $bankname = $this->db->select('bank_name')->from('bank_add')->where('bank_id',$bank_id)->get()->row()->bank_name;
        $bankcoaid = $this->db->select('HeadCode')->from('acc_coa')->where('HeadName',$bankname)->get()->row()->HeadCode;
@@ -1128,6 +1142,91 @@ public function retrieve_invoice_editdata($invoice_id)
 		return $invoice_no;		
 	}
 	// stock availavel by batch id
+	/**
+	 * Stok nyata satu batch, dihitung langsung dari tabel transaksi.
+	 *
+	 * Dipakai untuk validasi sebelum menyimpan penjualan. Sengaja tidak
+	 * memakai nilai available_quantity dari form, karena nilai itu berasal
+	 * dari HTML dan bisa kosong atau diubah dari sisi browser.
+	 *
+	 * @param  string $batch_id
+	 * @param  string $product_id
+	 * @param  string $exclude_invoice_id  abaikan penjualan invoice ini
+	 *                                     (dipakai saat update invoice)
+	 * @return float
+	 */
+	public function batch_stock_now($batch_id, $product_id, $exclude_invoice_id = null)
+	{
+		$beli = $this->db->select('SUM(quantity) as total')
+		                 ->from('product_purchase_details')
+		                 ->where('batch_id', $batch_id)
+		                 ->where('product_id', $product_id)
+		                 ->get()->row();
+
+		$this->db->select('SUM(quantity) as total')
+		         ->from('invoice_details')
+		         ->where('batch_id', $batch_id)
+		         ->where('product_id', $product_id);
+		if (!empty($exclude_invoice_id)) {
+			$this->db->where('invoice_id !=', $exclude_invoice_id);
+		}
+		$jual = $this->db->get()->row();
+
+		return (float) (!empty($beli->total) ? $beli->total : 0)
+		     - (float) (!empty($jual->total) ? $jual->total : 0);
+	}
+
+	/**
+	 * Periksa seluruh baris penjualan terhadap stok nyata.
+	 *
+	 * @param  string $exclude_invoice_id
+	 * @return array  daftar pesan kesalahan (kosong bila semua aman)
+	 */
+	public function check_stock_before_sale($exclude_invoice_id = null)
+	{
+		$product_ids = $this->input->post('product_id', true);
+		$batch_ids   = $this->input->post('batch_id', true);
+		$quantities  = $this->input->post('product_quantity', true);
+		$errors      = array();
+
+		if (empty($product_ids) || !is_array($product_ids)) {
+			return $errors;
+		}
+
+		// Jumlahkan dulu per produk+batch, supaya baris ganda untuk barang
+		// yang sama tetap terhitung benar.
+		$diminta = array();
+		foreach ($product_ids as $i => $pid) {
+			$bid = (isset($batch_ids[$i]) ? $batch_ids[$i] : '');
+			$qty = (isset($quantities[$i]) ? (float) $quantities[$i] : 0);
+			if ($pid === '' || $qty <= 0) {
+				continue;
+			}
+			$key = $pid.'|'.$bid;
+			if (!isset($diminta[$key])) {
+				$diminta[$key] = array('product_id'=>$pid, 'batch_id'=>$bid, 'qty'=>0);
+			}
+			$diminta[$key]['qty'] += $qty;
+		}
+
+		foreach ($diminta as $d) {
+			$stok = $this->batch_stock_now($d['batch_id'], $d['product_id'], $exclude_invoice_id);
+
+			if ($d['qty'] > $stok) {
+				$nama = $this->db->select('product_name')
+				                 ->from('product_information')
+				                 ->where('product_id', $d['product_id'])
+				                 ->get()->row();
+				$nama = (!empty($nama) ? $nama->product_name : $d['product_id']);
+
+				$errors[] = $nama.' (batch '.$d['batch_id'].'): diminta '
+				          . $d['qty'].', stok tersedia '.$stok;
+			}
+		}
+
+		return $errors;
+	}
+
 	public function get_total_product_batch($batch_id,$product_id){
 
 		$CI =& get_instance();

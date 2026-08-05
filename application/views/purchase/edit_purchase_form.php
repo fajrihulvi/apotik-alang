@@ -2,6 +2,39 @@
 <?php $purchase_js = FCPATH.'my-assets/js/admin_js/purchase.js'; $purchase_js_ver = (file_exists($purchase_js) ? filemtime($purchase_js) : '1'); ?>
 <script src="<?php echo base_url()?>my-assets/js/admin_js/purchase.js?v=<?php echo $purchase_js_ver; ?>" type="text/javascript"></script>
 
+<style>
+/* Tabel pembelian punya banyak kolom. Beri lebar minimum supaya kolom
+   tidak saling menghimpit; bila layar sempit, pembungkus .table-responsive
+   yang menyediakan geser mendatar. */
+#purchaseTable { min-width: 1100px; }
+
+/* Kolom Total menampung input diskon keseluruhan beserta dropdown
+   satuan (% / nominal), jadi butuh ruang lebih lebar. */
+#purchaseTable .col-total { min-width: 210px; }
+
+/* Kotak diskon keseluruhan mengisi penuh lebar kolom Total. */
+#purchaseTable .discount-group { width: 100%; }
+
+/* Addon dibuat rapat supaya select di dalamnya yang menentukan lebar,
+   bukan padding bawaan Bootstrap. */
+#purchaseTable .discount-type-addon {
+    padding: 0;
+    width: 1%;
+    white-space: nowrap;
+}
+
+/* Dropdown satuan diskon (% atau nominal). Lebar dipatok supaya kedua
+   pilihan terbaca penuh dan tidak terpotong. */
+#purchaseTable .discount-type-addon select {
+    width: 68px;
+    height: 32px;
+    border: 0;
+    background: transparent;
+    padding: 0 4px;
+    outline: none;
+}
+</style>
+
 
 <!-- Add New Purchase Start -->
 <div class="content-wrapper">
@@ -156,7 +189,7 @@
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover" id="purchaseTable">
+                            <table class="table table-bordered table-hover purchase-table" id="purchaseTable">
                                 <thead>
                                     <tr>
                                             <th class="text-center" width="20%"><?php echo display('item_information') ?><i class="text-danger">*</i></th>
@@ -168,7 +201,9 @@
 
                                             <th class="text-center"><?php echo display('discount') ?> (%)</th>
 
-                                            <th class="text-center"><?php echo display('total') ?></th>
+                                            <!-- Dilebarkan: menampung input diskon keseluruhan
+                                                 beserta dropdown %/nominal di bagian footer. -->
+                                            <th class="text-center col-total"><?php echo display('total') ?></th>
 
                                             <th class="text-center"><?php echo display('action') ?></th>
                                         </tr>
@@ -226,12 +261,48 @@
 
                                             <input type="hidden" name="baseUrl" class="baseUrl" value="<?php echo base_url();?>"/>
                                             <input type="hidden" name="total_discount" id="total_discount" value="0.00"/>
+                                            <!-- Nilai rupiah diskon keseluruhan, dihitung di JS -->
+                                            <input type="hidden" name="overall_discount_amount" id="overall_discount_amount" value="0.00"/>
                                         </td>
+                                        <td class="text-right" colspan="5"><b><?php echo display('sub_total') ?>:</b></td>
+                                        <td class="text-right">
+                                            <input type="text" id="subTotal" class="text-right form-control" value="0.00" readonly="readonly" />
+                                        </td>
+                                        <td> <button id="add_invoice_item" tabindex="{addtaps}" type="button" class="btn btn-info" name="add-invoice-item" onClick="addPurchaseOrderField1('addPurchaseItem')" ><i class="fa fa-plus"></i></button></td>
+                                    </tr>
+                                    <!-- Diskon keseluruhan: persen (10) atau nominal (100000) -->
+                                    <tr>
+                                        <td colspan="2"></td>
+                                        <td class="text-right" colspan="5"><b><?php echo display('overall_discount') ?>:</b></td>
+                                        <td class="text-right">
+                                            <div class="input-group discount-group">
+                                                <input type="text" name="overall_discount_input" id="overall_discount_input"
+                                                       class="form-control text-right" placeholder="0" value="{overall_discount_input}"
+                                                       onkeyup="calculate_overall_discount();" onchange="calculate_overall_discount();"/>
+                                                <!-- input-group-addon, bukan input-group-btn: di Bootstrap 3
+                                                     input-group-btn dirancang untuk tombol dan membuat select
+                                                     menciut sehingga pilihannya tidak terbaca. -->
+                                                <span class="input-group-addon discount-type-addon">
+                                                    <select name="overall_discount_type" id="overall_discount_type"
+                                                            onchange="calculate_overall_discount();">
+                                                        <option value="percent" {selected_percent}>%</option>
+                                                        <!-- Label ditulis langsung, bukan display('amount'),
+                                                             karena frasa 'amount' dipakai di banyak halaman lain. -->
+                                                        <option value="fixed" {selected_fixed}>Rp.</option>
+                                                    </select>
+                                                </span>
+                                            </div>
+                                            <small class="text-muted" id="overall_discount_info"></small>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2"></td>
                                         <td class="text-right" colspan="5"><b><?php echo display('grand_total') ?>:</b></td>
                                         <td class="text-right">
                                             <input type="text" id="grandTotal" class="text-right form-control" name="grand_total_price" value="{grand_total}" readonly="readonly" />
                                         </td>
-                                        <td> <button id="add_invoice_item" tabindex="{addtaps}" type="button" class="btn btn-info" name="add-invoice-item" onClick="addPurchaseOrderField1('addPurchaseItem')" ><i class="fa fa-plus"></i></button></td>
+                                        <td></td>
                                     </tr>
                                 </tfoot>
                             </table>

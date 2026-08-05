@@ -321,6 +321,55 @@ class Purchases extends CI_Model {
 	}
 
 	//Count purchase
+	/**
+	 * Hitung diskon keseluruhan pembelian di sisi server.
+	 *
+	 * Subtotal dijumlahkan ulang dari total_price[] tiap barang, bukan dari
+	 * grand_total_price kiriman form, karena nilai form bisa diubah lewat
+	 * browser. Diskon dibatasi 0..subtotal supaya grand total tidak negatif.
+	 *
+	 * @return array type, input, amount, sub_total, grand_total
+	 */
+	public function calculate_overall_discount()
+	{
+		$total_prices = $this->input->post('total_price', true);
+		$sub_total = 0;
+		if (is_array($total_prices)) {
+			foreach ($total_prices as $tp) {
+				$sub_total += (float) $tp;
+			}
+		}
+
+		$type  = $this->input->post('overall_discount_type', true);
+		$type  = ($type === 'fixed' ? 'fixed' : 'percent');
+		$input = (float) $this->input->post('overall_discount_input', true);
+		if ($input < 0) {
+			$input = 0;
+		}
+
+		if ($type === 'percent') {
+			if ($input > 100) {
+				$input = 100;
+			}
+			$amount = $sub_total * $input / 100;
+		} else {
+			$amount = $input;
+		}
+
+		// Diskon tidak boleh melebihi subtotal.
+		if ($amount > $sub_total) {
+			$amount = $sub_total;
+		}
+
+		return array(
+			'type'        => $type,
+			'input'       => $input,
+			'amount'      => round($amount, 2),
+			'sub_total'   => round($sub_total, 2),
+			'grand_total' => round($sub_total - $amount, 2),
+		);
+	}
+
 	public function purchase_entry()
 	{
 		$purchase_id = date('YmdHis');
@@ -370,12 +419,20 @@ class Purchases extends CI_Model {
 		// Obat tidak lagi diikat ke distributor, jadi pembelian obat apa pun
 		// dari distributor mana pun diperbolehkan.
 
+		// Diskon keseluruhan dihitung ulang di server, tidak memakai angka
+		// kiriman form (nilai itu bisa diubah dari browser). Nilai inilah
+		// yang dipakai untuk grand total dan seluruh jurnal akuntansi.
+		$overall = $this->calculate_overall_discount();
+
 		$data=array(
 			'purchase_id'		=>	$purchase_id,
 			'chalan_no'			=>	$this->input->post('chalan_no',true),
 			'manufacturer_id'	=>	$this->input->post('manufacturer_id',true),
-			'grand_total_amount'=>	$this->input->post('grand_total_price',true),
+			'grand_total_amount'=>	$overall['grand_total'],
 			'total_discount'	=>	$this->input->post('total_discount',true),
+			'overall_discount_type'   => $overall['type'],
+			'overall_discount_input'  => $overall['input'],
+			'overall_discount_amount' => $overall['amount'],
 			'purchase_date'		=>	$this->input->post('purchase_date',true),
 			'purchase_details'	=>	$this->input->post('purchase_details',true),
 			'status'			=>	1,
@@ -383,6 +440,9 @@ class Purchases extends CI_Model {
 			'payment_type'      =>  $this->input->post('paytype',true),
 		);
 		$this->db->insert('product_purchase',$data);
+
+		// Dipakai berulang di seluruh jurnal di bawah.
+		$grand_total_price = $overall['grand_total'];
 		//manufacturer credit
 		     $purchasecoatran = array(
           'VNo'            =>  $purchase_id,
@@ -391,7 +451,7 @@ class Purchases extends CI_Model {
           'COAID'          =>  $manuf_coa->HeadCode,
           'Narration'      =>  'Purchase No.'.$purchase_id,
           'Debit'          =>  0,
-          'Credit'         =>  $this->input->post('grand_total_price',true),
+          'Credit'         =>  $grand_total_price,
           'IsPosted'       =>  1,
           'CreateBy'       =>  $receive_by,
           'CreateDate'     =>  $receive_date,
@@ -404,7 +464,7 @@ class Purchases extends CI_Model {
       'VDate'          => $this->input->post('purchase_date',true),
       'COAID'          => 10107,
       'Narration'      => 'Inventory Debit For Purchase No'.$purchase_id,
-      'Debit'          => $this->input->post('grand_total_price',true),
+      'Debit'          => $grand_total_price,
       'Credit'         => 0,//purchase price asbe
       'IsPosted'       => 1,
       'CreateBy'       => $receive_by,
@@ -418,7 +478,7 @@ class Purchases extends CI_Model {
       'VDate'          => $this->input->post('purchase_date',true),
       'COAID'          => 402,
       'Narration'      => 'Company Credit For Purchase No'.$purchase_id,
-      'Debit'          => $this->input->post('grand_total_price',true),
+      'Debit'          => $grand_total_price,
       'Credit'         => 0,//purchase price asbe
       'IsPosted'       => 1,
       'CreateBy'       => $receive_by,
@@ -432,7 +492,7 @@ class Purchases extends CI_Model {
       'COAID'          =>  1020101,
       'Narration'      =>  'Cash in Hand For Purchase No'.$purchase_id,
       'Debit'          =>  0,
-      'Credit'         =>  $this->input->post('grand_total_price',true),
+      'Credit'         =>  $grand_total_price,
       'IsPosted'       =>  1,
       'CreateBy'       =>  $receive_by,
       'CreateDate'     =>  $createdate,
@@ -445,7 +505,7 @@ class Purchases extends CI_Model {
           'VDate'          =>  $this->input->post('purchase_date',true),
           'COAID'          =>  $manuf_coa->HeadCode,
           'Narration'      =>  'Purchase No.'.$purchase_id,
-          'Debit'          =>  $this->input->post('grand_total_price',true),
+          'Debit'          =>  $grand_total_price,
           'Credit'         =>  0,
           'IsPosted'       =>  1,
           'CreateBy'       =>  $receive_by,
@@ -461,7 +521,7 @@ class Purchases extends CI_Model {
       'COAID'          =>  $bankcoaid,
       'Narration'      =>  'Paid amount for Purchase No '.$purchase_id,
       'Debit'          =>  0,
-      'Credit'         =>  $this->input->post('grand_total_price',true),
+      'Credit'         =>  $grand_total_price,
       'IsPosted'       =>  1,
       'CreateBy'       =>  $receive_by,
       'CreateDate'     =>  $createdate,
@@ -519,7 +579,7 @@ class Purchases extends CI_Model {
 		}
 	
 		   $message = 'Mr/Mrs. '.$manufacturer_info->manufacturer_name.',
-        '.'You have Sold '.$this->input->post('grand_total_price',true);
+        '.'You have Sold '.$grand_total_price;
            $config_data = $this->db->select('*')->from('sms_settings')->get()->row();
         if($config_data->ispurchase == 1){
           $this->smsgateway->send([
@@ -594,12 +654,20 @@ public function update_purchase()
         $receive_date=date('Y-m-d');
         $createdate=date('Y-m-d H:i:s');
   
+		// Sama seperti saat simpan baru: diskon keseluruhan dihitung ulang
+		// di server, bukan memakai angka kiriman form.
+		$overall = $this->calculate_overall_discount();
+		$grand_total_price = $overall['grand_total'];
+
 		$data=array(
 			'purchase_id'       =>  $purchase_id,
 			'chalan_no'			=>	$this->input->post('chalan_no',true),
 			'manufacturer_id'	=>	$this->input->post('manufacturer_id',true),
-			'grand_total_amount'=>	$this->input->post('grand_total_price',true),
+			'grand_total_amount'=>	$grand_total_price,
 			'total_discount'	=>	$this->input->post('total_discount',true),
+			'overall_discount_type'   => $overall['type'],
+			'overall_discount_input'  => $overall['input'],
+			'overall_discount_amount' => $overall['amount'],
 			'purchase_date'		=>	$this->input->post('purchase_date',true),
 			'purchase_details'	=>	$this->input->post('purchase_details',true),
 			'bank_id'           =>  $this->input->post('bank_id',true),
@@ -612,7 +680,7 @@ public function update_purchase()
       'COAID'          =>  1020101,
       'Narration'      =>  'Cash in Hand For Purchase No'.$purchase_id,
       'Debit'          =>  0,
-      'Credit'         =>  $this->input->post('grand_total_price',true),
+      'Credit'         =>  $grand_total_price,
       'IsPosted'       =>  1,
       'CreateBy'       =>  $receive_by,
       'CreateDate'     =>  $createdate,
@@ -626,7 +694,7 @@ public function update_purchase()
       'COAID'          =>  $bankcoaid,
       'Narration'      =>  'Paid amount for Purchase No '.$purchase_id,
       'Debit'          =>  0,
-      'Credit'         =>  $this->input->post('grand_total_price',true),
+      'Credit'         =>  $grand_total_price,
       'IsPosted'       =>  1,
       'CreateBy'       =>  $receive_by,
       'CreateDate'     =>  $createdate,
@@ -641,7 +709,7 @@ public function update_purchase()
           'COAID'          =>  $manuf_coa->HeadCode,
           'Narration'      =>  'Purchase No.'.$purchase_id,
           'Debit'          =>  0,
-          'Credit'         =>  $this->input->post('grand_total_price',true),
+          'Credit'         =>  $grand_total_price,
           'IsPosted'       =>  1,
           'CreateBy'       =>  $receive_by,
           'CreateDate'     =>  $receive_date,
@@ -653,7 +721,7 @@ public function update_purchase()
           'VDate'          =>  $this->input->post('purchase_date',true),
           'COAID'          =>  $manuf_coa->HeadCode,
           'Narration'      =>  'Purchase No.'.$purchase_id,
-          'Debit'          =>  $this->input->post('grand_total_price',true),
+          'Debit'          =>  $grand_total_price,
           'Credit'         =>  0,
           'IsPosted'       =>  1,
           'CreateBy'       =>  $receive_by,
@@ -667,7 +735,7 @@ public function update_purchase()
       'VDate'          => $this->input->post('purchase_date',true),
       'COAID'          => 10107,
       'Narration'      => 'Inventory Debit For Purchase No'.$purchase_id,
-      'Debit'          => $this->input->post('grand_total_price',true),
+      'Debit'          => $grand_total_price,
       'Credit'         => 0,//purchase price asbe
       'IsPosted'       => 1,
       'CreateBy'       => $receive_by,
@@ -681,7 +749,7 @@ public function update_purchase()
       'VDate'          => $this->input->post('purchase_date',true),
       'COAID'          => 402,
       'Narration'      => 'Company Credit For Purchase No'.$purchase_id,
-      'Debit'          => $this->input->post('grand_total_price',true),
+      'Debit'          => $grand_total_price,
       'Credit'         => 0,//purchase price asbe
       'IsPosted'       => 1,
       'CreateBy'       => $receive_by,
