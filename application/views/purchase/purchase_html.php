@@ -192,10 +192,13 @@
                                             </tr>
                                         <?php }
 
-                                        // Diskon keseluruhan. isset() dipakai supaya nota lama
+                                        // Diskon keseluruhan dan PPN. isset() dipakai supaya nota lama
                                         // (tersimpan sebelum fitur ini ada) tetap bisa dicetak.
                                         $od_amount = (isset($purchase[0]['overall_discount_amount'])
                                                       ? (float) $purchase[0]['overall_discount_amount'] : 0);
+                                        $ppn_amount = (isset($purchase[0]['ppn_amount'])
+                                                       ? (float) $purchase[0]['ppn_amount'] : 0);
+
                                         if ($od_amount > 0) {
                                             $od_type  = (isset($purchase[0]['overall_discount_type'])
                                                          ? $purchase[0]['overall_discount_type'] : 'percent');
@@ -210,6 +213,27 @@
                                                 <th><?php echo $od_label; ?> : </th>
                                                 <td class="text-right">- <?php echo (($position == 0) ? $currency.' '.number_format($od_amount, 2, '.', ',') : number_format($od_amount, 2, '.', ',').' '.$currency); ?></td>
                                             </tr>
+                                        <?php }
+
+                                        if ($ppn_amount > 0) {
+                                            $ppn_type  = (isset($purchase[0]['ppn_type'])
+                                                          ? $purchase[0]['ppn_type'] : 'percent');
+                                            $ppn_input = (isset($purchase[0]['ppn_input'])
+                                                          ? (float) $purchase[0]['ppn_input'] : 0);
+                                            $ppn_label = display('ppn');
+                                            if ($ppn_type === 'percent') {
+                                                $ppn_label .= ' ('.rtrim(rtrim(number_format($ppn_input, 2, '.', ''), '0'), '.').'%)';
+                                            }
+                                            ?>
+                                            <tr>
+                                                <th><?php echo $ppn_label; ?> : </th>
+                                                <td class="text-right">+ <?php echo (($position == 0) ? $currency.' '.number_format($ppn_amount, 2, '.', ',') : number_format($ppn_amount, 2, '.', ',').' '.$currency); ?></td>
+                                            </tr>
+                                        <?php }
+
+                                        // Grand total ditampilkan bila ada diskon atau PPN,
+                                        // supaya jelas angka akhir yang dibayar.
+                                        if ($od_amount > 0 || $ppn_amount > 0) { ?>
                                             <tr>
                                                 <th><?php echo display('grand_total') ?> : </th>
                                                 <td class="text-right"><b><?php echo (($position == 0) ? $currency.' '.number_format((float)$purchase[0]['grand_total_amount'], 2, '.', ',') : number_format((float)$purchase[0]['grand_total_amount'], 2, '.', ',').' '.$currency); ?></b></td>

@@ -322,13 +322,20 @@ class Purchases extends CI_Model {
 
 	//Count purchase
 	/**
-	 * Hitung diskon keseluruhan pembelian di sisi server.
+	 * Hitung diskon keseluruhan dan PPN pembelian di sisi server.
 	 *
 	 * Subtotal dijumlahkan ulang dari total_price[] tiap barang, bukan dari
 	 * grand_total_price kiriman form, karena nilai form bisa diubah lewat
-	 * browser. Diskon dibatasi 0..subtotal supaya grand total tidak negatif.
+	 * browser.
 	 *
-	 * @return array type, input, amount, sub_total, grand_total
+	 * Urutan:
+	 *   Dasar Pengenaan = Sub Total - Diskon Keseluruhan
+	 *   Grand Total     = Dasar Pengenaan + PPN
+	 *
+	 * PPN dihitung sesudah diskon karena dasar pengenaan pajak adalah nilai
+	 * transaksi bersih, yaitu sesudah potongan harga.
+	 *
+	 * @return array type, input, amount, ppn_*, sub_total, dpp, grand_total
 	 */
 	public function calculate_overall_discount()
 	{
@@ -361,12 +368,37 @@ class Purchases extends CI_Model {
 			$amount = $sub_total;
 		}
 
+		// Dasar pengenaan pajak: nilai bersih sesudah diskon.
+		$dpp = $sub_total - $amount;
+
+		// ---- PPN ----
+		$ppn_type  = $this->input->post('ppn_type', true);
+		$ppn_type  = ($ppn_type === 'fixed' ? 'fixed' : 'percent');
+		$ppn_input = (float) $this->input->post('ppn_input', true);
+		if ($ppn_input < 0) {
+			$ppn_input = 0;
+		}
+
+		if ($ppn_type === 'percent') {
+			if ($ppn_input > 100) {
+				$ppn_input = 100;
+			}
+			$ppn_amount = $dpp * $ppn_input / 100;
+		} else {
+			$ppn_amount = $ppn_input;
+		}
+
 		return array(
 			'type'        => $type,
 			'input'       => $input,
 			'amount'      => round($amount, 2),
+			'ppn_type'    => $ppn_type,
+			'ppn_input'   => $ppn_input,
+			'ppn_amount'  => round($ppn_amount, 2),
 			'sub_total'   => round($sub_total, 2),
-			'grand_total' => round($sub_total - $amount, 2),
+			'dpp'         => round($dpp, 2),
+			// PPN menambah, jadi grand total = dasar pengenaan + PPN.
+			'grand_total' => round($dpp + $ppn_amount, 2),
 		);
 	}
 
@@ -433,6 +465,9 @@ class Purchases extends CI_Model {
 			'overall_discount_type'   => $overall['type'],
 			'overall_discount_input'  => $overall['input'],
 			'overall_discount_amount' => $overall['amount'],
+			'ppn_type'                => $overall['ppn_type'],
+			'ppn_input'               => $overall['ppn_input'],
+			'ppn_amount'              => $overall['ppn_amount'],
 			'purchase_date'		=>	$this->input->post('purchase_date',true),
 			'purchase_details'	=>	$this->input->post('purchase_details',true),
 			'status'			=>	1,
@@ -668,6 +703,9 @@ public function update_purchase()
 			'overall_discount_type'   => $overall['type'],
 			'overall_discount_input'  => $overall['input'],
 			'overall_discount_amount' => $overall['amount'],
+			'ppn_type'                => $overall['ppn_type'],
+			'ppn_input'               => $overall['ppn_input'],
+			'ppn_amount'              => $overall['ppn_amount'],
 			'purchase_date'		=>	$this->input->post('purchase_date',true),
 			'purchase_details'	=>	$this->input->post('purchase_details',true),
 			'bank_id'           =>  $this->input->post('bank_id',true),

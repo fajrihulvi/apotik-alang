@@ -3,3 +3,14 @@ application/ci_sessions/*
 
 # Kredensial database production, jangan ikut ke repository
 application/config/db_credentials.php
+
+# Berkas log dihasilkan aplikasi saat berjalan. Server punya isinya
+# sendiri, jadi bila ikut di-track akan bentrok setiap kali git pull.
+application/logs/*
+!application/logs/index.html
+!application/logs/.gitkeep
+
+# Cache daftar obat untuk autocomplete. Dibuat ulang otomatis oleh
+# aplikasi dari tabel product_information (lihat Products.php:213),
+# dan isinya berbeda antara lokal dan production.
+my-assets/js/admin_js/json/product.json

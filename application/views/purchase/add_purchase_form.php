@@ -264,6 +264,8 @@
                                             <input type="hidden" name="total_discount" id="total_discount" value="0.00"/>
                                             <!-- Nilai rupiah diskon keseluruhan, dihitung di JS -->
                                             <input type="hidden" name="overall_discount_amount" id="overall_discount_amount" value="0.00"/>
+                                            <!-- Nilai rupiah PPN, dihitung di JS -->
+                                            <input type="hidden" name="ppn_amount" id="ppn_amount" value="0.00"/>
                                         </td>
                                         <td class="text-right" colspan="5"><b><?php echo display('sub_total') ?>:</b></td>
                                         <td class="text-right">
@@ -297,6 +299,28 @@
                                                 </span>
                                             </div>
                                             <small class="text-muted" id="overall_discount_info"></small>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <!-- PPN: dihitung dari nilai sesudah diskon, lalu ditambahkan -->
+                                    <tr>
+                                        <td colspan="2"></td>
+                                        <td class="text-right" colspan="5"><b><?php echo display('ppn') ?>:</b></td>
+                                        <td class="text-right">
+                                            <div class="input-group discount-group">
+                                                <input type="text" name="ppn_input" id="ppn_input"
+                                                       class="form-control text-right" placeholder="0" value="0"
+                                                       onkeyup="calculate_overall_discount();" onchange="calculate_overall_discount();"
+                                                       tabindex="16"/>
+                                                <span class="input-group-addon discount-type-addon">
+                                                    <select name="ppn_type" id="ppn_type"
+                                                            onchange="calculate_overall_discount();" tabindex="17">
+                                                        <option value="percent">%</option>
+                                                        <option value="fixed">Rp.</option>
+                                                    </select>
+                                                </span>
+                                            </div>
+                                            <small class="text-muted" id="ppn_info"></small>
                                         </td>
                                         <td></td>
                                     </tr>

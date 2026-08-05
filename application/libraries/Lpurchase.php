@@ -161,6 +161,12 @@ class Lpurchase {
 		$od_input = (isset($purchase_detail[0]['overall_discount_input'])
 		             ? $purchase_detail[0]['overall_discount_input'] : 0);
 
+		// PPN. Dibaca aman dengan alasan yang sama seperti diskon di atas.
+		$ppn_type  = (isset($purchase_detail[0]['ppn_type'])
+		              ? $purchase_detail[0]['ppn_type'] : 'percent');
+		$ppn_input = (isset($purchase_detail[0]['ppn_input'])
+		              ? $purchase_detail[0]['ppn_input'] : 0);
+
 		$data=array(
 			'title'				=>	display('purchase_edit'),
 			'purchase_id'		=>	$purchase_detail[0]['purchase_id'],
@@ -171,6 +177,9 @@ class Lpurchase {
 			'overall_discount_input' => $od_input,
 			'selected_percent'  =>  ($od_type === 'fixed' ? '' : 'selected'),
 			'selected_fixed'    =>  ($od_type === 'fixed' ? 'selected' : ''),
+			'ppn_input'             => $ppn_input,
+			'ppn_selected_percent'  => ($ppn_type === 'fixed' ? '' : 'selected'),
+			'ppn_selected_fixed'    => ($ppn_type === 'fixed' ? 'selected' : ''),
 			'purchase_details'	=>	$purchase_detail[0]['purchase_details'],
 			'purchase_date'		=>	$purchase_detail[0]['purchase_date'],
 			'total_discount'	=>	$purchase_detail[0]['total_discount'],

@@ -151,14 +151,21 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
     }
 
     /**
-     * Diskon keseluruhan atas subtotal pembelian.
+     * Diskon keseluruhan dan PPN atas subtotal pembelian.
      *
-     * Dua jenis:
+     * Urutan perhitungan:
+     *   Sub Total       = jumlah seluruh barang (sesudah diskon per barang)
+     *   Diskon          = potongan atas Sub Total
+     *   Dasar Pengenaan = Sub Total - Diskon
+     *   PPN             = dihitung dari Dasar Pengenaan, lalu DITAMBAHKAN
+     *   Grand Total     = Dasar Pengenaan + PPN
+     *
+     * PPN dihitung sesudah diskon karena dasar pengenaan pajak adalah
+     * nilai transaksi bersih, yaitu sesudah potongan harga.
+     *
+     * Keduanya mendukung dua jenis:
      *   percent -> nilai dianggap persen, dibatasi 0-100
      *   fixed   -> nilai dianggap nominal rupiah
-     *
-     * Diskon dibatasi maksimal sebesar subtotal supaya grand total tidak
-     * pernah negatif.
      */
     "use strict";
     function calculate_overall_discount() {
@@ -192,9 +199,35 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
             disc_amount = sub_total;
         }
 
-        var grand_total = sub_total - disc_amount;
+        // Dasar pengenaan pajak: nilai bersih sesudah diskon.
+        var dpp = sub_total - disc_amount;
+
+        // ---- PPN ----
+        var ppn_type   = $("#ppn_type").val() || 'percent';
+        var ppn_input  = parseFloat($("#ppn_input").val()) || 0;
+
+        if (ppn_input < 0) {
+            ppn_input = 0;
+            $("#ppn_input").val(0);
+        }
+
+        var ppn_amount = 0;
+
+        if (ppn_type === 'percent') {
+            if (ppn_input > 100) {
+                ppn_input = 100;
+                $("#ppn_input").val(100);
+            }
+            ppn_amount = dpp * ppn_input / 100;
+        } else {
+            ppn_amount = ppn_input;
+        }
+
+        // PPN menambah, jadi grand total = dasar pengenaan + PPN.
+        var grand_total = dpp + ppn_amount;
 
         $("#overall_discount_amount").val(disc_amount.toFixed(2));
+        $("#ppn_amount").val(ppn_amount.toFixed(2));
         $("#grandTotal").val(grand_total.toFixed(2));
 
         // Keterangan singkat supaya operator bisa memastikan angkanya benar.
@@ -204,6 +237,13 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
             if (disc_type === 'percent') { info += ' (' + disc_input + '%)'; }
         }
         $("#overall_discount_info").text(info);
+
+        var ppn_info = '';
+        if (ppn_amount > 0) {
+            ppn_info = '+ ' + ppn_amount.toFixed(2);
+            if (ppn_type === 'percent') { ppn_info += ' (' + ppn_input + '%)'; }
+        }
+        $("#ppn_info").text(ppn_info);
     }
 
       "use strict";
