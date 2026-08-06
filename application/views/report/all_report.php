@@ -50,6 +50,7 @@
 		                    <h4><?php echo display('todays_sales_report') ?> </h4>
 		                    <p class="text-right">
 		                    <a  class="btn btn-warning btn-sm" href="#" onclick="printDiv('printableArea')"><?php echo display('print') ?></a>
+	                    <a  class="btn btn-success btn-sm" href="<?php echo base_url('Admin_dashboard/all_report_excel')?>"><i class="fa fa-file-excel-o"></i> Download Excel</a>
 		                </p>
 		                </div>
 		            </div>
@@ -115,6 +116,7 @@
 		                    <h4><?php echo display('todays_purchase_report') ?></h4>
 		                    	<p class="text-right">
 		                    <a  class="btn btn-warning" href="#" onclick="printDiv('purchase_div')"><?php echo display('print') ?></a>
+		                    <a  class="btn btn-success" href="<?php echo base_url('Admin_dashboard/all_report_excel')?>"><i class="fa fa-file-excel-o"></i> Download Excel</a>
 		                </p>
 		                </div>
 		            </div>

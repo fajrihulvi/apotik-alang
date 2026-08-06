@@ -14,3 +14,11 @@ application/logs/*
 # aplikasi dari tabel product_information (lihat Products.php:213),
 # dan isinya berbeda antara lokal dan production.
 my-assets/js/admin_js/json/product.json
+
+# Skrip SQL sekali-pakai dan dump database di folder root. Isinya berupa
+# migrasi data, perbaikan data, atau hasil dump yang hanya relevan untuk
+# satu mesin/satu waktu, jadi tidak perlu ikut ke repository.
+#
+# Tanda "/" di depan membatasi aturan HANYA pada folder root, sehingga
+# skrip instalasi di install/sql/ dan berkas di assets/ tetap ter-track.
+/*.sql

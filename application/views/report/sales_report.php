@@ -65,7 +65,29 @@
 
 		                    <button type="submit" class="btn btn-success"><?php echo display('search') ?></button>
 		                    <a  class="btn btn-warning" href="#" onclick="printDiv('purchase_div')"><?php echo display('print') ?></a>
+		                    <a  class="btn btn-success" id="sales_excel_link" href="<?php echo base_url('Admin_dashboard/todays_sales_report_excel')?>?from_date={start_date}&amp;to_date={end_date}"><i class="fa fa-file-excel-o"></i> Download Excel</a>
 		               <?php echo form_close()?>
+
+		               <script type="text/javascript">
+		               // Ikutkan tanggal yang sedang diisi di form ke tautan unduh,
+		               // supaya isi file cocok dengan rentang yang dipilih pengguna
+		               // walaupun tombol Cari belum ditekan.
+		               (function () {
+		                   var link = document.getElementById('sales_excel_link');
+		                   if (!link) { return; }
+		                   var base = '<?php echo base_url('Admin_dashboard/todays_sales_report_excel')?>';
+		                   link.addEventListener('click', function () {
+		                       var from = document.getElementById('from_date');
+		                       var to   = document.getElementById('to_date');
+		                       var url  = base;
+		                       if (from && to && from.value && to.value) {
+		                           url += '?from_date=' + encodeURIComponent(from.value)
+		                                + '&to_date='   + encodeURIComponent(to.value);
+		                       }
+		                       link.setAttribute('href', url);
+		                   });
+		               })();
+		               </script>
 		            </div>
 		        </div>
 		    </div>

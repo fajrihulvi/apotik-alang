@@ -110,7 +110,10 @@ class Admin_dashboard extends CI_Controller {
 	}
 	#=============Total profit report===================#
 	public function total_profit_report(){
-		if ($this->session->userdata('user_type') == '2') {
+		// Pakai izin dari Role Permission, bukan kolom user_type mentah.
+		// Akun Owner ber-user_type 2, jadi pengecekan lama ikut menutup
+		// akses Owner padahal role-nya diberi izin penuh atas laporan.
+		if (!$this->permission1->method('profit_loss','read')->access()) {
             $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
             redirect('Admin_dashboard');
         }
@@ -155,7 +158,7 @@ class Admin_dashboard extends CI_Controller {
 	#==============Date wise profit report=============#
 	public function retrieve_dateWise_profit_report()
 	{
-		if ($this->session->userdata('user_type') == '2') {
+		if (!$this->permission1->method('profit_loss','read')->access()) {
             $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
             redirect('Admin_dashboard');
         }
@@ -170,7 +173,7 @@ class Admin_dashboard extends CI_Controller {
 	#============Date wise sales report==============#
 	public function retrieve_dateWise_SalesReports()
 	{
-		if ($this->session->userdata('user_type') == '2') {
+		if (!$this->permission1->method('sales_report','read')->access()) {
             $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
             redirect('Admin_dashboard');
         }
@@ -185,7 +188,7 @@ class Admin_dashboard extends CI_Controller {
 	#==============Date wise purchase report=============#
 	public function retrieve_dateWise_PurchaseReports()
 	{
-		if ($this->session->userdata('user_type') == '2') {
+		if (!$this->permission1->method('purchase_report','read')->access()) {
             $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
             redirect('Admin_dashboard');
         }
@@ -241,7 +244,7 @@ class Admin_dashboard extends CI_Controller {
 	#==============Product sales search reports============#
 	public function product_sales_search_reports()
 	{
-		if ($this->session->userdata('user_type') == '2') {
+		if (!$this->permission1->method('sales_report_medicine_wise','read')->access()) {
             $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
             redirect('Admin_dashboard');
         }
@@ -253,6 +256,283 @@ class Admin_dashboard extends CI_Controller {
         $content   = $CI->lreport->get_products_search_report($from_date,$to_date);
 		$this->template->full_admin_html_view($content);
 	}
+
+	# =================================================================
+	# UNDUH EXCEL
+	#
+	# Setiap laporan punya satu aksi unduh yang memakai data dan filter
+	# tanggal yang sama dengan tampilan layarnya, jadi isi file selalu
+	# cocok dengan tabel yang sedang dilihat pengguna.
+	# =================================================================
+
+	/**
+	 * Laporan hari ini (penjualan + pembelian) dalam satu file dua sheet.
+	 */
+	public function all_report_excel()
+	{
+		$CI =& get_instance();
+		$this->auth->check_admin_auth();
+		if (!$this->permission1->method('todays_report','read')->access()) {
+			$this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+			redirect('Admin_dashboard/all_report');
+		}
+		$CI->load->library('excel_export');
+		$CI->load->model('Reports');
+
+		$today = date('d-m-Y');
+
+		$sales = $this->build_sales_sheet(
+			$CI->Reports->todays_sales_report(null, null),
+			'Penjualan Hari Ini',
+			$today,
+			$today
+		);
+		$purchase = $this->build_purchase_sheet(
+			$CI->Reports->todays_purchase_report(null, null),
+			'Pembelian Hari Ini',
+			$today,
+			$today
+		);
+		$sales['name']    = 'Penjualan';
+		$purchase['name'] = 'Pembelian';
+
+		$CI->excel_export->download(
+			'laporan_hari_ini_'.date('Ymd').'.xlsx',
+			array($sales, $purchase)
+		);
+	}
+
+	/**
+	 * Laporan penjualan. Tanpa parameter tanggal berarti penjualan hari ini;
+	 * dengan from_date/to_date berarti rentang hasil pencarian.
+	 */
+	public function todays_sales_report_excel()
+	{
+		$CI =& get_instance();
+		$this->auth->check_admin_auth();
+		if (!$this->permission1->method('sales_report','read')->access()) {
+			$this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+			redirect('Admin_dashboard/todays_sales_report');
+		}
+		$CI->load->library('excel_export');
+		$CI->load->model('Reports');
+
+		$from_date = $this->input->get('from_date');
+		$to_date   = $this->input->get('to_date');
+
+		if ($from_date && $to_date) {
+			$report = $CI->Reports->retrieve_dateWise_SalesReports($from_date, $to_date);
+			$label_from = $from_date;
+			$label_to   = $to_date;
+			$filename   = 'laporan_penjualan_'.date('Ymd', strtotime($from_date)).'_'.date('Ymd', strtotime($to_date)).'.xlsx';
+		} else {
+			$report = $CI->Reports->todays_sales_report(null, null);
+			$label_from = $label_to = date('d-m-Y');
+			$filename   = 'laporan_penjualan_'.date('Ymd').'.xlsx';
+		}
+
+		$sheet = $this->build_sales_sheet($report, 'Laporan Penjualan', $label_from, $label_to);
+		$sheet['name'] = 'Penjualan';
+
+		$CI->excel_export->download($filename, array($sheet));
+	}
+
+	/**
+	 * Laporan pembelian, mengikuti pola yang sama dengan laporan penjualan.
+	 */
+	public function todays_purchase_report_excel()
+	{
+		$CI =& get_instance();
+		$this->auth->check_admin_auth();
+		if (!$this->permission1->method('purchase_report','read')->access()) {
+			$this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+			redirect('Admin_dashboard/todays_purchase_report');
+		}
+		$CI->load->library('excel_export');
+		$CI->load->model('Reports');
+
+		$from_date = $this->input->get('from_date');
+		$to_date   = $this->input->get('to_date');
+
+		if ($from_date && $to_date) {
+			$report = $CI->Reports->retrieve_dateWise_PurchaseReports($from_date, $to_date);
+			$label_from = $from_date;
+			$label_to   = $to_date;
+			$filename   = 'laporan_pembelian_'.date('Ymd', strtotime($from_date)).'_'.date('Ymd', strtotime($to_date)).'.xlsx';
+		} else {
+			$report = $CI->Reports->todays_purchase_report(null, null);
+			$label_from = $label_to = date('d-m-Y');
+			$filename   = 'laporan_pembelian_'.date('Ymd').'.xlsx';
+		}
+
+		$sheet = $this->build_purchase_sheet($report, 'Laporan Pembelian', $label_from, $label_to);
+		$sheet['name'] = 'Pembelian';
+
+		$CI->excel_export->download($filename, array($sheet));
+	}
+
+	/**
+	 * Laporan penjualan per produk. Tanpa tanggal akan mengunduh seluruh
+	 * data (bukan hanya satu halaman paginasi seperti di layar).
+	 */
+	public function product_sales_report_excel()
+	{
+		$CI =& get_instance();
+		$this->auth->check_admin_auth();
+		if (!$this->permission1->method('sales_report_medicine_wise','read')->access()) {
+			$this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+			redirect('Admin_dashboard/product_sales_reports_date_wise');
+		}
+		$CI->load->library('excel_export');
+		$CI->load->library('occational');
+		$CI->load->model('Reports');
+
+		$from_date = $this->input->get('from_date');
+		$to_date   = $this->input->get('to_date');
+
+		if ($from_date && $to_date) {
+			$report = $CI->Reports->retrieve_product_search_sales_report($from_date, $to_date);
+			$label_from = $from_date;
+			$label_to   = $to_date;
+			$filename   = 'laporan_penjualan_produk_'.date('Ymd', strtotime($from_date)).'_'.date('Ymd', strtotime($to_date)).'.xlsx';
+		} else {
+			// Ambil semua baris, bukan hanya halaman yang sedang tampil.
+			$total  = $CI->Reports->retrieve_product_sales_report_count();
+			$report = $CI->Reports->retrieve_product_sales_report(($total > 0 ? $total : 1), 0);
+			$label_from = $label_to = '';
+			$filename   = 'laporan_penjualan_produk_'.date('Ymd').'.xlsx';
+		}
+
+		$rows  = array();
+		$total_amount = 0;
+		if (!empty($report)) {
+			foreach ($report as $row) {
+				$total_amount += $row['total_price'];
+				$rows[] = array(
+					$CI->occational->dateConvert($row['date']),
+					$row['product_name'],
+					$row['product_model'],
+					$row['customer_name'],
+					$row['quantity'],
+					$row['rate'],
+					$row['total_price'],
+				);
+			}
+		}
+
+		$CI->excel_export->download($filename, array(array(
+			'name'   => 'Penjualan Produk',
+			'title'  => $this->excel_title('Laporan Penjualan Per Produk', $label_from, $label_to),
+			'header' => array('Tanggal','Nama Produk','Model Produk','Pelanggan','Jumlah','Harga','Total'),
+			'rows'   => $rows,
+			'number' => array(4),
+			'money'  => array(5, 6),
+			'footer' => array('','','','','','Total', $total_amount),
+		)));
+	}
+
+	/**
+	 * Rakit satu sheet penjualan dari hasil query invoice.
+	 *
+	 * @param array|false $report
+	 * @param string      $heading
+	 * @param string      $from
+	 * @param string      $to
+	 * @return array
+	 */
+	private function build_sales_sheet($report, $heading, $from, $to)
+	{
+		$CI =& get_instance();
+		$CI->load->library('occational');
+
+		$rows  = array();
+		$total = 0;
+		if (!empty($report)) {
+			foreach ($report as $row) {
+				$total += $row['total_amount'];
+				$rows[] = array(
+					$CI->occational->dateConvert($row['date']),
+					(!empty($row['invoice']) ? $row['invoice'] : $row['invoice_id']),
+					$row['customer_name'],
+					$row['total_amount'],
+				);
+			}
+		}
+
+		return array(
+			'title'  => $this->excel_title($heading, $from, $to),
+			'header' => array('Tanggal','No Faktur','Nama Pelanggan','Total'),
+			'rows'   => $rows,
+			'money'  => array(3),
+			'footer' => array('','','Total Penjualan', $total),
+		);
+	}
+
+	/**
+	 * Rakit satu sheet pembelian dari hasil query product_purchase.
+	 *
+	 * @param array|false $report
+	 * @param string      $heading
+	 * @param string      $from
+	 * @param string      $to
+	 * @return array
+	 */
+	private function build_purchase_sheet($report, $heading, $from, $to)
+	{
+		$CI =& get_instance();
+		$CI->load->library('occational');
+
+		$rows  = array();
+		$total = 0;
+		if (!empty($report)) {
+			foreach ($report as $row) {
+				$total += $row['grand_total_amount'];
+				$rows[] = array(
+					$CI->occational->dateConvert($row['purchase_date']),
+					$row['chalan_no'],
+					$row['manufacturer_name'],
+					$row['grand_total_amount'],
+				);
+			}
+		}
+
+		return array(
+			'title'  => $this->excel_title($heading, $from, $to),
+			'header' => array('Tanggal','No Faktur','Nama Distributor','Total'),
+			'rows'   => $rows,
+			'money'  => array(3),
+			'footer' => array('','','Total Pembelian', $total),
+		);
+	}
+
+	/**
+	 * Baris judul di atas tabel: nama apotek, judul laporan, periode,
+	 * dan waktu cetak.
+	 *
+	 * @param string $heading
+	 * @param string $from
+	 * @param string $to
+	 * @return array
+	 */
+	private function excel_title($heading, $from, $to)
+	{
+		$CI =& get_instance();
+		$CI->load->model('Reports');
+
+		$titles  = array();
+		$company = $CI->Reports->retrieve_company();
+		if (!empty($company[0]['company_name'])) {
+			$titles[] = $company[0]['company_name'];
+		}
+		$titles[] = $heading;
+		if ($from && $to) {
+			$titles[] = 'Periode: '.$from.' s/d '.$to;
+		}
+		$titles[] = 'Waktu Cetak: '.date('d/m/Y H:i:s');
+
+		return $titles;
+	}
+
 	#============User login=========#
 	public function login()
 	{	
