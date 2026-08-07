@@ -42,49 +42,102 @@ class Purchases extends CI_Model {
          $columnSortOrder = $postData['order'][0]['dir']; // asc or desc
          $searchValue = $postData['search']['value']; // Search value
 
-         ## Search 
-         $searchQuery = "";
-         if($searchValue != ''){
-            $searchQuery = " (b.manufacturer_name like '%".$searchValue."%' or a.chalan_no like '%".$searchValue."%' or a.purchase_date like'%".$searchValue."%')";
-         }
+         // Kolom yang boleh dipakai untuk urut. Nama kolom datang dari sisi
+         // klien, jadi dipetakan lewat daftar putih ini supaya tidak bisa
+         // disisipi SQL sembarangan.
+         $sortable = array(
+            'sl'                => 'a.purchase_date',
+            'chalan_no'         => 'a.chalan_no',
+            'purchase_id'       => 'a.purchase_id',
+            'manufacturer_name' => 'b.manufacturer_name',
+            'purchase_date'     => 'a.purchase_date',
+            'product_name'      => 'p.product_name',
+            'batch_id'          => 'd.batch_id',
+            'expeire_date'      => 'd.expeire_date',
+            'product_qty'       => 'd.quantity',
+            'product_rate'      => 'd.rate',
+            'product_discount'  => 'd.discount',
+            'product_total'     => 'd.total_amount',
+            'total_amount'      => 'a.grand_total_amount',
+         );
+         $orderBy = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.purchase_date');
+         $columnSortOrder = (strtolower($columnSortOrder) == 'asc' ? 'asc' : 'desc');
+
+         // Filter dropdown multiple: beberapa faktur / beberapa barang.
+         $filter_invoice = $this->input->post('filter_invoice',true);
+         $filter_product = $this->input->post('filter_product',true);
+         $dropEmpty = function($val){
+            if(!is_array($val)){ return array(); }
+            return array_values(array_filter($val, function($v){
+               return ($v !== null && $v !== '' && !is_array($v));
+            }));
+         };
+         $filter_invoice = $dropEmpty($filter_invoice);
+         $filter_product = $dropEmpty($filter_product);
+
+         // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
+         $applyFilter = function($withSearch = true) use (
+            $fromdate, $todate, $searchValue, $filter_invoice, $filter_product
+         ){
+            if(!empty($fromdate) && !empty($todate)){
+               $this->db->where('a.purchase_date >=', $fromdate);
+               $this->db->where('a.purchase_date <=', $todate);
+            }
+            if(!empty($filter_invoice)){
+               $this->db->where_in('a.purchase_id', $filter_invoice);
+            }
+            if(!empty($filter_product)){
+               $this->db->where_in('d.product_id', $filter_product);
+            }
+            // Pencarian bebas: no. faktur, distributor, tanggal, dan juga
+            // nama barang / batch-nya.
+            if($withSearch && $searchValue != ''){
+               $like = $this->db->escape_like_str($searchValue);
+               $this->db->where(
+                  "(b.manufacturer_name LIKE '%$like%' ESCAPE '!'"
+                  ." OR a.chalan_no LIKE '%$like%' ESCAPE '!'"
+                  ." OR a.purchase_id LIKE '%$like%' ESCAPE '!'"
+                  ." OR a.purchase_date LIKE '%$like%' ESCAPE '!'"
+                  ." OR p.product_name LIKE '%$like%' ESCAPE '!'"
+                  ." OR d.batch_id LIKE '%$like%' ESCAPE '!')",
+                  NULL, FALSE
+               );
+            }
+         };
+
+         // Join dasar: nota pembelian -> rincian barang -> master barang.
+         $baseFrom = function(){
+            $this->db->from('product_purchase a');
+            $this->db->join('product_purchase_details d', 'd.purchase_id = a.purchase_id','left');
+            $this->db->join('manufacturer_information b', 'b.manufacturer_id = a.manufacturer_id','left');
+            $this->db->join('product_information p', 'p.product_id = d.product_id','left');
+         };
 
          ## Total number of records without filtering
-        $this->db->select('count(*) as allcount');
-        $this->db->from('product_purchase a');
-        $this->db->join('manufacturer_information b', 'b.manufacturer_id = a.manufacturer_id','left');
-          if(!empty($fromdate) && !empty($todate)){
-             $this->db->where($datbetween);
-         }
-          if($searchValue != '')
-          $this->db->where($searchQuery);
-          
+         $this->db->select('count(*) as allcount');
+         $baseFrom();
+         $applyFilter(false);
          $records = $this->db->get()->result();
          $totalRecords = $records[0]->allcount;
 
          ## Total number of record with filtering
          $this->db->select('count(*) as allcount');
-        $this->db->from('product_purchase a');
-        $this->db->join('manufacturer_information b', 'b.manufacturer_id = a.manufacturer_id','left');
-         if(!empty($fromdate) && !empty($todate)){
-             $this->db->where($datbetween);
-         }
-         if($searchValue != '')
-            $this->db->where($searchQuery);
-          
+         $baseFrom();
+         $applyFilter(true);
          $records = $this->db->get()->result();
          $totalRecordwithFilter = $records[0]->allcount;
 
          ## Fetch records
-        $this->db->select('a.*,b.manufacturer_name');
-        $this->db->from('product_purchase a');
-        $this->db->join('manufacturer_information b', 'b.manufacturer_id = a.manufacturer_id','left');
-          if(!empty($fromdate) && !empty($todate)){
-             $this->db->where($datbetween);
-         }
-         if($searchValue != '')
-         $this->db->where($searchQuery);
-       
-         $this->db->order_by($columnName, $columnSortOrder);
+         $this->db->select('a.purchase_id, a.chalan_no, a.purchase_date, a.grand_total_amount,
+                            b.manufacturer_name,
+                            d.id as detail_id, d.batch_id, d.expeire_date,
+                            d.quantity, d.rate, d.discount, d.total_amount,
+                            p.product_name');
+         $baseFrom();
+         $applyFilter(true);
+         $this->db->order_by($orderBy, $columnSortOrder);
+         // Barang dalam satu nota tetap berurutan seperti saat diinput.
+         $this->db->order_by('d.id', 'asc');
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
 
@@ -93,26 +146,11 @@ class Purchases extends CI_Model {
          foreach($records as $record){
             $purchase_ids[] = $record->purchase_id;
          }
+         $purchase_ids = array_values(array_unique($purchase_ids));
          $price_status = $this->purchase_price_status_bulk($purchase_ids);
 
-         // Rincian barang untuk seluruh nota di halaman ini.
-         // Diambil sekali jalan (1 query) supaya halaman tidak berat.
-         $items = array();
-         if(!empty($purchase_ids)){
-            $this->db->select('d.purchase_id, d.batch_id, d.expeire_date,
-                               d.quantity, d.rate, d.discount, d.total_amount,
-                               p.product_name');
-            $this->db->from('product_purchase_details d');
-            $this->db->join('product_information p','p.product_id = d.product_id','left');
-            $this->db->where_in('d.purchase_id', $purchase_ids);
-            $this->db->order_by('d.id','asc');
-            foreach($this->db->get()->result() as $it){
-               $items[$it->purchase_id][] = $it;
-            }
-         }
-
          $data = array();
-         $sl =1;
+         $sl = $start + 1;
          foreach($records as $record ){
           $button = '';
           $base_url = base_url();
@@ -152,38 +190,22 @@ class Purchases extends CI_Model {
                $status = '<span class="text-muted">-</span>';
             }
 
-            // Kolom rincian barang. Satu nota bisa berisi banyak barang,
-            // jadi tiap sel menampilkannya baris per baris.
-            $c_nama = array(); $c_batch = array(); $c_exp = array();
-            $c_qty = array(); $c_rate = array(); $c_disc = array(); $c_total = array();
-
-            if(isset($items[$record->purchase_id])){
-               foreach($items[$record->purchase_id] as $it){
-                  $c_nama[]  = html_escape($it->product_name);
-                  $c_batch[] = ($it->batch_id != '' ? html_escape($it->batch_id) : '-');
-                  $c_exp[]   = ($it->expeire_date != '' ? html_escape($it->expeire_date) : '-');
-                  $c_qty[]   = (float)$it->quantity;
-                  $c_rate[]  = number_format((float)$it->rate, 2, '.', ',');
-                  $c_disc[]  = (float)$it->discount.'%';
-                  $c_total[] = number_format((float)$it->total_amount, 2, '.', ',');
-               }
-            }
-
+            // Kolom angka dikirim sebagai number, bukan teks yang sudah
+            // diformat, supaya hasil unduhan Excel/CSV langsung bisa dihitung.
             $data[] = array(
                 'sl'               =>$sl,
                 'chalan_no'        =>$record->chalan_no,
                 'purchase_id'      =>$record->purchase_id,
                 'manufacturer_name'=>$record->manufacturer_name,
-                'purchase_id'      =>$record->purchase_id,
                 'purchase_date'    =>$record->purchase_date,
-                'product_name'     =>(!empty($c_nama) ? implode('<br>', $c_nama) : '-'),
-                'batch_id'         =>(!empty($c_batch) ? implode('<br>', $c_batch) : '-'),
-                'expeire_date'     =>(!empty($c_exp) ? implode('<br>', $c_exp) : '-'),
-                'product_qty'      =>(!empty($c_qty) ? implode('<br>', $c_qty) : '-'),
-                'product_rate'     =>(!empty($c_rate) ? implode('<br>', $c_rate) : '-'),
-                'product_discount' =>(!empty($c_disc) ? implode('<br>', $c_disc) : '-'),
-                'product_total'    =>(!empty($c_total) ? implode('<br>', $c_total) : '-'),
-                'total_amount'     =>$record->grand_total_amount,
+                'product_name'     =>($record->product_name != '' ? $record->product_name : '-'),
+                'batch_id'         =>($record->batch_id != '' ? $record->batch_id : '-'),
+                'expeire_date'     =>($record->expeire_date != '' ? $record->expeire_date : '-'),
+                'product_qty'      =>(float)$record->quantity,
+                'product_rate'     =>(float)$record->rate,
+                'product_discount' =>(float)$record->discount,
+                'product_total'    =>(float)$record->total_amount,
+                'total_amount'     =>(float)$record->grand_total_amount,
                 'status'           =>$status,
                 'button'           =>$button,
 
@@ -201,6 +223,49 @@ class Purchases extends CI_Model {
 
          return $response; 
     }
+	/**
+	 * Isi dropdown filter pada halaman Kelola Pembelian:
+	 * daftar faktur pembelian dan daftar barang yang pernah dibeli.
+	 */
+	public function getPurchaseFilterOptions()
+	{
+		$invoices = array();
+		$this->db->select('a.purchase_id, a.chalan_no, a.purchase_date, b.manufacturer_name');
+		$this->db->from('product_purchase a');
+		$this->db->join('manufacturer_information b', 'b.manufacturer_id = a.manufacturer_id', 'left');
+		$this->db->order_by('a.purchase_date', 'desc');
+		$this->db->order_by('a.purchase_id', 'desc');
+		foreach($this->db->get()->result() as $row){
+			// Label memakai no. faktur bila ada; bila tidak, id pembeliannya.
+			$label = ($row->chalan_no != '' ? $row->chalan_no : $row->purchase_id);
+			if($row->manufacturer_name != ''){
+				$label .= ' - '.$row->manufacturer_name;
+			}
+			if($row->purchase_date != ''){
+				$label .= ' ('.$row->purchase_date.')';
+			}
+			$invoices[] = array('id' => $row->purchase_id, 'text' => $label);
+		}
+
+		$products = array();
+		$this->db->distinct();
+		$this->db->select('p.product_id, p.product_name, p.strength');
+		$this->db->from('product_purchase_details d');
+		$this->db->join('product_information p', 'p.product_id = d.product_id');
+		$this->db->order_by('p.product_name', 'asc');
+		foreach($this->db->get()->result() as $row){
+			$products[] = array(
+				'id'   => $row->product_id,
+				'text' => medicine_name($row->product_name, $row->strength),
+			);
+		}
+
+		return array(
+			'invoices' => $invoices,
+			'products' => $products,
+		);
+	}
+
 	//purchase List
 	public function purchase_list($per_page,$page)
 	{

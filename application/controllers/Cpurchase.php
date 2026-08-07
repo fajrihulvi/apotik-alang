@@ -27,7 +27,15 @@ class Cpurchase extends CI_Controller {
         $postData = $this->input->post();
         $data = $this->Purchases->getPurchaseList($postData);
         echo json_encode($data);
-    } 
+    }
+
+        // Isi dropdown filter (faktur & nama barang) pada Kelola Pembelian.
+        public function purchase_filter_options(){
+        $this->auth->check_admin_auth();
+        $this->load->model('Purchases');
+        header('Content-Type: application/json');
+        echo json_encode($this->Purchases->getPurchaseFilterOptions());
+    }
 //purchase list by invoice no
     public function purchase_info_id(){
         $CI =& get_instance();

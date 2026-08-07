@@ -71,6 +71,32 @@
 		    </div>
 
 
+		<!-- Filter: beberapa faktur / beberapa nama barang -->
+		<div class="row">
+		    <div class="col-sm-12">
+		        <div class="panel panel-default">
+		            <div class="panel-body">
+		                <div class="col-sm-5">
+		                    <div class="form-group">
+		                        <label for="filter_invoice"><?php echo display('invoice_no') ?></label>
+		                        <select id="filter_invoice" class="form-control" multiple="multiple" data-placeholder="<?php echo display('invoice_no') ?>"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-5">
+		                    <div class="form-group">
+		                        <label for="filter_product">Nama Barang</label>
+		                        <select id="filter_product" class="form-control" multiple="multiple" data-placeholder="Nama Barang"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-12">
+		                    <button type="button" id="btn-purchase-filter" class="btn btn-success"><?php echo display('find') ?></button>
+		                    <button type="button" id="btn-purchase-filter-reset" class="btn btn-default">Reset</button>
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+
 		<!-- Manage Purchase report -->
 		<div class="row">
 		    <div class="col-sm-12">

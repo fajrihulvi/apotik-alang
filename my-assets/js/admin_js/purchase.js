@@ -536,12 +536,56 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
      var total_purchase_no = $("#total_purchase_no").val();
      var base_url = $("#base_url").val();
        var currency = $("#currency").val();
- var mydatatable = $('#PurList').DataTable({ 
+
+   // Kolom yang isinya angka murni: Kuantitas(8), Tarif Distributor(9),
+   // Diskon(10), Total Harga(11), Jumlah Total(12). Saat diunduh nilainya
+   // dikirim apa adanya (tanpa pemisah ribuan / simbol mata uang) supaya di
+   // Excel langsung terbaca sebagai angka dan bisa dijumlah.
+   var purNumericCols = [8, 9, 10, 11, 12];
+   var purExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ];
+
+   // Tampilan angka di layar tetap diformat ribuan; nilai mentahnya dipakai
+   // untuk pengurutan dan unduhan.
+   function purRenderNumber(decimals, suffix) {
+      return function(data, type, row) {
+         if (type !== 'display') {
+            return (data === null || data === '' ? 0 : data);
+         }
+         var n = parseFloat(data);
+         if (isNaN(n)) { return data; }
+         return n.toLocaleString('en-US', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+         }) + (suffix || '');
+      };
+   }
+
+   var purExportOptions = {
+      columns: purExportCols,
+      format: {
+         body: function(data, rowIdx, colIdx, node) {
+            // Buang tag HTML dari sel.
+            if (typeof data === 'string') {
+               data = data.replace(/<[^>]*>/g, '').trim();
+            }
+            if (purNumericCols.indexOf(colIdx) !== -1) {
+               // Kembalikan ke angka mentah: hapus pemisah ribuan, tanda
+               // persen, dan simbol mata uang yang hanya untuk tampilan.
+               var raw = String(data).replace(/[^0-9.\-]/g, '');
+               var n = parseFloat(raw);
+               return (isNaN(n) ? data : n);
+            }
+            return data;
+         }
+      }
+   };
+
+ var mydatatable = $('#PurList').DataTable({
              responsive: true,
 
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,1,2,3,5,6,7,8,9,10,11,12,13,14] },
+                { "bSortable": false, "aTargets": [0, 13, 14] },
                 // Kolom Aksi & Status jangan disembunyikan mode responsive
                 // saat tabel melebar (responsivePriority makin kecil = makin
                 // diprioritaskan untuk tetap tampil).
@@ -557,29 +601,19 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
            'lengthMenu':[[10, 25, 50,100,250,500, total_purchase_no], [10, 25, 50,100,250,500, "All"]],
 
              dom:"'<'col-sm-4'l><'col-sm-4 text-center'><'col-sm-4'>Bfrtip", buttons:[ {
-                extend: "copy",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
-                           }, className: "btn-sm prints"
+                extend: "copy", exportOptions: purExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "csv", title: "PurchaseLIst",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
-                           }, className: "btn-sm prints"
+                extend: "csv", title: "PurchaseLIst", exportOptions: purExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "excel",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
-                           }, className: "btn-sm prints"
+                extend: "excel", title: "PurchaseLIst", exportOptions: purExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "pdf",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
-                           }, className: "btn-sm prints"
+                extend: "pdf", title: "Purchase List", exportOptions: purExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "print",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ] //Your Colume value those you want
-                           }, className: "btn-sm prints"
+                extend: "print", title: "<center>Purchase List</center>", exportOptions: purExportOptions, className: "btn-sm prints"
             }
             ],
 
@@ -590,8 +624,10 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
                  "data": function ( data) {
          data.fromdate = $('#from_date').val();
          data.todate = $('#to_date').val();
+         data.filter_invoice = $('#filter_invoice').val() || [];
+         data.filter_product = $('#filter_product').val() || [];
          data.csrf_test_name = csrf_test_name;
-        
+
 }
             },
           'columns': [
@@ -603,11 +639,11 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
              { data: 'product_name'},
              { data: 'batch_id'},
              { data: 'expeire_date', class:"text-center"},
-             { data: 'product_qty', class:"text-right"},
-             { data: 'product_rate', class:"text-right"},
-             { data: 'product_discount', class:"text-right"},
-             { data: 'product_total', class:"text-right"},
-             { data: 'total_amount',class:"total_sale text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
+             { data: 'product_qty', class:"text-right", render: purRenderNumber(0)},
+             { data: 'product_rate', class:"text-right", render: purRenderNumber(2)},
+             { data: 'product_discount', class:"text-right", render: purRenderNumber(0, '%')},
+             { data: 'product_total', class:"text-right", render: purRenderNumber(2)},
+             { data: 'total_amount',class:"total_sale text-right", render: purRenderNumber(2)},
              { data: 'status', class:"text-center"},
              { data: 'button'},
           ],
@@ -617,13 +653,16 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
    api.columns('.total_sale', {
     page: 'current'
   }).every(function() {
-    var sum = this
-      .data()
-      .reduce(function(a, b) {
-        var x = parseFloat(a) || 0;
-        var y = parseFloat(b) || 0;
-        return x + y;
-      }, 0);
+    // Satu nota kini tampil beberapa baris (satu baris per barang), jadi
+    // jumlah totalnya hanya dihitung sekali per nota agar tidak berlipat.
+    var seen = {};
+    var sum = 0;
+    api.rows({ page: 'current' }).data().each(function(rowData) {
+      if (!seen[rowData.purchase_id]) {
+        seen[rowData.purchase_id] = true;
+        sum += parseFloat(rowData.total_amount) || 0;
+      }
+    });
     $(this.footer()).html(currency+' '+sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
   });
 }
@@ -634,7 +673,39 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
 
 
 $("#btn-filter").on('click', function ( e ) {
-mydatatable.ajax.reload();  
+mydatatable.ajax.reload();
 });
+
+// Dropdown filter multiple + pencarian (select2) untuk nomor faktur
+// dan nama barang.
+if ($('#filter_invoice').length && $('#PurList').length) {
+   $('#filter_invoice, #filter_product').select2({
+      width: '100%',
+      placeholder: function(){ return $(this).data('placeholder'); },
+      allowClear: true
+   });
+
+   $.getJSON(base_url + 'Cpurchase/purchase_filter_options', function(res){
+      function fill(sel, items){
+         var $sel = $(sel);
+         $.each(items, function(i, item){
+            $sel.append(new Option(item.text, item.id, false, false));
+         });
+         $sel.trigger('change.select2');
+      }
+      fill('#filter_invoice', res.invoices || []);
+      fill('#filter_product', res.products || []);
+   });
+
+   $('#btn-purchase-filter').click(function(){
+      mydatatable.ajax.reload();
+   });
+
+   $('#btn-purchase-filter-reset').click(function(){
+      $('#filter_invoice, #filter_product').val(null).trigger('change');
+      $('#from_date, #to_date').val('');
+      mydatatable.ajax.reload();
+   });
+}
 
 });
