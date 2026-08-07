@@ -295,7 +295,18 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
 
     </section> <!-- /.content -->
 
-     <?php if($this->session->userdata('user_type') == '1')
+     <?php
+     // Popup peringatan stok habis & obat kedaluwarsa.
+     //
+     // Dulu hanya tampil untuk user_type 1 (superadmin), sehingga Owner
+     // dan Pegawai tidak pernah diperingatkan. Padahal justru merekalah
+     // yang melayani penjualan sehari-hari dan paling perlu tahu.
+     //
+     // Ikon lonceng/jam di header sudah menampilkan angka yang sama untuk
+     // semua user, jadi isi popup ini bukan informasi baru - hanya cara
+     // penyampaian yang lebih menonjol. Karena itu ditampilkan untuk semua
+     // user yang sudah login.
+     if($this->session->userdata('isLogIn'))
      {
      ?>
    <div id="stockmodal" class="modal fade" role="dialog">

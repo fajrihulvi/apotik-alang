@@ -106,7 +106,17 @@ class Cinvoice extends CI_Controller {
         $postData = $this->input->post();
         $data = $this->Invoices->getInvoiceList($postData);
         echo json_encode($data);
-    } 
+    }
+
+        // Isi dropdown filter (nomor faktur, barang, jenis pembayaran)
+        // pada halaman Kelola Transaksi.
+        public function invoice_filter_options(){
+        $this->auth->check_admin_auth();
+        $this->load->model('Invoices');
+        $data = $this->Invoices->getInvoiceFilterOptions();
+        header('Content-Type: application/json');
+        echo json_encode($data);
+    }
 	// search invoice by invoice id
 		public function manage_invoice_invoice_id()
 	{	

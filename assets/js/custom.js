@@ -752,15 +752,57 @@ $(document).ready(function() {
    var base_url = $('#base_url').val();
    var total_invoice = $("#total_invoice").val();
    var currency = $("#currency").val();
-   var invoicedatatable = $('#InvList').DataTable({ 
+   // Kolom yang isinya angka murni. Saat diunduh, nilainya dikirim apa adanya
+   // (tanpa pemisah ribuan / simbol mata uang) supaya di Excel langsung
+   // terbaca sebagai angka dan bisa dijumlah, bukan sebagai teks.
+   var invNumericCols = [6, 8, 10, 11];
+   var invExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ];
+
+   // Tampilan angka di layar tetap diformat ribuan; nilai mentahnya dipakai
+   // untuk pengurutan dan unduhan.
+   function invRenderNumber(decimals) {
+      return function(data, type, row) {
+         if (type !== 'display') {
+            return (data === null || data === '' ? 0 : data);
+         }
+         var n = parseFloat(data);
+         if (isNaN(n)) { return data; }
+         return n.toLocaleString('en-US', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+         });
+      };
+   }
+
+   var invExportOptions = {
+      columns: invExportCols,
+      format: {
+         body: function(data, rowIdx, colIdx, node) {
+            // Buang tag HTML dari sel.
+            if (typeof data === 'string') {
+               data = data.replace(/<[^>]*>/g, '').trim();
+            }
+            if (invNumericCols.indexOf(colIdx) !== -1) {
+               // Kembalikan ke angka mentah: hapus pemisah ribuan dan
+               // simbol mata uang yang hanya dipakai untuk tampilan.
+               var raw = String(data).replace(/[^0-9.\-]/g, '');
+               var n = parseFloat(raw);
+               return (isNaN(n) ? data : n);
+            }
+            return data;
+         }
+      }
+   };
+
+   var invoicedatatable = $('#InvList').DataTable({
              responsive: true,
 
              "aaSorting": [[ 1, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,2,3,4,5,6,7,8,9,10] },
                 // Kolom Aksi jangan disembunyikan mode responsive saat tabel melebar.
-                { "responsivePriority": 1, "targets": 10 },
+                { "responsivePriority": 1, "targets": 12 },
                 { "responsivePriority": 2, "targets": 0 },
+                { "bSortable": false, "aTargets": [0, 12] },
 
             ],
            'processing': true,
@@ -770,39 +812,32 @@ $(document).ready(function() {
            'lengthMenu':[[10, 25, 50,100,250,500, total_invoice], [10, 25, 50,100,250,500, "All"]],
 
              dom:"'<'col-sm-4'l><'col-sm-4 text-center'><'col-sm-4'>Bfrtip", buttons:[ {
-                extend: "copy",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want
-                           }, className: "btn-sm prints"
+                extend: "copy", exportOptions: invExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "csv", title: "InvoiceList",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
-                           }, className: "btn-sm prints"
+                extend: "csv", title: "InvoiceList", exportOptions: invExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "excel",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
-                           }, title: "InvoiceList", className: "btn-sm prints"
+                extend: "excel", title: "InvoiceList", exportOptions: invExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "pdf",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
-                           }, title: "Invoice List", className: "btn-sm prints"
+                extend: "pdf", title: "Invoice List", exportOptions: invExportOptions, className: "btn-sm prints"
             }
             , {
-                extend: "print",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 ] //Your Colume value those you want print
-                           }, title: "<center> Invoice List</center>", className: "btn-sm prints"
+                extend: "print", title: "<center> Invoice List</center>", exportOptions: invExportOptions, className: "btn-sm prints"
             }
             ],
 
-            
+
             'serverMethod': 'post',
             'ajax': {
                'url': base_url + 'Cinvoice/CheckInvoiceList',
                  "data": function ( data) {
          data.fromdate = $('#from_date').val();
          data.todate = $('#to_date').val();
+         data.filter_invoice = $('#filter_invoice').val() || [];
+         data.filter_product = $('#filter_product').val() || [];
+         data.filter_payment = $('#filter_payment').val() || [];
         data.csrf_test_name = csrf_test_name;
 }
             },
@@ -811,12 +846,14 @@ $(document).ready(function() {
              { data: 'invoice' },
              { data: 'customer_name'},
              { data: 'final_date' },
+             { data: 'payment_type'},
              { data: 'product_name'},
-             { data: 'product_qty', class:"text-right"},
+             { data: 'product_qty', class:"text-right", render: invRenderNumber(0)},
              { data: 'product_unit', class:"text-center"},
-             { data: 'product_rate', class:"text-right"},
+             { data: 'product_rate', class:"text-right", render: invRenderNumber(2)},
              { data: 'product_category'},
-             { data: 'total_amount',class:"total_sale text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency )},
+             { data: 'product_total', class:"text-right", render: invRenderNumber(2)},
+             { data: 'total_amount',class:"total_sale text-right", render: invRenderNumber(2)},
              { data: 'button'},
           ],
 
@@ -825,13 +862,16 @@ $(document).ready(function() {
    api.columns('.total_sale', {
     page: 'current'
   }).every(function() {
-    var sum = this
-      .data()
-      .reduce(function(a, b) {
-        var x = parseFloat(a) || 0;
-        var y = parseFloat(b) || 0;
-        return x + y;
-      }, 0);
+    // Satu faktur kini tampil beberapa baris (satu baris per barang), jadi
+    // total fakturnya hanya dihitung sekali per nomor faktur.
+    var seen = {};
+    var sum = 0;
+    api.rows({ page: 'current' }).data().each(function(rowData) {
+      if (!seen[rowData.invoice]) {
+        seen[rowData.invoice] = true;
+        sum += parseFloat(rowData.total_amount) || 0;
+      }
+    });
     $(this.footer()).html(currency+' '+sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
   });
 }
@@ -840,9 +880,42 @@ $(document).ready(function() {
     });
 
 
-$('#btn-filter').click(function(){ 
-invoicedatatable.ajax.reload();  
+$('#btn-filter').click(function(){
+invoicedatatable.ajax.reload();
 });
+
+// Dropdown filter multiple + pencarian (select2) untuk nomor faktur,
+// nama barang, dan jenis pembayaran.
+if ($('#filter_invoice').length) {
+   $('#filter_invoice, #filter_product, #filter_payment').select2({
+      width: '100%',
+      placeholder: function(){ return $(this).data('placeholder'); },
+      allowClear: true
+   });
+
+   $.getJSON(base_url + 'Cinvoice/invoice_filter_options', function(res){
+      function fill(sel, items){
+         var $sel = $(sel);
+         $.each(items, function(i, item){
+            $sel.append(new Option(item.text, item.id, false, false));
+         });
+         $sel.trigger('change.select2');
+      }
+      fill('#filter_invoice', res.invoices || []);
+      fill('#filter_product', res.products || []);
+      fill('#filter_payment', res.payments || []);
+   });
+
+   $('#btn-filter-apply').click(function(){
+      invoicedatatable.ajax.reload();
+   });
+
+   $('#btn-filter-reset').click(function(){
+      $('#filter_invoice, #filter_product, #filter_payment').val(null).trigger('change');
+      $('#from_date, #to_date').val('');
+      invoicedatatable.ajax.reload();
+   });
+}
 
 });
 

@@ -19,102 +19,147 @@ class Invoices extends CI_Model {
 
 
 
+	/**
+	 * Daftar transaksi untuk DataTable "Kelola Transaksi".
+	 *
+	 * Barisnya dipecah per barang (satu baris invoice_details = satu baris
+	 * tabel), bukan digabung per faktur. Jadi satu pelanggan yang membeli
+	 * beberapa obat akan tampil beberapa baris dengan nama barang dan
+	 * satuannya masing-masing, dan hasil unduhannya ikut per barang.
+	 */
 	public function getInvoiceList($postData=null){
        $this->load->library('occational');
          $response = array();
          $fromdate = $this->input->post('fromdate',true);
          $todate   = $this->input->post('todate',true);
-         if(!empty($fromdate)){
-            $datbetween = "(a.date BETWEEN '$fromdate' AND '$todate')";
-         }else{
-            $datbetween = "";
-         }
-         ## Read value
-         $draw = $postData['draw'];
-         $start = $postData['start'];
-         $rowperpage = $postData['length']; // Rows display per page
-         $columnIndex = $postData['order'][0]['column']; // Column index
-         $columnName = $postData['columns'][$columnIndex]['data']; // Column name
-         $columnSortOrder = $postData['order'][0]['dir']; // asc or desc
-         $searchValue = $postData['search']['value']; // Search value
 
-         ## Search 
-         $searchQuery = "";
-         if($searchValue != ''){
-            $searchQuery = " (b.customer_name like '%".$searchValue."%' or a.invoice like '%".$searchValue."%' or a.date like'%".$searchValue."%' or a.invoice_id like'%".$searchValue."%')";
-         }
+         ## Read value
+         $draw = (isset($postData['draw']) ? $postData['draw'] : 0);
+         $start = (isset($postData['start']) ? (int)$postData['start'] : 0);
+         $rowperpage = (isset($postData['length']) ? (int)$postData['length'] : 10); // Rows display per page
+         $columnIndex = (isset($postData['order'][0]['column']) ? $postData['order'][0]['column'] : 1); // Column index
+         $columnName = (isset($postData['columns'][$columnIndex]['data']) ? $postData['columns'][$columnIndex]['data'] : 'invoice'); // Column name
+         $columnSortOrder = (isset($postData['order'][0]['dir']) && strtolower($postData['order'][0]['dir']) == 'asc' ? 'asc' : 'desc');
+         $searchValue = (isset($postData['search']['value']) ? $postData['search']['value'] : ''); // Search value
+
+         // Kolom yang boleh dipakai untuk urut. Nama kolom datang dari sisi
+         // klien, jadi dipetakan lewat daftar putih ini supaya tidak bisa
+         // disisipi SQL sembarangan.
+         $sortable = array(
+            'sl'               => 'a.invoice',
+            'invoice'          => 'a.invoice',
+            'customer_name'    => 'b.customer_name',
+            'final_date'       => 'a.date',
+            'payment_type'     => 'pt.payment_type_name',
+            'product_name'     => 'p.product_name',
+            'product_qty'      => 'd.quantity',
+            'product_unit'     => 'p.unit',
+            'product_rate'     => 'd.rate',
+            'product_category' => 'c.category_name',
+            'product_total'    => 'row_total',
+            'total_amount'     => 'a.total_amount',
+         );
+         $orderBy = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.invoice');
+
+         // Filter dropdown multiple: beberapa nomor faktur / beberapa barang.
+         $filter_invoice = $this->input->post('filter_invoice',true);
+         $filter_product = $this->input->post('filter_product',true);
+         $filter_payment = $this->input->post('filter_payment',true);
+         // Buang nilai kosong; nilai dari select2 selalu berupa string.
+         $dropEmpty = function($val){
+            if(!is_array($val)){ return array(); }
+            return array_values(array_filter($val, function($v){
+               return ($v !== null && $v !== '' && !is_array($v));
+            }));
+         };
+         $filter_invoice = $dropEmpty($filter_invoice);
+         $filter_product = $dropEmpty($filter_product);
+         $filter_payment = $dropEmpty($filter_payment);
+
+         // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
+         $applyFilter = function($withSearch = true) use (
+            $fromdate, $todate, $searchValue,
+            $filter_invoice, $filter_product, $filter_payment
+         ){
+            if(!empty($fromdate) && !empty($todate)){
+               $this->db->where('a.date >=', $fromdate);
+               $this->db->where('a.date <=', $todate);
+            }
+            if(!empty($filter_invoice)){
+               $this->db->where_in('a.invoice', $filter_invoice);
+            }
+            if(!empty($filter_product)){
+               $this->db->where_in('d.product_id', $filter_product);
+            }
+            if(!empty($filter_payment)){
+               $this->db->where_in('a.payment_type', $filter_payment);
+            }
+            // Pencarian bebas: nomor faktur, pelanggan, tanggal, jenis
+            // pembayaran, dan juga nama barang / kelompoknya.
+            if($withSearch && $searchValue != ''){
+               $like = $this->db->escape_like_str($searchValue);
+               $this->db->where(
+                  "(b.customer_name LIKE '%$like%' ESCAPE '!'"
+                  ." OR a.invoice LIKE '%$like%' ESCAPE '!'"
+                  ." OR a.date LIKE '%$like%' ESCAPE '!'"
+                  ." OR a.invoice_id LIKE '%$like%' ESCAPE '!'"
+                  ." OR p.product_name LIKE '%$like%' ESCAPE '!'"
+                  ." OR p.unit LIKE '%$like%' ESCAPE '!'"
+                  ." OR c.category_name LIKE '%$like%' ESCAPE '!'"
+                  ." OR pt.payment_type_name LIKE '%$like%' ESCAPE '!')",
+                  NULL, FALSE
+               );
+            }
+         };
+
+         // Join dasar: faktur -> rincian barang -> master barang.
+         $baseFrom = function(){
+            $this->db->from('invoice a');
+            $this->db->join('invoice_details d', 'd.invoice_id = a.invoice_id','left');
+            $this->db->join('customer_information b', 'b.customer_id = a.customer_id','left');
+            $this->db->join('product_information p', 'p.product_id = d.product_id','left');
+            $this->db->join('product_category c', 'c.category_id = p.category_id','left');
+            $this->db->join('payment_type pt', 'pt.id = a.payment_type','left');
+         };
 
          ## Total number of records without filtering
          $this->db->select('count(*) as allcount');
-         $this->db->from('invoice a');
-         $this->db->join('customer_information b', 'b.customer_id = a.customer_id','left');
-          if(!empty($fromdate) && !empty($todate)){
-             $this->db->where($datbetween);
-         }
-          if($searchValue != '')
-          $this->db->where($searchQuery);
-          
+         $baseFrom();
+         $applyFilter(false);
          $records = $this->db->get()->result();
          $totalRecords = $records[0]->allcount;
 
          ## Total number of record with filtering
          $this->db->select('count(*) as allcount');
-         $this->db->from('invoice a');
-         $this->db->join('customer_information b', 'b.customer_id = a.customer_id','left');
-         if(!empty($fromdate) && !empty($todate)){
-             $this->db->where($datbetween);
-         }
-         if($searchValue != '')
-            $this->db->where($searchQuery);
-          
+         $baseFrom();
+         $applyFilter(true);
          $records = $this->db->get()->result();
          $totalRecordwithFilter = $records[0]->allcount;
 
          ## Fetch records
-         $this->db->select("a.*,b.customer_name");
-         $this->db->from('invoice a');
-         $this->db->join('customer_information b', 'b.customer_id = a.customer_id','left');
-          if(!empty($fromdate) && !empty($todate)){
-             $this->db->where($datbetween);
-         }
-         if($searchValue != '')
-         $this->db->where($searchQuery);
-       
-         $this->db->order_by($columnName, $columnSortOrder);
+         $this->db->select("a.invoice_id, a.invoice, a.date, a.total_amount, a.payment_type,
+                            b.customer_name,
+                            d.id as detail_id, d.quantity, d.rate, d.total_price,
+                            p.product_name, p.unit,
+                            c.category_name,
+                            pt.payment_type_name,
+                            (d.quantity * d.rate) as row_total", FALSE);
+         $baseFrom();
+         $applyFilter(true);
+         $this->db->order_by($orderBy, $columnSortOrder);
+         // Barang dalam satu faktur tetap berurutan seperti saat diinput.
+         $this->db->order_by('d.id', 'asc');
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
 
-         // Rincian barang untuk seluruh faktur di halaman ini.
-         // Diambil sekali jalan (1 query) supaya halaman tidak berat.
-         $invoice_ids = array();
-         foreach($records as $record){
-            $invoice_ids[] = $record->invoice_id;
-         }
-         $items = array();
-         if(!empty($invoice_ids)){
-            $this->db->select('d.invoice_id, d.quantity, d.rate,
-                               p.product_name, p.unit, c.category_name');
-            $this->db->from('invoice_details d');
-            $this->db->join('product_information p','p.product_id = d.product_id','left');
-            $this->db->join('product_category c','c.category_id = p.category_id','left');
-            $this->db->where_in('d.invoice_id', $invoice_ids);
-            $this->db->order_by('d.id','asc');
-            foreach($this->db->get()->result() as $it){
-               $items[$it->invoice_id][] = $it;
-            }
-         }
-
          $data = array();
-         $sl =1;
+         $sl = $start + 1;
 
          foreach($records as $record ){
           $button = '';
           $base_url = base_url();
-          $jsaction = "return confirm('Are You Sure ?')";
 
            $button .='  <a href="'.$base_url.'Cinvoice/invoice_inserted_data/'.$record->invoice_id.'" class="btn btn-success btn-xs" data-toggle="tooltip" data-placement="left" title="'.display('invoice').'"><i class="fa fa-window-restore" aria-hidden="true"></i></a>';
-
-      
 
          $button .='  <a href="'.$base_url.'Cinvoice/pos_invoice_inserted_data/'.$record->invoice_id.'" class="btn btn-warning btn-xs" data-toggle="tooltip" data-placement="left" title="'.display('pos_invoice').'"><i class="fa fa-fax" aria-hidden="true"></i></a>';
 
@@ -122,37 +167,32 @@ class Invoices extends CI_Model {
          $button .=' <a href="'.$base_url.'Cinvoice/invoice_update_form/'.$record->invoice_id.'" class="btn btn-info btn-xs" data-toggle="tooltip" data-placement="left" title="'. display('update').'"><i class="fa fa-pencil" aria-hidden="true"></i></a>';
      }
 
-       
-               
-            // Kolom rincian barang. Satu faktur bisa berisi lebih dari satu
-            // barang, jadi tiap sel menampilkannya baris per baris.
-            $c_nama = array(); $c_jml = array(); $c_satuan = array();
-            $c_harga = array(); $c_kelompok = array();
-
-            if(isset($items[$record->invoice_id])){
-               foreach($items[$record->invoice_id] as $it){
-                  $c_nama[]     = html_escape($it->product_name);
-                  $c_jml[]      = (float)$it->quantity;
-                  $c_satuan[]   = ($it->unit != '' ? html_escape($it->unit) : '-');
-                  $c_harga[]    = number_format((float)$it->rate, 2, '.', ',');
-                  $c_kelompok[] = ($it->category_name != '' ? html_escape($it->category_name) : '-');
-               }
+            // Jenis pembayaran diambil dari master payment_type. Nilai lama
+            // (1/2) yang belum ada di master tetap dinamai seperti semula.
+            if($record->payment_type_name != ''){
+               $payment_type = $record->payment_type_name;
+            }else{
+               $payment_type = ($record->payment_type == 1 ? 'Cash Payment' : 'Bank Payment');
             }
 
+            // Kolom angka dikirim sebagai number, bukan teks yang sudah
+            // diformat, supaya hasil unduhan Excel/CSV langsung bisa dihitung.
             $data[] = array(
                 'sl'               =>$sl,
                 'invoice'          =>$record->invoice,
                 'customer_name'    =>$record->customer_name,
                 'final_date'       =>$record->date,
-                'product_name'     =>(!empty($c_nama) ? implode('<br>', $c_nama) : '-'),
-                'product_qty'      =>(!empty($c_jml) ? implode('<br>', $c_jml) : '-'),
-                'product_unit'     =>(!empty($c_satuan) ? implode('<br>', $c_satuan) : '-'),
-                'product_rate'     =>(!empty($c_harga) ? implode('<br>', $c_harga) : '-'),
-                'product_category' =>(!empty($c_kelompok) ? implode('<br>', $c_kelompok) : '-'),
-                'total_amount'     =>$record->total_amount,
+                'payment_type'     =>$payment_type,
+                'product_name'     =>($record->product_name != '' ? $record->product_name : '-'),
+                'product_qty'      =>(float)$record->quantity,
+                'product_unit'     =>($record->unit != '' ? $record->unit : '-'),
+                'product_rate'     =>(float)$record->rate,
+                'product_category' =>($record->category_name != '' ? $record->category_name : '-'),
+                'product_total'    =>(float)$record->quantity * (float)$record->rate,
+                'total_amount'     =>(float)$record->total_amount,
                 'button'           =>$button,
-                
-            ); 
+
+            );
             $sl++;
          }
 
@@ -164,8 +204,53 @@ class Invoices extends CI_Model {
             "aaData" => $data
          );
 
-         return $response; 
+         return $response;
     }
+
+	/**
+	 * Isi dropdown filter pada halaman Kelola Transaksi:
+	 * daftar nomor faktur, daftar barang yang pernah terjual, dan
+	 * daftar jenis pembayaran.
+	 */
+	public function getInvoiceFilterOptions()
+	{
+		$invoices = array();
+		$this->db->select('a.invoice');
+		$this->db->distinct();
+		$this->db->from('invoice a');
+		$this->db->where('a.invoice IS NOT NULL');
+		$this->db->order_by('a.invoice', 'desc');
+		foreach($this->db->get()->result() as $row){
+			$invoices[] = array('id' => $row->invoice, 'text' => $row->invoice);
+		}
+
+		$products = array();
+		$this->db->distinct();
+		$this->db->select('p.product_id, p.product_name, p.unit');
+		$this->db->from('invoice_details d');
+		$this->db->join('product_information p', 'p.product_id = d.product_id');
+		$this->db->order_by('p.product_name', 'asc');
+		foreach($this->db->get()->result() as $row){
+			$products[] = array(
+				'id'   => $row->product_id,
+				'text' => $row->product_name.($row->unit != '' ? ' ('.$row->unit.')' : ''),
+			);
+		}
+
+		$payments = array();
+		$this->db->select('id, payment_type_name');
+		$this->db->from('payment_type');
+		$this->db->order_by('payment_type_name', 'asc');
+		foreach($this->db->get()->result() as $row){
+			$payments[] = array('id' => $row->id, 'text' => $row->payment_type_name);
+		}
+
+		return array(
+			'invoices' => $invoices,
+			'products' => $products,
+			'payments' => $payments,
+		);
+	}
 	//invoice List
 	public function invoice_list($perpage,$page)
 	{

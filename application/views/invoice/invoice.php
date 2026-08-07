@@ -80,13 +80,43 @@
 
                         <?php echo form_close() ?>
                     </div>
-                  
-          
+
+
                 </div>
             </div>
             </div>
         </div>
-        <div class="row"> 
+
+        <!-- Filter faktur / barang / jenis pembayaran (dropdown multiple + search) -->
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="filter_invoice"><?php echo display('invoice_no') ?></label>
+                                <select id="filter_invoice" class="form-control" multiple="multiple" data-placeholder="<?php echo display('invoice_no') ?>"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="filter_product">Nama Barang</label>
+                                <select id="filter_product" class="form-control" multiple="multiple" data-placeholder="Nama Barang"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-group">
+                                <label for="filter_payment">Jenis Pembayaran</label>
+                                <select id="filter_payment" class="form-control" multiple="multiple" data-placeholder="Jenis Pembayaran"></select>
+                            </div>
+                        </div>
+                        <div class="col-sm-12">
+                            <button type="button" id="btn-filter-apply" class="btn btn-success"><?php echo display('find') ?></button>
+                            <button type="button" id="btn-filter-reset" class="btn btn-default">Reset</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Manage Invoice report -->
         <div class="row">
@@ -104,11 +134,13 @@
                                         <th><?php echo display('invoice_no') ?></th>
                                         <th><?php echo display('customer_name') ?></th>
                                         <th><?php echo display('date') ?></th>
+                                        <th>Jenis Pembayaran</th>
                                         <th>Nama Barang</th>
                                         <th>Jumlah Barang</th>
                                         <th>Satuan</th>
                                         <th>Harga</th>
                                         <th>Kelompok</th>
+                                        <th>Subtotal Barang</th>
                                         <th><?php echo display('total_amount') ?></th>
                                         <th><?php echo display('action') ?></th>
                                     </tr>
@@ -126,7 +158,9 @@
                                         <th></th>
                                         <th></th>
                                         <th></th>
+                                        <th></th>
                                         <th class="text-right"><?php echo display('total')?>:</th>
+                                        <th></th>
                                         <th></th>
                                         <th></th>
                                     </tr>
