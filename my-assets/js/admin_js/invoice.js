@@ -608,11 +608,55 @@ function invoice_productList(sl) {
        }
    }
 
+   // Pasang widget bila belum terpasang, lalu kembalikan elemennya supaya
+   // pemanggil bisa langsung menjalankan pencarian.
+   var $field = $('#product_name_'+sl);
+   if ($field.length && !$field.data('uiAutocomplete')) {
+       $field.autocomplete(options);
+   }
+
    $('body').on('keypress.autocomplete', '.productSelection', function() {
        $(this).autocomplete(options);
    });
 
 }
+
+// Autocomplete nama barang saat teks di-TEMPEL (paste), bukan diketik.
+//
+// Sebelumnya widget hanya dipasang lewat event 'keypress', sehingga menempel
+// dengan klik kanan > Paste atau Ctrl/Cmd+V tidak memunculkan saran apa pun.
+// Handler di bawah memakai event 'input' yang ikut terpicu oleh tempel,
+// drag-drop, maupun autofill, lalu menjalankan pencarian sendiri.
+$(document).ready(function() {
+    "use strict";
+
+    function pasteAutocomplete(el) {
+        var $el = $(el);
+        // Nomor baris diambil dari id input, mis. product_name_3 -> 3.
+        var sl = String($el.attr('id') || '').replace(/^product_name_/, '');
+        if (sl === '') { return; }
+
+        // invoice_productList() yang memasang widget berikut sumber datanya.
+        if (!$el.data('uiAutocomplete')) {
+            invoice_productList(sl);
+        }
+        if ($el.data('uiAutocomplete') && $.trim($el.val()) !== '') {
+            $el.autocomplete('search', $el.val());
+        }
+    }
+
+    // 'input' menangkap tempel lewat mouse maupun papan ketik. Untuk event
+    // 'paste'/'drop', isi input baru terisi setelah event selesai sehingga
+    // dibaca pada tick berikutnya.
+    $('body').on('input.pasteac', '.productSelection', function() {
+        pasteAutocomplete(this);
+    });
+
+    $('body').on('paste.pasteac drop.pasteac', '.productSelection', function() {
+        var el = this;
+        setTimeout(function() { pasteAutocomplete(el); }, 0);
+    });
+});
 
 
 $(document).ready(function(){
