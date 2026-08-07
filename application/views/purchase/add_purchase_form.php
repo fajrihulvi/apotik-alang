@@ -33,6 +33,46 @@
     padding: 0 4px;
     outline: none;
 }
+
+/* Panduan pengisian CSV di dalam modal unggah.
+   Tema menimpa .alert-info menjadi teks putih, jadi panduan ini memakai
+   kelas sendiri dengan warna teks gelap yang dipatok eksplisit. */
+.csv-help {
+    color: #374767;
+    background-color: #f7fbfd;
+    border: 1px solid #bce8f1;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+/* Semua turunan ikut gelap, termasuk isi tabel keterangan kolom. */
+.csv-help p,
+.csv-help small,
+.csv-help strong,
+.csv-help em,
+.csv-help td,
+.csv-help th {
+    color: #374767;
+}
+
+.csv-help .table {
+    background-color: #fff;
+    margin-bottom: 10px;
+}
+
+/* Baris chalan_no disorot karena paling sering salah isi. Warna latar
+   dipatok agar tidak tertimpa gaya .warning bawaan tema. */
+.csv-help .table > tbody > tr.warning > td {
+    background-color: #fcf8e3;
+}
+
+/* Label "Upload CSV File" di modal. Tema membuat .col-form-label berwarna
+   merah (gaya pesan galat), padahal ini label biasa. Dikembalikan ke warna
+   teks normal; tanda bintang wajib tetap merah lewat .text-danger. */
+#purchase_csv_modal .col-form-label {
+    color: #374767;
+}
 </style>
 
 
@@ -86,7 +126,14 @@
                 <div class="panel panel-bd lobidrag">
                     <div class="panel-heading">
                         <div class="panel-title">
-                            <h4><?php echo display('add_purchase') ?></h4>
+                            <h4>
+                                <?php echo display('add_purchase') ?>
+                                <!-- Pembuka modal unggah CSV. Modalnya sudah ada di
+                                     bawah halaman ini (#purchase_csv_modal). -->
+                                <a href="#" class="btn btn-success pull-right" data-toggle="modal" data-target="#purchase_csv_modal">
+                                    <i class="fa fa-upload"></i> Upload Pembelian CSV
+                                </a>
+                            </h4>
                         </div>
                     </div>
 
@@ -379,13 +426,114 @@
                 <div class="panel panel-bd">
                     <div class="panel-heading">
                         <div class="panel-title">
-                            <h4><?php echo 'CSV Purchase'; ?><a href="<?php echo base_url('assets/data/csv/purchase_csv_sample.csv') ?>" class="btn btn-primary pull-right"><i class="fa fa-download"></i> Download Sample File</a></h4>
+                            <h4><?php echo 'CSV Purchase'; ?><a href="<?php echo base_url('Cpurchase/download_csv_template_purchase') ?>" class="btn btn-primary pull-right"><i class="fa fa-download"></i> Download Template CSV</a></h4>
                         </div>
                     </div>
-                    
+
                     <div class="panel-body">
-                     <div class="col-sm-12"></div>
-                      <?php echo form_open_multipart('Cpurchase/uploadCsv_Purchase',array('class' => 'form-vertical', 'id' => 'validate','name' => 'insert_csv_purchase'))?>
+                     <div class="col-sm-12">
+                        <!-- Panduan ini sengaja tidak memakai .alert-info: tema
+                             menimpanya menjadi teks putih (color:#fff), sehingga
+                             tulisan tidak terbaca di atas latar terang. Warna
+                             teks dipatok gelap di sini. -->
+                        <div class="csv-help">
+                            <p><strong>Cara pakai:</strong> satu baris CSV = satu barang.
+                            Baris dengan <code>chalan_no</code> dan distributor yang sama
+                            akan digabung menjadi satu pembelian.</p>
+
+                            <p><strong>Keterangan kolom</strong> (urutannya harus sesuai tabel ini):</p>
+                            <div class="table-responsive">
+                            <table class="table table-bordered table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th style="width:160px">Kolom</th>
+                                        <th style="width:70px" class="text-center">Wajib</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>manufacturer_name</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Nama distributor. Harus sudah terdaftar dan ditulis persis sama.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>purchase_date</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Tanggal pembelian, format <code>YYYY-MM-DD</code>. Contoh: <code>2026-08-07</code>.</td>
+                                    </tr>
+                                    <tr class="warning">
+                                        <td><code>chalan_no</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>
+                                            <strong>Nomor faktur dari distributor</strong> &mdash; nomor yang
+                                            tertera pada faktur/surat jalan fisik yang Anda terima.
+                                            Contoh: <code>INV/KF/2026/00123</code>.
+                                            <br>
+                                            <small>
+                                            Ini kolom yang sama dengan isian <em>Nomor Faktur</em> pada
+                                            form pembelian manual. Nomor <strong>tidak boleh sama</strong>
+                                            dengan pembelian sebelumnya dari distributor yang sama, jadi
+                                            <strong>tidak bisa diisi nilai tetap</strong>. Distributor yang
+                                            berbeda boleh memakai nomor yang sama.
+                                            <br>
+                                            Barang-barang dengan nomor faktur dan distributor yang sama
+                                            akan digabung menjadi satu pembelian. Bila distributor tidak
+                                            memberi nomor, pakai pola sendiri yang unik,
+                                            misalnya <code>KF-20260807-01</code>.
+                                            </small>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>details</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>Keterangan pembelian. Boleh dikosongkan.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>product_name</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Nama barang. Harus sudah terdaftar dan ditulis persis sama.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>batch_id</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Nomor batch barang. Contoh: <code>BATCH-001</code>.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>expiry_date</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Tanggal kedaluwarsa, format <code>YYYY-MM-DD</code>.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>qty</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Jumlah barang. Angka lebih dari 0.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>price</code></td>
+                                        <td class="text-center">Ya</td>
+                                        <td>Harga beli per satuan. Angka tanpa titik/koma pemisah ribuan.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>discount</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>Diskon per barang dalam <strong>persen</strong>. Kosong dianggap <code>0</code>.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>payment_type</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>Jenis pembayaran: <code>1</code> = Tunai, <code>2</code> = Transfer. Kosong dianggap <code>1</code>.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            </div>
+
+                            <p class="m-b-0"><small>Bila ada satu baris yang salah, seluruh impor
+                            dibatalkan dan tidak ada data yang tersimpan &mdash; jadi Anda bisa
+                            memperbaiki file lalu mengunggah ulang dengan aman.</small></p>
+                        </div>
+                     </div>
+                      <?php echo form_open_multipart('Cpurchase/uploadCsv_Purchase',array('class' => 'form-vertical', 'id' => 'csv_purchase_form','name' => 'insert_csv_purchase'))?>
                             <div class="col-sm-12">
                                 <div class="form-group row">
                                     <label for="upload_csv_file" class="col-sm-4 col-form-label"><?php echo display('upload_csv_file') ?> <i class="text-danger">*</i></label>
