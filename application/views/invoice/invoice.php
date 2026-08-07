@@ -1,4 +1,27 @@
 
+<style>
+/* Tabel Kelola Transaksi punya 12 kolom. Geser mendatar disediakan oleh
+   scrollX milik DataTables; lebar minimum di bawah menjaga agar kolom tidak
+   saling menghimpit sampai tidak terbaca. */
+#InvList { min-width: 1400px; }
+
+/* Kolom teks panjang diberi ruang secukupnya. */
+#InvList th, #InvList td { white-space: nowrap; }
+
+/* Nama barang boleh melipat agar tidak memaksa tabel terlalu lebar. */
+#InvList td:nth-child(6) {
+    white-space: normal;
+    min-width: 200px;
+}
+
+/* Header tabel saat digeser mendatar tetap rata dengan isinya. */
+div.dataTables_scrollHead table,
+div.dataTables_scrollFoot table { margin-bottom: 0 !important; }
+
+/* Baris total di footer dibuat tebal supaya mudah ditemukan. */
+#InvList tfoot th { font-weight: 700; }
+</style>
+
 <!-- Manage Invoice Start -->
 <div class="content-wrapper">
     <section class="content-header">
@@ -126,8 +149,11 @@
                       
                     </div>
                     <div class="panel-body">
-                        <div class="table-responsive" >
-                            <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="InvList"> 
+                        <!-- Tanpa pembungkus .table-responsive: DataTables sudah
+                             menyediakan geser mendatar sendiri lewat scrollX,
+                             dan dua pembungkus bergeser akan bertumpuk. -->
+                        <div>
+                            <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="InvList">
                                 <thead>
                                     <tr>
                                         <th><?php echo display('sl') ?></th>
@@ -141,7 +167,6 @@
                                         <th>Harga</th>
                                         <th>Kelompok</th>
                                         <th>Subtotal Barang</th>
-                                        <th><?php echo display('total_amount') ?></th>
                                         <th><?php echo display('action') ?></th>
                                     </tr>
                                 </thead>
@@ -149,6 +174,10 @@
 
                                 </tbody>
                                 <tfoot>
+                                    <!-- Jumlah sel di sini harus sama persis dengan
+                                         jumlah kolom di thead (12). DataTables memetakan
+                                         footer per kolom, jadi colspan dihindari.
+                                         Label "Total" ditaruh tepat sebelum kolom angka. -->
                                     <tr>
                                         <th></th>
                                         <th></th>
@@ -160,8 +189,7 @@
                                         <th></th>
                                         <th></th>
                                         <th class="text-right"><?php echo display('total')?>:</th>
-                                        <th></th>
-                                        <th></th>
+                                        <th class="text-right sum_product_total"></th>
                                         <th></th>
                                     </tr>
                                 </tfoot>

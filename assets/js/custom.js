@@ -755,8 +755,10 @@ $(document).ready(function() {
    // Kolom yang isinya angka murni. Saat diunduh, nilainya dikirim apa adanya
    // (tanpa pemisah ribuan / simbol mata uang) supaya di Excel langsung
    // terbaca sebagai angka dan bisa dijumlah, bukan sebagai teks.
-   var invNumericCols = [6, 8, 10, 11];
-   var invExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ];
+   // Indeks kolom angka: Jumlah Barang(6), Harga(8), Subtotal Barang(10).
+   var invNumericCols = [6, 8, 10];
+   // Semua kolom ikut diunduh kecuali kolom Aksi (11).
+   var invExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ];
 
    // Tampilan angka di layar tetap diformat ribuan; nilai mentahnya dipakai
    // untuk pengurutan dan unduhan.
@@ -795,14 +797,17 @@ $(document).ready(function() {
    };
 
    var invoicedatatable = $('#InvList').DataTable({
-             responsive: true,
+             // Mode responsive DataTables MENYEMBUNYIKAN kolom yang tidak muat
+             // (ditumpuk di balik tombol "+"), sehingga Kelompok dan Subtotal
+             // Barang tidak terlihat. Karena tabel ini punya 13 kolom, lebih
+             // enak digeser mendatar: semua kolom tetap tampil.
+             responsive: false,
+             scrollX: true,
 
              "aaSorting": [[ 1, "desc" ]],
              "columnDefs": [
-                // Kolom Aksi jangan disembunyikan mode responsive saat tabel melebar.
-                { "responsivePriority": 1, "targets": 12 },
-                { "responsivePriority": 2, "targets": 0 },
-                { "bSortable": false, "aTargets": [0, 12] },
+                // Kolom No. urut (0) dan Aksi (11) tidak bisa diurutkan.
+                { "bSortable": false, "aTargets": [0, 11] },
 
             ],
            'processing': true,
@@ -853,27 +858,34 @@ $(document).ready(function() {
              { data: 'product_rate', class:"text-right", render: invRenderNumber(2)},
              { data: 'product_category'},
              { data: 'product_total', class:"text-right", render: invRenderNumber(2)},
-             { data: 'total_amount',class:"total_sale text-right", render: invRenderNumber(2)},
              { data: 'button'},
           ],
 
   "footerCallback": function(row, data, start, end, display) {
   var api = this.api();
-   api.columns('.total_sale', {
-    page: 'current'
-  }).every(function() {
-    // Satu faktur kini tampil beberapa baris (satu baris per barang), jadi
-    // total fakturnya hanya dihitung sekali per nomor faktur.
-    var seen = {};
-    var sum = 0;
-    api.rows({ page: 'current' }).data().each(function(rowData) {
-      if (!seen[rowData.invoice]) {
-        seen[rowData.invoice] = true;
-        sum += parseFloat(rowData.total_amount) || 0;
-      }
+
+  function invFormat(n) {
+    return currency + ' ' + n.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
-    $(this.footer()).html(currency+' '+sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+  }
+
+  // Subtotal barang: setiap baris adalah satu barang, jadi seluruh baris
+  // pada halaman ini tinggal dijumlahkan.
+  var sumBarang = 0;
+  api.rows({ page: 'current' }).data().each(function(rowData) {
+    sumBarang += parseFloat(rowData.product_total) || 0;
   });
+
+  // Ditulis lewat kelas pada sel footer, bukan indeks kolom, supaya tetap
+  // benar walau urutan/jumlah kolom berubah.
+  //
+  // Pencarian dimulai dari pembungkus tabel, bukan dari footer saja: saat
+  // scrollX aktif DataTables menyalin footer ke .dataTables_scrollFoot untuk
+  // keperluan lebar kolom, dan salinan itulah yang terlihat pengguna.
+  var $wrap = $(api.table().container());
+  $wrap.find('.sum_product_total').html(invFormat(sumBarang));
 }
 
 
