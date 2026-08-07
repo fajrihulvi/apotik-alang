@@ -985,7 +985,7 @@ $(document).ready(function() {
    var base_url = $("#base_url").val();
    var currency = $("#currency").val();
    var total_stock = $("#total_stock").val();
-    $('#checkListStockList').DataTable({ 
+    var stockdatatable = $('#checkListStockList').DataTable({
              responsive: true,
 
              "aaSorting": [[ 1, "asc" ]],
@@ -1019,8 +1019,10 @@ $(document).ready(function() {
             'serverMethod': 'post',
             'ajax': {
                'url': base_url + 'Creport/CheckList',
-                data:{
-                csrf_test_name : CSRF_TOKEN,
+                data: function (d) {
+                  d.csrf_test_name = CSRF_TOKEN;
+                  d.filter_product  = $('#filter_product').val() || [];
+                  d.filter_purchase = $('#filter_purchase').val() || [];
                }
             },
           'columns': [
@@ -1085,16 +1087,44 @@ $(document).ready(function() {
 
     });
 
+// Dropdown filter multiple + pencarian (select2) untuk Laporan Stock:
+// beberapa nama barang dan/atau beberapa faktur pembelian.
+if ($('#filter_product').length && $('#checkListStockList').length) {
+   $('#filter_product, #filter_purchase').select2({
+      width: '100%',
+      placeholder: function(){ return $(this).data('placeholder'); },
+      allowClear: true
+   });
 
+   $.getJSON(base_url + 'Creport/stock_filter_options', { scope: 'all' }, function(res){
+      function fill(sel, items){
+         var $sel = $(sel);
+         $.each(items, function(i, item){
+            $sel.append(new Option(item.text, item.id, false, false));
+         });
+         $sel.trigger('change.select2');
+      }
+      fill('#filter_product', res.products || []);
+      fill('#filter_purchase', res.purchases || []);
+   });
 
+   $('#btn-stock-filter').click(function(){
+      stockdatatable.ajax.reload();
+   });
+
+   $('#btn-stock-filter-reset').click(function(){
+      $('#filter_product, #filter_purchase').val(null).trigger('change');
+      stockdatatable.ajax.reload();
+   });
+}
 
 });
 
-$(document).ready(function() { 
+$(document).ready(function() {
    var CSRF_TOKEN = $('[name="csrf_test_name"]').val();
    var base_url = $("#base_url").val();
    var currency = $("#currency").val();
-    $('#batchStock').DataTable({ 
+    var batchdatatable = $('#batchStock').DataTable({
              responsive: true,
 
              "aaSorting": [[ 1, "asc" ]],
@@ -1127,8 +1157,10 @@ $(document).ready(function() {
             'serverMethod': 'post',
             'ajax': {
                'url': base_url + 'Creport/Checkbatchstock',
-                data:{
-                csrf_test_name : CSRF_TOKEN,
+                data: function (d) {
+                  d.csrf_test_name = CSRF_TOKEN;
+                  d.filter_product  = $('#filter_product_batch').val() || [];
+                  d.filter_purchase = $('#filter_purchase_batch').val() || [];
                }
             },
           'columns': [
@@ -1148,8 +1180,37 @@ $(document).ready(function() {
 
     });
 
+// Dropdown filter multiple + pencarian (select2) untuk Laporan Stock per Batch.
+// Daftar barangnya dibatasi pada barang yang pernah dibeli, karena laporan ini
+// memang hanya menampilkan barang yang punya rincian pembelian.
+if ($('#filter_product_batch').length && $('#batchStock').length) {
+   $('#filter_product_batch, #filter_purchase_batch').select2({
+      width: '100%',
+      placeholder: function(){ return $(this).data('placeholder'); },
+      allowClear: true
+   });
 
+   $.getJSON(base_url + 'Creport/stock_filter_options', { scope: 'purchased' }, function(res){
+      function fill(sel, items){
+         var $sel = $(sel);
+         $.each(items, function(i, item){
+            $sel.append(new Option(item.text, item.id, false, false));
+         });
+         $sel.trigger('change.select2');
+      }
+      fill('#filter_product_batch', res.products || []);
+      fill('#filter_purchase_batch', res.purchases || []);
+   });
 
+   $('#btn-batch-filter').click(function(){
+      batchdatatable.ajax.reload();
+   });
+
+   $('#btn-batch-filter-reset').click(function(){
+      $('#filter_product_batch, #filter_purchase_batch').val(null).trigger('change');
+      batchdatatable.ajax.reload();
+   });
+}
 
 });
 

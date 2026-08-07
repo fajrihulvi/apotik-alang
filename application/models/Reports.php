@@ -514,18 +514,63 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          $columnSortOrder = $postData['order'][0]['dir']; // asc or desc
          $searchValue = $postData['search']['value']; // Search value
 
-         ## Search 
+         ## Search
          $searchQuery = "";
          if($searchValue != ''){
             $searchQuery = " (a.product_name like '%".$searchValue."%' or a.product_model like '%".$searchValue."%' or a.price like'%".$searchValue."%' or a.manufacturer_price like'%".$searchValue."%' or m.manufacturer_name like'%".$searchValue."%') ";
          }
 
+         // Filter dropdown multiple: beberapa barang / beberapa faktur pembelian.
+         $filter_product  = $this->input->post('filter_product',true);
+         $filter_purchase = $this->input->post('filter_purchase',true);
+         $dropEmpty = function($val){
+            if(!is_array($val)){ return array(); }
+            return array_values(array_filter($val, function($v){
+               return ($v !== null && $v !== '' && !is_array($v));
+            }));
+         };
+         $filter_product  = $dropEmpty($filter_product);
+         $filter_purchase = $dropEmpty($filter_purchase);
+
+         // Faktur pembelian tidak ada di tabel product_information, jadi
+         // disaring lewat daftar barang yang pernah dibeli pada faktur itu.
+         //
+         // Daftar id-nya diambil DI SINI, sebelum query utama mulai disusun:
+         // memanggil get() di tengah penyusunan query akan mereset select/from/
+         // join milik query utama (CI memanggil _reset_select() setiap get()).
+         $produk_dari_faktur = null;   // null = filter faktur tidak dipakai
+         if(!empty($filter_purchase)){
+            $produk_dari_faktur = array();
+            $this->db->distinct();
+            $this->db->select('product_id');
+            $this->db->from('product_purchase_details');
+            $this->db->where_in('purchase_id', $filter_purchase);
+            foreach($this->db->get()->result() as $r){
+               $produk_dari_faktur[] = $r->product_id;
+            }
+            // Bila faktur terpilih tidak punya barang, hasilnya harus kosong.
+            if(empty($produk_dari_faktur)){
+               $produk_dari_faktur = array('');
+            }
+         }
+
+         // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
+         $applyFilter = function() use ($searchValue, $searchQuery, $filter_product, $produk_dari_faktur){
+            if($searchValue != ''){
+               $this->db->where($searchQuery);
+            }
+            if(!empty($filter_product)){
+               $this->db->where_in('a.product_id', $filter_product);
+            }
+            if($produk_dari_faktur !== null){
+               $this->db->where_in('a.product_id', $produk_dari_faktur);
+            }
+         };
+
          ## Total number of records without filtering
          $this->db->select('count(*) as allcount');
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information m','m.manufacturer_id = a.manufacturer_id','left');
-          if($searchValue != '')
-         $this->db->where($searchQuery);
          $records = $this->db->get()->result();
          $totalRecords = $records[0]->allcount;
 
@@ -533,8 +578,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          $this->db->select('count(*) as allcount');
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information m','m.manufacturer_id = a.manufacturer_id','left');
-         if($searchValue != '')
-            $this->db->where($searchQuery);
+         $applyFilter();
          $records = $this->db->get()->result();
          $totalRecordwithFilter = $records[0]->allcount;
 
@@ -548,8 +592,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
                 ");
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information m','m.manufacturer_id = a.manufacturer_id','left');
-         if($searchValue != '')
-         $this->db->where($searchQuery);
+         $applyFilter();
          $this->db->order_by($columnName, $columnSortOrder);
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
@@ -966,6 +1009,64 @@ public function stock_report_batch_bydate($perpage,$page){
     }
 
 
+    /**
+     * Isi dropdown filter pada Laporan Stock dan Laporan Stock (Per Batch):
+     * daftar nama barang dan daftar faktur pembelian.
+     *
+     * @param string $scope 'all'      => semua barang (Laporan Stock)
+     *                      'purchased'=> hanya barang yang pernah dibeli
+     *                                    (Laporan Stock per Batch)
+     */
+    public function getStockFilterOptions($scope = 'all')
+    {
+        $products = array();
+        if ($scope === 'purchased') {
+            // Laporan per batch hanya menampilkan barang yang ada di pembelian.
+            $this->db->distinct();
+            $this->db->select('p.product_id, p.product_name, p.strength');
+            $this->db->from('product_purchase_details d');
+            $this->db->join('product_information p', 'p.product_id = d.product_id');
+            $this->db->order_by('p.product_name', 'asc');
+        } else {
+            $this->db->select('product_id, product_name, strength');
+            $this->db->from('product_information');
+            $this->db->order_by('product_name', 'asc');
+        }
+        foreach ($this->db->get()->result() as $row) {
+            $products[] = array(
+                'id'   => $row->product_id,
+                'text' => medicine_name($row->product_name, $row->strength),
+            );
+        }
+
+        // Daftar faktur pembelian diambil dari tabel rincian, bukan dari
+        // product_purchase, supaya tetap muncul walau baris induknya belum ada
+        // (mis. data stok awal yang diimpor hanya pada tabel rincian).
+        $purchases = array();
+        $this->db->distinct();
+        $this->db->select('d.purchase_id, p.chalan_no, p.purchase_date, m.manufacturer_name', FALSE);
+        $this->db->from('product_purchase_details d');
+        $this->db->join('product_purchase p', 'p.purchase_id = d.purchase_id', 'left');
+        $this->db->join('manufacturer_information m', 'm.manufacturer_id = p.manufacturer_id', 'left');
+        $this->db->order_by('d.purchase_id', 'desc');
+        foreach ($this->db->get()->result() as $row) {
+            // Label memakai no. faktur bila ada; bila tidak, id pembeliannya.
+            $label = ($row->chalan_no != '' ? $row->chalan_no : $row->purchase_id);
+            if ($row->manufacturer_name != '') {
+                $label .= ' - '.$row->manufacturer_name;
+            }
+            if ($row->purchase_date != '') {
+                $label .= ' ('.$row->purchase_date.')';
+            }
+            $purchases[] = array('id' => $row->purchase_id, 'text' => $label);
+        }
+
+        return array(
+            'products'  => $products,
+            'purchases' => $purchases,
+        );
+    }
+
     public function getCheckBatchStock($postData=null){
 
          $response = array();
@@ -979,18 +1080,43 @@ public function stock_report_batch_bydate($perpage,$page){
          $columnSortOrder = $postData['order'][0]['dir']; // asc or desc
          $searchValue = $postData['search']['value']; // Search value
 
-         ## Search 
+         ## Search
          $searchQuery = "";
          if($searchValue != ''){
             $searchQuery = " (m.product_name like '%".$searchValue."%' or a.batch_id like '%".$searchValue."%' or a.expeire_date like'%".$searchValue."%') ";
          }
 
+         // Filter dropdown multiple: beberapa barang / beberapa faktur pembelian.
+         $filter_product  = $this->input->post('filter_product',true);
+         $filter_purchase = $this->input->post('filter_purchase',true);
+         $dropEmpty = function($val){
+            if(!is_array($val)){ return array(); }
+            return array_values(array_filter($val, function($v){
+               return ($v !== null && $v !== '' && !is_array($v));
+            }));
+         };
+         $filter_product  = $dropEmpty($filter_product);
+         $filter_purchase = $dropEmpty($filter_purchase);
+
+         // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
+         // Di laporan per batch, faktur pembelian ada langsung pada barisnya
+         // sehingga bisa disaring tanpa subquery.
+         $applyFilter = function() use ($searchValue, $searchQuery, $filter_product, $filter_purchase){
+            if($searchValue != ''){
+               $this->db->where($searchQuery);
+            }
+            if(!empty($filter_product)){
+               $this->db->where_in('a.product_id', $filter_product);
+            }
+            if(!empty($filter_purchase)){
+               $this->db->where_in('a.purchase_id', $filter_purchase);
+            }
+         };
+
          ## Total number of records without filtering
          $this->db->select('count(*) as allcount');
          $this->db->from('product_purchase_details a');
          $this->db->join('product_information m','m.product_id = a.product_id','left');
-          if($searchValue != '')
-         $this->db->where($searchQuery);
          $this->db->group_by('a.batch_id');
          $this->db->group_by('a.product_id');
          $totalRecords = $this->db->get()->num_rows();
@@ -999,8 +1125,7 @@ public function stock_report_batch_bydate($perpage,$page){
          $this->db->select('count(*) as allcount');
          $this->db->from('product_purchase_details a');
          $this->db->join('product_information m','m.product_id = a.product_id','left');
-         if($searchValue != '')
-         $this->db->where($searchQuery);
+         $applyFilter();
          $this->db->group_by('a.batch_id');
          $this->db->group_by('a.product_id');
          $totalRecordwithFilter = $this->db->get()->num_rows();
@@ -1012,8 +1137,7 @@ public function stock_report_batch_bydate($perpage,$page){
                 ");
          $this->db->from('product_purchase_details a');
          $this->db->join('product_information m','m.product_id = a.product_id','left');
-         if($searchValue != '')
-         $this->db->where($searchQuery);
+         $applyFilter();
          $this->db->group_by('a.batch_id');
          $this->db->group_by('a.product_id');
          $this->db->order_by($columnName, $columnSortOrder);

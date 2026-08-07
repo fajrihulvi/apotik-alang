@@ -24,7 +24,16 @@ public function CheckList(){
         $postData = $this->input->post();
         $data = $this->Reports->getCheckList($postData);
         echo json_encode($data);
-    } 
+    }
+
+    // Isi dropdown filter (nama barang & faktur pembelian) untuk Laporan Stock.
+    public function stock_filter_options(){
+        $this->auth->check_admin_auth();
+        $this->load->model('Reports');
+        $scope = ($this->input->get('scope',true) === 'purchased' ? 'purchased' : 'all');
+        header('Content-Type: application/json');
+        echo json_encode($this->Reports->getStockFilterOptions($scope));
+    }
 
         public function exportCSV(){ 
    // file name 

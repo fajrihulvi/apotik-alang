@@ -43,6 +43,32 @@
 
 		
 
+		<!-- Filter: beberapa nama barang / beberapa faktur pembelian -->
+		<div class="row">
+		    <div class="col-sm-12">
+		        <div class="panel panel-default">
+		            <div class="panel-body">
+		                <div class="col-sm-5">
+		                    <div class="form-group">
+		                        <label for="filter_product"><?php echo display('medicine_name') ?></label>
+		                        <select id="filter_product" class="form-control" multiple="multiple" data-placeholder="<?php echo display('medicine_name') ?>"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-5">
+		                    <div class="form-group">
+		                        <label for="filter_purchase">Faktur Pembelian</label>
+		                        <select id="filter_purchase" class="form-control" multiple="multiple" data-placeholder="Faktur Pembelian"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-12">
+		                    <button type="button" id="btn-stock-filter" class="btn btn-success"><?php echo display('find') ?></button>
+		                    <button type="button" id="btn-stock-filter-reset" class="btn btn-default">Reset</button>
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+
 		<div class="row">
 		    <div class="col-sm-12">
 		        <div class="panel panel-bd lobidrag">

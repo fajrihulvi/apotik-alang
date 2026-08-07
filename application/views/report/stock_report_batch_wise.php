@@ -34,6 +34,32 @@
         <?php
         if($this->permission1->method('stock_report_batch_wise','read')->access()){ ?>
 	
+		<!-- Filter: beberapa nama barang / beberapa faktur pembelian -->
+		<div class="row">
+		    <div class="col-sm-12">
+		        <div class="panel panel-default">
+		            <div class="panel-body">
+		                <div class="col-sm-5">
+		                    <div class="form-group">
+		                        <label for="filter_product_batch"><?php echo display('product_name') ?></label>
+		                        <select id="filter_product_batch" class="form-control" multiple="multiple" data-placeholder="<?php echo display('product_name') ?>"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-5">
+		                    <div class="form-group">
+		                        <label for="filter_purchase_batch">Faktur Pembelian</label>
+		                        <select id="filter_purchase_batch" class="form-control" multiple="multiple" data-placeholder="Faktur Pembelian"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-12">
+		                    <button type="button" id="btn-batch-filter" class="btn btn-success"><?php echo display('find') ?></button>
+		                    <button type="button" id="btn-batch-filter-reset" class="btn btn-default">Reset</button>
+		                </div>
+		            </div>
+		        </div>
+		    </div>
+		</div>
+
 		<div class="row">
 		    <div class="col-sm-12">
 		        <div class="panel panel-bd lobidrag">
