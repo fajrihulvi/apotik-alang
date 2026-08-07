@@ -161,22 +161,12 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
           </div>
                 </div>
                 <?php } ?>
-<input type="hidden" id="bestsalelabel" value='<?php echo html_escape($chart_label);?>' name=""> 
-<input type="hidden" id="bestsaledata" value='<?php echo html_escape($chart_data);?>' name=""> 
-
-<input type="hidden" value='<?php $seperatedData = explode(',', $chart_data); echo html_escape(((float) $seperatedData[0] + 10));?>' name="" id="bestsalemax">
-<input type="hidden" name="" id="total_sales_amount" value="<?php echo $total_sales_amount?>">
-<input type="hidden" id="months" value='<?php 
- $months_label = $this->Reports->monthlyprogress_label($year,$month); echo html_escape($months_label);?>' name="">
- <input type="hidden" id="progress_saledata" value='<?php 
- $salesamount = $this->Reports->monthlyprogress_saledata($year,$month); echo html_escape($salesamount);?>' name="">
- <input type="hidden" id="progress_purchasedata" value='<?php 
- $pu_amount = $this->Reports->monthlyprogress_purchasedata($year,$month); echo html_escape($pu_amount);?>' name="">  
- <input type="hidden" name="" id="pie_total_sale" value="<?php echo $pie_total_sale;?>"> 
- <input type="hidden" name="" id="pie_total_purchase" value="<?php echo $pie_total_purchase;?>">
- <input type="hidden" name="" id="pie_total_service" value="<?php echo $pie_total_service;?>">
- <input type="hidden" name="" id="pie_total_expense" value="<?php echo $pie_total_expense;?>"> 
- <input type="hidden" name="" id="pie_total_salary" value="<?php echo $pie_total_salary;?>">   
+<?php
+ // Input tersembunyi pemasok data grafik lama (Laporan Kemajuan
+ // Bulanan, Pendapatan/Pengeluaran, dan Best Sales) sudah dihapus
+ // bersama panelnya. Yang disisakan hanya #currency, karena dipakai
+ // juga oleh skrip lain di aplikasi ini.
+ ?>
  <input type="hidden" id="currency" value="<?php echo  html_escape($currency)?>" name="">
         </div>
 
@@ -289,119 +279,6 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
         </div>
         <?php } ?>
 
-        <hr>
-        <!-- Second Counter -->
-       
-
-   
-        <div class="row">
-            <!-- This month progress -->
-            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-8">
-       
-                <div class="panel panel-bd">
-                    <div class="panel-heading">
-                        <div class="panel-title">
-                            
-                            <?php echo form_open_multipart('','name="form1" id="form1"')?>   
-                                  <div class="form-group row">
-                                    <div class="col-sm-8"><h4> <?php echo display('monthly_progress_report')?></h4></div>
-                                    <div class="col-sm-4">
-                                    <div class="col-sm-8 marginpadding-right0">
-                                  <input type="text" class="form-control " value="<?php echo $searchdate;?>" name="alldata" id="alldata" ></div>
-                                  <div class="col-sm-4 marginpaddingleft0">
-                                  <button type="submit" name="btnSearch" class="btn filterbutton"><i class="fa fa-search"></i> <?php echo display('filter')?></button>
-                                </div>
-                              </div>
-                                </div>
-                                <?php echo form_close();?>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        <canvas id="myChart" width="500" height="220"></canvas>
-                    </div>
-                </div>
-               
-            </div>
-            <!-- Total Report -->
-            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-4">
-                <?php
-                if($this->permission1->method('todays_report','read')->access()){ ?>
-                <div class="panel panel-bd lobidisable">
-                    <div class="panel-heading">
-                        <div class="panel-title">
-                            <h4><?php echo display('todays_report')?></h4>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                         <div class="message_inner">
-                            <div class="message_widgets">
-                                
-                                <table class="table table-bordered table-striped table-hover">
-                                <tr>
-                                    <th><?php echo display('todays_report')?></th>
-                                    <th><?php echo display('amount')?></th>
-                                </tr>
-                                    <tr>
-                                        <th><?php echo display('total_sales')?></th>
-                                        <td class="text-right"><?php echo (($position==0)?"$currency $sales_amount":"$sales_amount $currency") ?></td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php echo display('total_purchase')?></th>
-                                        <td class="text-right"><?php echo (($position==0)?"$currency $purchase_amount":"$purchase_amount $currency") ?></td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php echo display('cash_received')?></th>
-                                        <td class="text-right"><?php echo (($position==0)?"$currency $total_cash_receive":"$total_cash_receive $currency") ?></td>
-                                    </tr>
-                                    <tr>
-                                        <th><?php echo display('bank_received')?> </th>
-                                        <td class="text-right"><?php echo (($position==0)?"$currency $total_bank_receive":"$total_bank_receive $currency") ?></td>
-                                    </tr>
-                                   <tr>
-                                        <th><?php echo display('invoice').' '.display('due')?> </th>
-                                        <td class="text-right"><?php echo (($position==0)?"$currency $total_due_amount":"$total_due_amount $currency") ?></td>
-                                    </tr>
-                                     <tr>
-                                        <th><?php echo display('total_service')?> </th>
-                                        <td class="text-right"><?php echo (($position==0)?"$currency $total_service_amount":"$total_service_amount $currency") ?></td>
-                                    </tr>
-                                    
-                                </table>
-                            </div>
-                        </div> 
-                        
-                    </div>
-                </div>
-                <?php } ?>
-            </div>
-             <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-
-                <div class="panel panel-bd lobidisable">
-                    <div class="panel-heading">
-                        <div class="panel-title">
-                            <h4><?php echo display('income_expense_statement')?><?php echo ' of '.date('F Y');?></h4>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        <div id="chartContainerPie"></div>
-                    </div>
-                </div>
-               
-            </div>
-            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
-               <div class="panel panel-bd lobidisable">
-                    <div class="panel-heading">
-                        <div class="panel-title">
-                            <h4><?php echo 'Best Sales of'.' '.date('F Y');?></h4>
-                        </div>
-                    </div>
-                    <div class="panel-body">
-                        <canvas id="bestsalechart" height="160"></canvas>
-                    </div>
-                </div>
-            </div>
-  
-        </div>
 
     </section> <!-- /.content -->
 
@@ -547,9 +424,15 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
 </div> <!-- /.content-wrapper -->
 <!-- Admin Home end -->
  
-<!-- ChartJs JavaScript -->
-<script src="<?php echo base_url() ?>assets/js/Chart.min.js" type="text/javascript"></script>
-<script src="<?php echo base_url() ?>assets/js/canvasjs.min.js" type="text/javascript"></script>
+<?php
+// Chart.min.js dan canvasjs.min.js tidak dimuat lagi di sini:
+//   - canvasjs (448 KB) tadinya hanya dipakai diagram lingkaran
+//     Pendapatan/Pengeluaran yang sudah dihapus, jadi kini mubazir.
+//   - Chart.min.js sudah dimuat oleh template admin, dan memuatnya
+//     dua kali justru pernah membuat grafik rusak.
+// dashboard.js tetap dipakai untuk datepicker filter dan popup
+// peringatan stok habis / obat kedaluwarsa.
+?>
 <script src="<?php echo base_url() ?>assets/js/dashboard.js" type="text/javascript"></script>
 
 

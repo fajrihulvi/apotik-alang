@@ -61,6 +61,12 @@ today = yyyy + '-' + mm + '-' + dd;
 
 
 
+   // Grafik "Best Sales" sudah dihapus dari dashboard. Blok ini hanya
+   // dijalankan bila elemennya memang ada, supaya skrip tidak berhenti
+   // dengan error dan bagian lain di bawahnya tetap jalan.
+   var ctx = document.getElementById("bestsalechart");
+   if (ctx && $("#bestsalelabel").length) {
+
                var bestslabel    = $("#bestsalelabel").val();
                var splitbslabel  = bestslabel.substring(0, bestslabel.length - 1);
                var bestsalelabel = splitbslabel.split(",");
@@ -70,7 +76,6 @@ today = yyyy + '-' + mm + '-' + dd;
                var bestsaledata  = splitbsdata.split(",");
 
                var bestsalmax    = $("#bestsalemax").val();
-   var ctx = document.getElementById("bestsalechart");
     var myChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -155,8 +160,13 @@ today = yyyy + '-' + mm + '-' + dd;
 
     });
 
+   }
+
 //Monthly progress bar
-    var ctx = document.getElementById("myChart");
+// Sama seperti Best Sales, panel ini sudah dihapus dari dashboard.
+var ctxMonthly = document.getElementById("myChart");
+if (ctxMonthly && $("#months").length) {
+
 var months = $("#months").val();
 var splitbslabel  = months.substring(0, months.length - 1);
 var monthlabel = splitbslabel.split(",");
@@ -168,7 +178,7 @@ var progresssaledata = splitsamount.split(",");
 var pamount = $("#progress_purchasedata").val();
 var splitpamount  = pamount.substring(0, pamount.length - 1);
 var progresspurchasedata = splitpamount.split(",");
-var myChart = new Chart(ctx, {
+var myChart = new Chart(ctxMonthly, {
 type: 'bar',
 data: {
 labels: monthlabel,
@@ -194,12 +204,18 @@ beginAtZero:true
 }
 });
 
+}
 
 
 
  });
 
    window.onload = function() {
+    // Diagram lingkaran Pendapatan/Pengeluaran juga sudah dihapus dari
+    // dashboard, jadi hanya digambar bila wadahnya benar-benar ada.
+    if (!document.getElementById("chartContainerPie") || typeof CanvasJS === 'undefined') {
+        return;
+    }
     var pie_total_sale = $("#pie_total_sale").val();
     var pie_total_purchase = $("#pie_total_purchase").val();
     var pie_total_service  = $("#pie_total_service").val();
