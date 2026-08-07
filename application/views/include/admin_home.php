@@ -179,6 +179,116 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
  <input type="hidden" name="" id="pie_total_salary" value="<?php echo $pie_total_salary;?>">   
  <input type="hidden" id="currency" value="<?php echo  html_escape($currency)?>" name="">
         </div>
+
+        <?php
+        // ============================================================
+        // RINGKASAN PERIODE: Hari Ini / Minggu Ini / Bulan Ini / Tahun Ini
+        //
+        // Tiap kartu menampilkan angka pokok penjualan periode itu dan
+        // bisa diklik untuk membuka halaman detail (breakdown per
+        // hari/minggu/bulan + 10 barang paling laku).
+        //
+        // Ditampilkan hanya bila user berhak membaca laporan, mengikuti
+        // aturan yang sama dengan panel "Laporan Hari Ini" di bawah.
+        // ============================================================
+        if (!empty($dashboard_periods) && $this->permission1->method('todays_report','read')->access()) {
+
+            // Format rupiah tanpa desimal: nominal apotek selalu bulat,
+            // dan angka panjang membuat kartu jadi sulit dibaca.
+            if (!function_exists('dashboard_money')) {
+                function dashboard_money($amount, $currency, $position) {
+                    $value = number_format((float) $amount, 0, ',', '.');
+                    return ($position == 0 ? $currency.' '.$value : $value.' '.$currency);
+                }
+            }
+
+            $period_style = array(
+                'today' => array('bg' => 'bg-primary',   'icon' => 'fa-calendar-o'),
+                'week'  => array('bg' => 'bg-success',   'icon' => 'fa-calendar-check-o'),
+                'month' => array('bg' => 'bg-info',      'icon' => 'fa-calendar'),
+                'year'  => array('bg' => 'bg-warning',   'icon' => 'fa-line-chart'),
+            );
+        ?>
+        <div class="row dashboard-period-row">
+            <?php foreach ($dashboard_periods as $key => $period) {
+                $s       = $period['summary'];
+                $style   = (isset($period_style[$key]) ? $period_style[$key] : $period_style['today']);
+                $detail  = base_url('Admin_dashboard/period_detail/'.$key);
+            ?>
+            <!-- Dua kartu per baris: kolom lebih lebar sehingga nama
+                 produk pada daftar Top 10 tidak cepat terpotong. -->
+            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                <div class="panel panel-bd dashboard-period-card">
+                    <div class="panel-heading <?php echo $style['bg']?> whitecolor">
+                        <div class="panel-title">
+                            <h4 style="margin:0;">
+                                <i class="fa <?php echo $style['icon']?>"></i>
+                                <?php echo html_escape($period['title'])?>
+                            </h4>
+                            <small><?php echo date('d/m/Y', strtotime($period['from']))?>
+                                <?php if ($period['from'] != $period['to']) { ?>
+                                    &ndash; <?php echo date('d/m/Y', strtotime($period['to']))?>
+                                <?php } ?>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <table class="table table-condensed dashboard-period-table">
+                            <tr>
+                                <th>Jumlah Obat Terjual</th>
+                                <td class="text-right"><?php echo number_format($s['total_qty'], 0, ',', '.')?></td>
+                            </tr>
+                            <tr>
+                                <th>Jumlah Sell Price</th>
+                                <td class="text-right"><?php echo dashboard_money($s['total_sell'], $currency, $position)?></td>
+                            </tr>
+                            <tr>
+                                <th>Jumlah Purchase Price</th>
+                                <td class="text-right"><?php echo dashboard_money($s['total_cost'], $currency, $position)?></td>
+                            </tr>
+                            <tr>
+                                <th>Gross Margin</th>
+                                <td class="text-right <?php echo ($s['gross_margin'] < 0 ? 'text-danger' : 'text-success')?>">
+                                    <strong><?php echo dashboard_money($s['gross_margin'], $currency, $position)?></strong>
+                                    <br><small>(<?php echo number_format($s['margin_percent'], 2, ',', '.')?>%)</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Jumlah Pelanggan</th>
+                                <td class="text-right">
+                                    <?php echo number_format($s['total_invoice'], 0, ',', '.')?>
+                                    <br><small class="text-muted">transaksi</small>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="dashboard-period-top">
+                            <strong><i class="fa fa-trophy"></i> Top 10 Barang Paling Laku</strong>
+                            <?php if (!empty($period['top'])) { ?>
+                            <ol class="dashboard-top-list">
+                                <?php foreach ($period['top'] as $top) { ?>
+                                <li>
+                                    <span class="dashboard-top-name" title="<?php echo html_escape($top['product_name'])?>"><?php echo html_escape($top['product_name'])?></span>
+                                    <span class="dashboard-top-qty"><?php echo number_format($top['total_qty'], 0, ',', '.')?></span>
+                                </li>
+                                <?php } ?>
+                            </ol>
+                            <?php } else { ?>
+                            <p class="text-muted" style="margin-top:8px;">Belum ada penjualan pada periode ini.</p>
+                            <?php } ?>
+                        </div>
+                    </div>
+                    <div class="panel-footer dashboard-period-footer">
+                        <a href="<?php echo $detail?>" class="btn btn-primary btn-block">
+                            <i class="fa fa-search-plus"></i> Lihat Detail
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php } ?>
+        </div>
+        <?php } ?>
+
         <hr>
         <!-- Second Counter -->
        

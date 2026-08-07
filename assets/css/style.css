@@ -1040,3 +1040,163 @@ font-family: "Helvetica Neue", Roboto, Arial, "Droid Sans", sans-serif !importan
         transform: rotate(-130deg);
     }
 }
+
+/* ==================================================================
+   RINGKASAN PERIODE DASHBOARD
+   Kartu Hari Ini / Minggu Ini / Bulan Ini / Tahun Ini beserta
+   daftar 10 barang paling laku di dalamnya.
+   ================================================================== */
+
+.dashboard-period-row {
+    margin-bottom: 10px;
+}
+
+/* Tinggi kartu disamakan agar keempatnya rapi sejajar dalam satu baris. */
+.dashboard-period-card {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 20px);
+}
+
+.dashboard-period-card .panel-body {
+    flex: 1 1 auto;
+    padding: 10px 12px;
+}
+
+.dashboard-period-card .panel-heading {
+    padding: 10px 12px;
+}
+
+.dashboard-period-card .panel-heading .panel-title small {
+    display: block;
+    margin-top: 3px;
+    opacity: .85;
+    font-size: 11px;
+}
+
+.dashboard-period-table {
+    margin-bottom: 10px;
+}
+
+.dashboard-period-table > tbody > tr > th,
+.dashboard-period-table > tbody > tr > td {
+    padding: 5px 4px;
+    border-top: 1px solid #f0f0f0;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.dashboard-period-table > tbody > tr:first-child > th,
+.dashboard-period-table > tbody > tr:first-child > td {
+    border-top: 0;
+}
+
+.dashboard-period-table > tbody > tr > th {
+    font-weight: 600;
+    color: #555;
+}
+
+.dashboard-period-top {
+    border-top: 1px dashed #ddd;
+    padding-top: 8px;
+    font-size: 12px;
+}
+
+/* Dengan dua kolom, kartu cukup lebar untuk memuat sepuluh baris
+   sekaligus, jadi daftar tidak perlu digulir lagi. */
+.dashboard-top-list {
+    padding-left: 20px;
+    margin: 8px 0 0 0;
+}
+
+.dashboard-top-list li {
+    padding: 3px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.dashboard-top-list li:last-child {
+    border-bottom: 0;
+}
+
+/* Nama produk dipotong dengan elipsis; nama lengkapnya tetap bisa
+   dilihat lewat tooltip (atribut title). */
+.dashboard-top-name {
+    display: inline-block;
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.dashboard-top-qty {
+    float: right;
+    font-weight: 600;
+    color: #337ab7;
+}
+
+/* Tombol "Lihat Detail" menempel di dasar kartu supaya posisinya
+   sejajar walau isi kartu di sebelahnya berbeda panjang. */
+.dashboard-period-footer {
+    padding: 10px 12px;
+    background: #fafafa;
+    border-top: 1px solid #eee;
+}
+
+.dashboard-period-switch {
+    margin-bottom: 5px;
+}
+
+/* Batang perbandingan penjualan pada tabel breakdown. Menggantikan
+   grafik: lebarnya sudah dihitung di PHP dan ditulis sebagai persen,
+   jadi browser hanya menggambar kotak berwarna - tidak ada library
+   grafik, tidak ada animasi, tidak ada yang bisa gagal dimuat. */
+.breakdown-bar-col {
+    width: 22%;
+    min-width: 120px;
+    vertical-align: middle !important;
+}
+
+.breakdown-bar {
+    background: #f0f0f0;
+    border-radius: 2px;
+    height: 14px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.breakdown-bar > span {
+    display: block;
+    height: 100%;
+    background: #2ecc71;
+    border-radius: 2px;
+}
+
+/* Kotak statistik di halaman detail memakai .coundownnumber (30px)
+   supaya seragam dengan kartu dashboard. Bedanya, isinya bukan cuma
+   cacah kecil melainkan nominal rupiah yang bisa mencapai 13 karakter
+   ("Rp 12.061.000") - pada kolom col-lg-2 itu lebih lebar daripada
+   ruang yang tersedia. Ukuran huruf diturunkan sedikit dan dipaksa
+   satu baris agar nominal terpanjang tetap muat utuh. */
+.dashboard-stat-value {
+    font-size: 20px !important;
+    line-height: 34px !important;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (min-width: 1200px) and (max-width: 1600px) {
+    .dashboard-stat-value {
+        font-size: 17px !important;
+    }
+}
+
+/* Di bawah breakpoint 'sm' kartu tersusun menumpuk satu per baris,
+   sehingga tidak ada lagi tetangga yang tingginya perlu disamakan. */
+@media (max-width: 767px) {
+    .dashboard-period-card {
+        height: auto;
+    }
+}

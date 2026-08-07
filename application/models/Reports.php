@@ -1952,9 +1952,264 @@ public function monthly(){
         $date = date('Y-m-d');
         $this->db->select("sum(total_amount) as total");
         $this->db->from('service_invoice');
-        $this->db->where('date',$date); 
+        $this->db->where('date',$date);
         $query = $this->db->get();
-            $amount =  $query->row()->total;   
+            $amount =  $query->row()->total;
         return (!empty($amount)?$amount:0);
+    }
+
+    # =================================================================
+    # RINGKASAN DASHBOARD (Hari Ini / Minggu Ini / Bulan Ini / Tahun Ini)
+    #
+    # Semua angka di bawah dihitung dari invoice + invoice_details,
+    # karena di situlah transaksi penjualan yang benar-benar terjadi
+    # tercatat.
+    #
+    # Harga beli (modal) diambil dari product_purchase_details.rate
+    # yang dicocokkan lewat product_id + batch_id. Alasannya:
+    # kolom invoice_details.manufacturer_rate dan
+    # product_information.manufacturer_price di database ini hampir
+    # seluruhnya kosong, sehingga kalau dipakai, modal terbaca 0 dan
+    # gross margin akan tampil ~100% - menyesatkan. Harga beli per
+    # batch juga lebih tepat, sebab satu produk bisa dibeli dengan
+    # harga berbeda di tiap batch.
+    #
+    # Pencocokan memakai subquery berkorelasi (bukan JOIN biasa),
+    # karena satu kombinasi product_id + batch_id kadang punya lebih
+    # dari satu baris pembelian. Dengan JOIN, baris penjualan akan
+    # terduplikasi dan jumlah barang serta omzet ikut menggelembung.
+    # =================================================================
+
+    /**
+     * Potongan SQL untuk modal (harga beli) satu baris invoice_details.
+     * Dipakai berulang di beberapa query ringkasan.
+     *
+     * @return string
+     */
+    private function dashboard_cost_expression()
+    {
+        return "COALESCE((SELECT pd.rate
+                            FROM product_purchase_details pd
+                           WHERE pd.product_id = d.product_id
+                             AND pd.batch_id   = d.batch_id
+                        ORDER BY pd.id DESC
+                           LIMIT 1), 0)";
+    }
+
+    /**
+     * Ringkasan satu periode: jumlah obat terjual, nilai jual, nilai
+     * modal, gross margin, jumlah transaksi, dan jumlah pelanggan.
+     *
+     * @param string $from_date Y-m-d
+     * @param string $to_date   Y-m-d
+     * @return array
+     */
+    public function dashboard_summary($from_date, $to_date)
+    {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT
+                    COALESCE(SUM(d.quantity), 0)                  AS total_qty,
+                    COALESCE(SUM(d.total_price), 0)               AS total_sell,
+                    COALESCE(SUM(d.quantity * {$cost}), 0)        AS total_cost,
+                    COUNT(DISTINCT i.invoice_id)                  AS total_invoice,
+                    COUNT(DISTINCT i.customer_id)                 AS total_customer
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+                 WHERE i.date BETWEEN ? AND ?";
+
+        $row = $this->db->query($sql, array($from_date, $to_date))->row_array();
+
+        return $this->dashboard_format_summary($row);
+    }
+
+    /**
+     * Lengkapi hasil query ringkasan dengan gross margin dan
+     * persentasenya, sekaligus jaga-jaga bila query tidak mengembalikan
+     * baris sama sekali.
+     *
+     * @param array|null $row
+     * @return array
+     */
+    private function dashboard_format_summary($row)
+    {
+        $qty   = (!empty($row['total_qty'])      ? (float) $row['total_qty']      : 0);
+        $sell  = (!empty($row['total_sell'])     ? (float) $row['total_sell']     : 0);
+        $cost  = (!empty($row['total_cost'])     ? (float) $row['total_cost']     : 0);
+        $inv   = (!empty($row['total_invoice'])  ? (int)   $row['total_invoice']  : 0);
+        $cust  = (!empty($row['total_customer']) ? (int)   $row['total_customer'] : 0);
+
+        $margin = $sell - $cost;
+
+        return array(
+            'total_qty'      => $qty,
+            'total_sell'     => $sell,
+            'total_cost'     => $cost,
+            'gross_margin'   => $margin,
+            // Margin dibagi omzet (bukan modal), sesuai definisi umum
+            // gross margin. Dijaga agar tidak membagi nol.
+            'margin_percent' => ($sell > 0 ? ($margin / $sell) * 100 : 0),
+            'total_invoice'  => $inv,
+            'total_customer' => $cust,
+        );
+    }
+
+    /**
+     * 10 barang paling laku pada satu periode, diurutkan dari jumlah
+     * terjual terbanyak.
+     *
+     * @param string $from_date Y-m-d
+     * @param string $to_date   Y-m-d
+     * @param int    $limit
+     * @return array
+     */
+    public function dashboard_top_products($from_date, $to_date, $limit = 10)
+    {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT
+                    d.product_id,
+                    p.product_name,
+                    COALESCE(SUM(d.quantity), 0)           AS total_qty,
+                    COALESCE(SUM(d.total_price), 0)        AS total_sell,
+                    COALESCE(SUM(d.quantity * {$cost}), 0) AS total_cost
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+             LEFT JOIN product_information p ON p.product_id = d.product_id
+                 WHERE i.date BETWEEN ? AND ?
+              GROUP BY d.product_id
+              ORDER BY total_qty DESC, total_sell DESC
+                 LIMIT ".(int) $limit;
+
+        $rows = $this->db->query($sql, array($from_date, $to_date))->result_array();
+
+        $products = array();
+        foreach ($rows as $row) {
+            $sell = (float) $row['total_sell'];
+            $margin = $sell - (float) $row['total_cost'];
+            $products[] = array(
+                'product_id'   => $row['product_id'],
+                // Produk yang sudah dihapus tetap tampil, tapi diberi
+                // penanda agar tidak muncul sebagai baris kosong.
+                'product_name' => (!empty($row['product_name']) ? $row['product_name'] : '('.display('product_name').' -)'),
+                'total_qty'    => (float) $row['total_qty'],
+                'total_sell'   => $sell,
+                'total_cost'   => (float) $row['total_cost'],
+                'gross_margin' => $margin,
+            );
+        }
+
+        return $products;
+    }
+
+    /**
+     * Rincian ringkasan per potongan waktu, dipakai untuk tabel dan
+     * grafik breakdown (per hari, per minggu, atau per bulan).
+     *
+     * $buckets berisi daftar array dengan kunci 'label', 'from', 'to'.
+     *
+     * Sebelumnya tiap potongan waktu dihitung lewat query sendiri.
+     * Untuk laporan tahunan itu berarti 12 query berturut-turut yang
+     * masing-masing memindai tabel penjualan - halaman jadi lambat.
+     * Sekarang cukup SATU query yang mengelompokkan penjualan per
+     * tanggal, lalu hasilnya dijumlahkan ke tiap potongan di PHP.
+     *
+     * @param array $buckets
+     * @return array
+     */
+    public function dashboard_breakdown($buckets)
+    {
+        if (empty($buckets)) {
+            return array();
+        }
+
+        // Rentang menyeluruh dari potongan paling awal sampai paling akhir.
+        $range_from = $buckets[0]['from'];
+        $range_to   = $buckets[0]['to'];
+        foreach ($buckets as $bucket) {
+            if ($bucket['from'] < $range_from) { $range_from = $bucket['from']; }
+            if ($bucket['to']   > $range_to)   { $range_to   = $bucket['to']; }
+        }
+
+        $daily = $this->dashboard_daily_rows($range_from, $range_to);
+
+        $rows = array();
+        foreach ($buckets as $bucket) {
+            $qty = $sell = $cost = 0;
+            $invoice_total = 0;
+            $customers = array();
+
+            foreach ($daily as $date => $day) {
+                if ($date < $bucket['from'] || $date > $bucket['to']) {
+                    continue;
+                }
+                $qty  += $day['total_qty'];
+                $sell += $day['total_sell'];
+                $cost += $day['total_cost'];
+                // Satu invoice hanya muncul pada satu tanggal, jadi
+                // jumlahnya aman untuk ditambahkan langsung.
+                $invoice_total += $day['total_invoice'];
+                // Pelanggan bisa berbelanja di beberapa hari, karena
+                // itu id-nya dikumpulkan dulu baru dihitung unik.
+                foreach ($day['customers'] as $customer_id) {
+                    $customers[$customer_id] = true;
+                }
+            }
+
+            $summary = $this->dashboard_format_summary(array(
+                'total_qty'      => $qty,
+                'total_sell'     => $sell,
+                'total_cost'     => $cost,
+                'total_invoice'  => $invoice_total,
+                'total_customer' => count($customers),
+            ));
+
+            $summary['label'] = $bucket['label'];
+            $summary['from']  = $bucket['from'];
+            $summary['to']    = $bucket['to'];
+            $rows[] = $summary;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Rekap penjualan per tanggal dalam satu rentang, sebagai bahan
+     * mentah untuk menyusun breakdown.
+     *
+     * @param string $from_date Y-m-d
+     * @param string $to_date   Y-m-d
+     * @return array Berindeks tanggal (Y-m-d)
+     */
+    private function dashboard_daily_rows($from_date, $to_date)
+    {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT
+                    i.date                                        AS sale_date,
+                    COALESCE(SUM(d.quantity), 0)                  AS total_qty,
+                    COALESCE(SUM(d.total_price), 0)               AS total_sell,
+                    COALESCE(SUM(d.quantity * {$cost}), 0)        AS total_cost,
+                    COUNT(DISTINCT i.invoice_id)                  AS total_invoice,
+                    GROUP_CONCAT(DISTINCT i.customer_id)          AS customer_ids
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+                 WHERE i.date BETWEEN ? AND ?
+              GROUP BY i.date";
+
+        $result = $this->db->query($sql, array($from_date, $to_date))->result_array();
+
+        $daily = array();
+        foreach ($result as $row) {
+            $daily[$row['sale_date']] = array(
+                'total_qty'     => (float) $row['total_qty'],
+                'total_sell'    => (float) $row['total_sell'],
+                'total_cost'    => (float) $row['total_cost'],
+                'total_invoice' => (int) $row['total_invoice'],
+                'customers'     => (!empty($row['customer_ids']) ? explode(',', $row['customer_ids']) : array()),
+            );
+        }
+
+        return $daily;
     }
 }

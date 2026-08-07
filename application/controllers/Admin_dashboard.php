@@ -45,6 +45,23 @@ class Admin_dashboard extends CI_Controller {
 		$pie_total_service   = $CI->Reports->pie_total_serviceamount();
 		$pie_total_expense   = $CI->Reports->pie_total_expenseamount();
 		$pie_total_salary    = $CI->Reports->pie_total_salaryamount();
+
+		// Ringkasan empat periode untuk kartu di bagian atas dashboard.
+		// Tiap kartu memakai rentang tanggal yang sama persis dengan
+		// halaman detailnya, sehingga angkanya selalu cocok saat diklik.
+		$dashboard_periods = array();
+		foreach (array('today','week','month','year') as $period_key) {
+			$range = $this->dashboard_period($period_key);
+			$dashboard_periods[$period_key] = array(
+				'key'     => $period_key,
+				'title'   => $range['title'],
+				'from'    => $range['from'],
+				'to'      => $range['to'],
+				'summary' => $CI->Reports->dashboard_summary($range['from'], $range['to']),
+				'top'     => $CI->Reports->dashboard_top_products($range['from'], $range['to'], 10),
+			);
+		}
+
         $chart_label = $chart_data = '';
 		if (!empty($best_sales_product))
 		    for ($i = 0; $i < 50; $i++) {
@@ -76,12 +93,170 @@ class Admin_dashboard extends CI_Controller {
              'pie_total_service'  => $pie_total_service,
              'pie_total_expense'  => $pie_total_expense,
              'pie_total_salary'   => $pie_total_salary,
+             'dashboard_periods'  => $dashboard_periods,
 	    	);
 
 		$content = $CI->parser->parse('include/admin_home',$data,true);
 		$this->template->full_admin_html_view($content);
 		
     }
+	# =================================================================
+	# RINGKASAN PERIODE DASHBOARD
+	#
+	# Empat kartu di dashboard (Hari Ini, Minggu Ini, Bulan Ini, Tahun
+	# Ini) memakai perhitungan yang sama, hanya beda rentang tanggal.
+	# Rentang itu ditentukan sekali di sini supaya tampilan ringkas di
+	# dashboard dan halaman detailnya tidak pernah berbeda angka.
+	# =================================================================
+
+	/**
+	 * Rentang tanggal tiap periode beserta judul dan cara memecah
+	 * breakdown-nya.
+	 *
+	 * @param string $period today|week|month|year
+	 * @return array|false
+	 */
+	private function dashboard_period($period)
+	{
+		$today = date('Y-m-d');
+
+		switch ($period) {
+			case 'today':
+				return array(
+					'title' => 'Detail Hari Ini',
+					'from'  => $today,
+					'to'    => $today,
+				);
+
+			case 'week':
+				// Minggu berjalan dihitung Senin s/d Minggu. 'monday
+				// this week' di PHP sudah mengikuti aturan itu, termasuk
+				// ketika hari ini kebetulan hari Minggu.
+				return array(
+					'title' => 'Detail Minggu Ini',
+					'from'  => date('Y-m-d', strtotime('monday this week', strtotime($today))),
+					'to'    => date('Y-m-d', strtotime('sunday this week', strtotime($today))),
+				);
+
+			case 'month':
+				return array(
+					'title' => 'Detail Bulan Ini',
+					'from'  => date('Y-m-01'),
+					'to'    => date('Y-m-t'),
+				);
+
+			case 'year':
+				return array(
+					'title' => 'Detail Tahun Ini',
+					'from'  => date('Y-01-01'),
+					'to'    => date('Y-12-31'),
+				);
+		}
+
+		return false;
+	}
+
+	/**
+	 * Potongan waktu untuk tabel/grafik breakdown tiap periode:
+	 * minggu dipecah per hari, bulan per minggu, tahun per bulan.
+	 * Periode "hari ini" tidak dipecah lagi.
+	 *
+	 * @param string $period
+	 * @param array  $range
+	 * @return array
+	 */
+	private function dashboard_buckets($period, $range)
+	{
+		$buckets = array();
+
+		if ($period == 'week') {
+			$hari = array('Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu');
+			$cursor = strtotime($range['from']);
+			$end    = strtotime($range['to']);
+			while ($cursor <= $end) {
+				$date = date('Y-m-d', $cursor);
+				$buckets[] = array(
+					'label' => $hari[(int) date('w', $cursor)].', '.date('d/m', $cursor),
+					'from'  => $date,
+					'to'    => $date,
+				);
+				$cursor = strtotime('+1 day', $cursor);
+			}
+		} elseif ($period == 'month') {
+			// Bulan dipecah per blok 7 hari (1-7, 8-14, ...). Blok
+			// terakhir dipotong di tanggal akhir bulan supaya tidak
+			// bocor ke bulan berikutnya.
+			$last_day = (int) date('t', strtotime($range['from']));
+			$week_no  = 1;
+			for ($start = 1; $start <= $last_day; $start += 7) {
+				$stop = min($start + 6, $last_day);
+				$buckets[] = array(
+					'label' => 'Minggu '.$week_no.' ('.$start.'-'.$stop.')',
+					'from'  => date('Y-m-', strtotime($range['from'])).sprintf('%02d', $start),
+					'to'    => date('Y-m-', strtotime($range['from'])).sprintf('%02d', $stop),
+				);
+				$week_no++;
+			}
+		} elseif ($period == 'year') {
+			$bulan = array('Januari','Februari','Maret','April','Mei','Juni',
+						   'Juli','Agustus','September','Oktober','November','Desember');
+			$year = date('Y', strtotime($range['from']));
+			for ($m = 1; $m <= 12; $m++) {
+				$first = $year.'-'.sprintf('%02d', $m).'-01';
+				$buckets[] = array(
+					'label' => $bulan[$m - 1],
+					'from'  => $first,
+					'to'    => date('Y-m-t', strtotime($first)),
+				);
+			}
+		}
+
+		return $buckets;
+	}
+
+	/**
+	 * Halaman detail satu periode: ringkasan angka, breakdown per
+	 * potongan waktu, dan 10 barang paling laku.
+	 *
+	 * @param string $period
+	 */
+	public function period_detail($period = 'today')
+	{
+		$CI =& get_instance();
+		$this->auth->check_admin_auth();
+
+		if (!$this->permission1->method('todays_report','read')->access()) {
+			$this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+			redirect('Admin_dashboard');
+		}
+
+		$range = $this->dashboard_period($period);
+		if ($range === false) {
+			redirect('Admin_dashboard');
+		}
+
+		$CI->load->model('Reports');
+		$CI->load->model('Web_settings');
+
+		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
+
+		$data = array(
+			'title'         => $range['title'],
+			'period'        => $period,
+			'period_title'  => $range['title'],
+			'from_date'     => $range['from'],
+			'to_date'       => $range['to'],
+			'summary'       => $CI->Reports->dashboard_summary($range['from'], $range['to']),
+			'breakdown'     => $CI->Reports->dashboard_breakdown($this->dashboard_buckets($period, $range)),
+			'top_products'  => $CI->Reports->dashboard_top_products($range['from'], $range['to'], 10),
+			'currency'      => $currency_details[0]['currency'],
+			'position'      => $currency_details[0]['currency_position'],
+		);
+
+		$content = $CI->load->view('include/dashboard_period_detail', $data, true);
+		$this->template->full_admin_html_view($content);
+	}
+
     //Today All Report
 	public function all_report()
 	{
