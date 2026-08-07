@@ -165,7 +165,7 @@ div.dataTables_scrollFoot table { margin-bottom: 0 !important; }
                                         <th>Jumlah Barang</th>
                                         <th>Satuan</th>
                                         <th>Harga</th>
-                                        <th>Kelompok</th>
+                                        <th>Batch</th>
                                         <th>Subtotal Barang</th>
                                         <th><?php echo display('action') ?></th>
                                     </tr>

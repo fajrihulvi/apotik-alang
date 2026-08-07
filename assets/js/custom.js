@@ -798,8 +798,8 @@ $(document).ready(function() {
 
    var invoicedatatable = $('#InvList').DataTable({
              // Mode responsive DataTables MENYEMBUNYIKAN kolom yang tidak muat
-             // (ditumpuk di balik tombol "+"), sehingga Kelompok dan Subtotal
-             // Barang tidak terlihat. Karena tabel ini punya 13 kolom, lebih
+             // (ditumpuk di balik tombol "+"), sehingga kolom paling kanan
+             // tidak terlihat. Karena tabel ini punya banyak kolom, lebih
              // enak digeser mendatar: semua kolom tetap tampil.
              responsive: false,
              scrollX: true,
@@ -856,7 +856,7 @@ $(document).ready(function() {
              { data: 'product_qty', class:"text-right", render: invRenderNumber(0)},
              { data: 'product_unit', class:"text-center"},
              { data: 'product_rate', class:"text-right", render: invRenderNumber(2)},
-             { data: 'product_category'},
+             { data: 'batch_id'},
              { data: 'product_total', class:"text-right", render: invRenderNumber(2)},
              { data: 'button'},
           ],

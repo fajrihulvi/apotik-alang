@@ -55,7 +55,7 @@ class Invoices extends CI_Model {
             'product_qty'      => 'd.quantity',
             'product_unit'     => 'p.unit',
             'product_rate'     => 'd.rate',
-            'product_category' => 'c.category_name',
+            'batch_id'         => 'd.batch_id',
             'product_total'    => 'row_total',
             'total_amount'     => 'a.total_amount',
          );
@@ -105,7 +105,7 @@ class Invoices extends CI_Model {
                   ." OR a.invoice_id LIKE '%$like%' ESCAPE '!'"
                   ." OR p.product_name LIKE '%$like%' ESCAPE '!'"
                   ." OR p.unit LIKE '%$like%' ESCAPE '!'"
-                  ." OR c.category_name LIKE '%$like%' ESCAPE '!'"
+                  ." OR d.batch_id LIKE '%$like%' ESCAPE '!'"
                   ." OR pt.payment_type_name LIKE '%$like%' ESCAPE '!')",
                   NULL, FALSE
                );
@@ -118,7 +118,6 @@ class Invoices extends CI_Model {
             $this->db->join('invoice_details d', 'd.invoice_id = a.invoice_id','left');
             $this->db->join('customer_information b', 'b.customer_id = a.customer_id','left');
             $this->db->join('product_information p', 'p.product_id = d.product_id','left');
-            $this->db->join('product_category c', 'c.category_id = p.category_id','left');
             $this->db->join('payment_type pt', 'pt.id = a.payment_type','left');
          };
 
@@ -139,9 +138,8 @@ class Invoices extends CI_Model {
          ## Fetch records
          $this->db->select("a.invoice_id, a.invoice, a.date, a.total_amount, a.payment_type,
                             b.customer_name,
-                            d.id as detail_id, d.quantity, d.rate, d.total_price,
+                            d.id as detail_id, d.quantity, d.rate, d.total_price, d.batch_id,
                             p.product_name, p.unit,
-                            c.category_name,
                             pt.payment_type_name,
                             (d.quantity * d.rate) as row_total", FALSE);
          $baseFrom();
@@ -187,7 +185,7 @@ class Invoices extends CI_Model {
                 'product_qty'      =>(float)$record->quantity,
                 'product_unit'     =>($record->unit != '' ? $record->unit : '-'),
                 'product_rate'     =>(float)$record->rate,
-                'product_category' =>($record->category_name != '' ? $record->category_name : '-'),
+                'batch_id'         =>($record->batch_id != '' ? $record->batch_id : '-'),
                 'product_total'    =>(float)$record->quantity * (float)$record->rate,
                 'total_amount'     =>(float)$record->total_amount,
                 'button'           =>$button,
