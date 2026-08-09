@@ -407,6 +407,48 @@ public function return_invoice_entry()
 		return false;
 	}
 
+	/**
+	 * Data rekapitulasi pengembalian untuk diunduh ke Excel.
+	 *
+	 * Ketiga daftar (stok, distribusi, pemusnahan) memakai tabel yang sama
+	 * dan hanya dibedakan kolom `usablity`:
+	 *   1 = Pengembalian Stock, 2 = Pengembalian Distribusi, 3 = Pemusnahan.
+	 *
+	 * Berbeda dengan tampilan layar yang dibatasi per halaman, di sini
+	 * SELURUH baris yang cocok diambil supaya rekapnya utuh. Rinciannya
+	 * dipecah per barang agar bisa dijumlah di Excel.
+	 *
+	 * @param int    $usablity  1, 2, atau 3
+	 * @param string $from_date opsional, format Y-m-d
+	 * @param string $to_date   opsional, format Y-m-d
+	 */
+	public function return_recap($usablity, $from_date = null, $to_date = null)
+	{
+		$this->db->select('a.return_id, a.invoice_id, a.purchase_id,
+		                   a.date_purchase, a.date_return,
+		                   a.byy_qty, a.ret_qty, a.product_rate,
+		                   a.deduction, a.total_deduct, a.total_tax,
+		                   a.total_ret_amount, a.net_total_amount, a.reason,
+		                   a.product_id,
+		                   p.product_name, p.strength,
+		                   c.customer_name,
+		                   m.manufacturer_name');
+		$this->db->from('product_return a');
+		$this->db->join('product_information p', 'p.product_id = a.product_id', 'left');
+		$this->db->join('customer_information c', 'c.customer_id = a.customer_id', 'left');
+		$this->db->join('manufacturer_information m', 'm.manufacturer_id = a.manufacturer_id', 'left');
+		$this->db->where('a.usablity', $usablity);
+		if (!empty($from_date) && !empty($to_date)) {
+			$this->db->where('a.date_return >=', $from_date);
+			$this->db->where('a.date_return <=', $to_date);
+		}
+		$this->db->order_by('a.date_return', 'desc');
+		$this->db->order_by('a.return_id', 'desc');
+		$this->db->order_by('a.id', 'asc');
+		$query = $this->db->get();
+		return $query->result_array();
+	}
+
 	/////////// manufacturer returns form data
 		public function manufacturer_return($purchase_id)
 	{

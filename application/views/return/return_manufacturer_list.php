@@ -73,12 +73,32 @@
 		                    </div>  
 
 		                    <button type="submit" class="btn btn-success"><?php echo display('search') ?></button>
-		                  
+		                    <!-- Rekap mengikuti rentang tanggal yang sedang diisi.
+		                         type="button" supaya tidak ikut submit form pencarian. -->
+		                    <button type="button" class="btn btn-primary btn-recap"
+		                            data-url="<?php echo base_url('Cretrun_m/recap_manufacturer_return') ?>">
+		                        <i class="fa fa-file-excel-o"></i> Rekap Excel
+		                    </button>
+
 		               <?php echo form_close()?>
 		            </div>
 		        </div>
 		    </div>
 	    </div>
+
+	    <script>
+	    // Tombol rekap: bawa rentang tanggal yang sedang dipilih ke URL unduhan.
+	    // Bila salah satu tanggal kosong, seluruh data yang diunduh.
+	    $(document).on('click', '.btn-recap', function () {
+	        var url  = $(this).data('url');
+	        var from = $('#from_date').val();
+	        var to   = $('#to_date').val();
+	        if (from && to) {
+	            url += '?from_date=' + encodeURIComponent(from) + '&to_date=' + encodeURIComponent(to);
+	        }
+	        window.location.href = url;
+	    });
+	    </script>
         <?php } ?>
 
 

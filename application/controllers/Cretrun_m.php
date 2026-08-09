@@ -366,4 +366,133 @@ class Cretrun_m extends CI_Controller {
         $this->template->full_admin_html_view($content);
     }
 
+    // ================= Rekapitulasi Excel =================
+    // Ketiga daftar memakai tabel product_return dan hanya dibedakan kolom
+    // `usablity`, jadi proses unduhnya dikerjakan satu fungsi bersama.
+
+    // Daftar Pengembalian Stock
+    public function recap_stock_return()
+    {
+        $this->export_return_recap(1, 'Rekap Pengembalian Stock', 'rekap_pengembalian_stock');
+    }
+
+    // Daftar Pengembalian Distribusi
+    public function recap_manufacturer_return()
+    {
+        $this->export_return_recap(2, 'Rekap Pengembalian Distribusi', 'rekap_pengembalian_distribusi');
+    }
+
+    // Daftar Pemusnahan
+    public function recap_wastage_return()
+    {
+        $this->export_return_recap(3, 'Rekap Pemusnahan', 'rekap_pemusnahan');
+    }
+
+    /**
+     * Tulis berkas rekapitulasi pengembalian ke Excel/CSV.
+     *
+     * Rentang tanggal diambil dari query string (?from_date=&to_date=)
+     * supaya hasil unduhan mengikuti filter yang sedang dipakai di layar.
+     * Bila kosong, seluruh data ikut terunduh.
+     *
+     * Nilai angka ditulis mentah tanpa pemisah ribuan maupun simbol mata
+     * uang, supaya di Excel langsung terbaca sebagai angka.
+     */
+    private function export_return_recap($usablity, $judul, $prefix_berkas)
+    {
+        $this->auth->check_admin_auth();
+        $this->load->model('Returnse');
+
+        $from_date = $this->input->get('from_date', true);
+        $to_date   = $this->input->get('to_date', true);
+        // Tanggal yang tidak dikenali diabaikan agar tidak menyaring apa pun.
+        if (empty($from_date) || empty($to_date) || strtotime($from_date) === FALSE || strtotime($to_date) === FALSE) {
+            $from_date = null;
+            $to_date   = null;
+        } else {
+            $from_date = date('Y-m-d', strtotime($from_date));
+            $to_date   = date('Y-m-d', strtotime($to_date));
+        }
+
+        $rows = $this->Returnse->return_recap($usablity, $from_date, $to_date);
+
+        $filename = $prefix_berkas.'_'.date('Ymd_His').'.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
+        $out = fopen('php://output', 'w');
+        // BOM UTF-8 supaya Excel membaca huruf beraksen dengan benar.
+        fwrite($out, "\xEF\xBB\xBF");
+
+        // --- Kepala laporan ---------------------------------------------
+        fputcsv($out, array($judul));
+        fputcsv($out, array('Tanggal Unduh', date('Y-m-d H:i:s')));
+        if ($from_date !== null) {
+            fputcsv($out, array('Periode', $from_date.' s/d '.$to_date));
+        } else {
+            fputcsv($out, array('Periode', 'Semua data'));
+        }
+        fputcsv($out, array(''));
+
+        // Kolom "Pelanggan" hanya relevan untuk pengembalian stok (dari
+        // penjualan); dua daftar lainnya berhubungan dengan distributor.
+        $pakai_pelanggan = ($usablity == 1);
+
+        $header = array('No', 'ID Pengembalian');
+        $header[] = ($pakai_pelanggan ? 'ID Faktur' : 'ID Pembelian');
+        $header[] = ($pakai_pelanggan ? 'Pelanggan' : 'Distributor');
+        $header = array_merge($header, array(
+            'Tanggal Pembelian', 'Tanggal Pengembalian', 'Nama Barang',
+            'Jumlah Beli', 'Jumlah Kembali', 'Harga Satuan',
+            'Potongan', 'Total Potongan', 'Pajak',
+            'Total Pengembalian', 'Jumlah Bersih', 'Alasan',
+        ));
+        fputcsv($out, $header);
+
+        // --- Isi ---------------------------------------------------------
+        $sl = 1;
+        $t_ret_qty = 0; $t_ret_amount = 0; $t_net = 0; $t_deduct = 0; $t_tax = 0;
+        foreach ($rows as $r) {
+            fputcsv($out, array(
+                $sl,
+                $r['return_id'],
+                ($pakai_pelanggan ? $r['invoice_id'] : $r['purchase_id']),
+                ($pakai_pelanggan
+                    ? ($r['customer_name'] != '' ? $r['customer_name'] : '-')
+                    : ($r['manufacturer_name'] != '' ? $r['manufacturer_name'] : '-')),
+                $r['date_purchase'],
+                $r['date_return'],
+                ($r['product_name'] != '' ? medicine_name($r['product_name'], $r['strength'], ' - ') : '-'),
+                (float) $r['byy_qty'],
+                (float) $r['ret_qty'],
+                (float) $r['product_rate'],
+                (float) $r['deduction'],
+                (float) $r['total_deduct'],
+                (float) $r['total_tax'],
+                (float) $r['total_ret_amount'],
+                (float) $r['net_total_amount'],
+                $r['reason'],
+            ));
+            $t_ret_qty    += (float) $r['ret_qty'];
+            $t_deduct     += (float) $r['total_deduct'];
+            $t_tax        += (float) $r['total_tax'];
+            $t_ret_amount += (float) $r['total_ret_amount'];
+            $t_net        += (float) $r['net_total_amount'];
+            $sl++;
+        }
+
+        // --- Ringkasan ---------------------------------------------------
+        fputcsv($out, array(''));
+        fputcsv($out, array(
+            '', 'TOTAL', '', '', '', '', '',
+            '', $t_ret_qty, '', '', $t_deduct, $t_tax, $t_ret_amount, $t_net, '',
+        ));
+        fputcsv($out, array('', 'Jumlah Baris', count($rows)));
+
+        fclose($out);
+        exit;
+    }
+
 }
