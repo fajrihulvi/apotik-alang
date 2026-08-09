@@ -35,6 +35,7 @@
 									<tr>
 										<th class="text-center"><?php echo display('sl') ?></th>
 										<th class="text-center"><?php echo display('product_name') ?></th>
+										<th class="text-center"><?php echo display('manufacturer_name') ?></th>
 										<th class="text-center"><?php echo display('batch_id') ?></th>
 										<th class="text-center"><?php echo display('expeire_date') ?></th>
 										<th class="text-center"><?php echo display('stock') ?></th>

@@ -1785,12 +1785,14 @@ $(document).ready(function() {
   "use strict";
 var CSRF_TOKEN = $('[name="csrf_test_name"]').val();
 var base_url = $('#base_url').val();
-    $('#outofDate').DataTable({ 
+    $('#outofDate').DataTable({
              responsive: true,
 
-             "aaSorting": [[ 2, "asc" ]],
+             // Kolom Distributor disisipkan di indeks 2, sehingga
+             // Tanggal Kadaluwarsa kini di indeks 4.
+             "aaSorting": [[ 4, "asc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,1,3] },
+                { "bSortable": false, "aTargets": [0,1] },
 
             ],
        'processing': true,
@@ -1826,6 +1828,7 @@ var base_url = $('#base_url').val();
           'columns': [
              { data: 'sl' },
              { data: 'product_id' },
+             { data: 'manufacturer_name'},
              { data: 'batch_id' },
              { data: 'expeire_date'},
              { data: 'stock'},
@@ -1839,9 +1842,11 @@ var base_url = $('#base_url').val();
     if ($('#nearExpiry').length) {
     $('#nearExpiry').DataTable({
              responsive: true,
-             "aaSorting": [[ 3, "asc" ]],
+             // Kolom Distributor disisipkan di indeks 2, sehingga
+             // Tanggal Kadaluwarsa kini di indeks 4.
+             "aaSorting": [[ 4, "asc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,1,4,5] },
+                { "bSortable": false, "aTargets": [0,1,5,6] },
             ],
            'processing': true,
            'serverSide': true,
@@ -1864,6 +1869,7 @@ var base_url = $('#base_url').val();
           'columns': [
              { data: 'sl' },
              { data: 'product_id' },
+             { data: 'manufacturer_name'},
              { data: 'batch_id' },
              { data: 'expeire_date'},
              { data: 'days_left'},

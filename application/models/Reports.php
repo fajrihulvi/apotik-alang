@@ -185,19 +185,26 @@ class reports extends CI_Model {
          $columnSortOrder = $postData['order'][0]['dir']; // asc or desc
          $searchValue = $postData['search']['value']; // Search value
 
-         ## Search 
+         ## Search
+         // Nama distributor ikut dicari supaya bisa menelusuri batch
+         // berdasarkan pemasoknya.
          $searchQuery = "";
          if($searchValue != ''){
-            $searchQuery = " (a.product_name like '%".$searchValue."%' or b.batch_id like '%".$searchValue."%' or b.expeire_date like'%".$searchValue."%') ";
+            $searchQuery = " (a.product_name like '%".$searchValue."%' or b.batch_id like '%".$searchValue."%' or b.expeire_date like'%".$searchValue."%' or m.manufacturer_name like '%".$searchValue."%') ";
          }
+
+         // Distributor diambil dari nota pembelian batch tersebut, bukan dari
+         // master barang, supaya menunjukkan pemasok yang sebenarnya.
+         $joinDistributor = function(){
+            $this->db->join('product_purchase pp','pp.purchase_id = b.purchase_id','left');
+            $this->db->join('manufacturer_information m','m.manufacturer_id = pp.manufacturer_id','left');
+         };
 
          ## Total number of records without filtering
          $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
-          if($searchValue != ''){
-         $this->db->where($searchQuery);
-     }
+         $joinDistributor();
          $this->db->where('b.expeire_date <=', $date);
          $this->db->having('stock > 0');
          $this->db->group_by('b.batch_id');
@@ -207,7 +214,8 @@ class reports extends CI_Model {
          ## Total number of record with filtering
          $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
          $this->db->from('product_information a');
-          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
+         $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
+         $joinDistributor();
          if($searchValue != ''){
          $this->db->where($searchQuery);
      }
@@ -218,9 +226,10 @@ class reports extends CI_Model {
          $totalRecordwithFilter = $this->db->get()->num_rows();
 
          ## Fetch records
-         $this->db->select("b.*,a.product_name,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.*,a.product_name,a.strength,m.manufacturer_name,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
+         $joinDistributor();
          if($searchValue != ''){
          $this->db->where($searchQuery);
      }
@@ -228,7 +237,11 @@ class reports extends CI_Model {
          $this->db->having('stock > 0');
          $this->db->group_by('b.batch_id');
          $this->db->group_by('a.product_id');
-         $this->db->order_by($columnName, $columnSortOrder);
+         if($columnName == 'manufacturer_name'){
+            $this->db->order_by('m.manufacturer_name', $columnSortOrder);
+         } else {
+            $this->db->order_by($columnName, $columnSortOrder);
+         }
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
          $data = array();
@@ -236,13 +249,14 @@ class reports extends CI_Model {
         $base_url = base_url();
          foreach($records as $record ){
             $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
-            $data[] = array( 
-                'sl'               =>  $sl,
-                'product_id'       =>  $medicine_name,
-                'batch_id'         =>  $record->batch_id,
-                'expeire_date'     =>  $record->expeire_date,
-                'stock'            =>  $record->stock,
-            ); 
+            $data[] = array(
+                'sl'                =>  $sl,
+                'product_id'        =>  $medicine_name,
+                'manufacturer_name' =>  ($record->manufacturer_name != '' ? $record->manufacturer_name : '-'),
+                'batch_id'          =>  $record->batch_id,
+                'expeire_date'      =>  $record->expeire_date,
+                'stock'             =>  $record->stock,
+            );
             $sl++;
          }
 
@@ -340,16 +354,25 @@ class reports extends CI_Model {
          $searchValue = $postData['search']['value'];
 
          ## Search
+         // Nama distributor ikut dicari supaya bisa menelusuri batch
+         // berdasarkan pemasoknya.
          $searchQuery = "";
          if($searchValue != ''){
-            $searchQuery = " (a.product_name like '%".$searchValue."%' or b.batch_id like '%".$searchValue."%' or b.expeire_date like'%".$searchValue."%') ";
+            $searchQuery = " (a.product_name like '%".$searchValue."%' or b.batch_id like '%".$searchValue."%' or b.expeire_date like'%".$searchValue."%' or m.manufacturer_name like '%".$searchValue."%') ";
          }
+
+         // Distributor diambil dari nota pembelian batch tersebut, bukan dari
+         // master barang, supaya menunjukkan pemasok yang sebenarnya.
+         $joinDistributor = function(){
+            $this->db->join('product_purchase pp','pp.purchase_id = b.purchase_id','left');
+            $this->db->join('manufacturer_information m','m.manufacturer_id = pp.manufacturer_id','left');
+         };
 
          ## Total tanpa filtering
          $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
-         if($searchValue != ''){ $this->db->where($searchQuery); }
+         $joinDistributor();
          $this->db->where('b.expeire_date >', $today);
          $this->db->where('b.expeire_date <=', $limitDate);
          $this->db->having('stock > 0');
@@ -361,6 +384,7 @@ class reports extends CI_Model {
          $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
+         $joinDistributor();
          if($searchValue != ''){ $this->db->where($searchQuery); }
          $this->db->where('b.expeire_date >', $today);
          $this->db->where('b.expeire_date <=', $limitDate);
@@ -370,9 +394,10 @@ class reports extends CI_Model {
          $totalRecordwithFilter = $this->db->get()->num_rows();
 
          ## Fetch records
-         $this->db->select("b.*,a.product_name,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.*,a.product_name,a.strength,m.manufacturer_name,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
+         $joinDistributor();
          if($searchValue != ''){ $this->db->where($searchQuery); }
          $this->db->where('b.expeire_date >', $today);
          $this->db->where('b.expeire_date <=', $limitDate);
@@ -383,6 +408,8 @@ class reports extends CI_Model {
          // tetap bisa override lewat sort kolom; jika sort default (kolom 0/sl), pakai tanggal.
          if($columnName == 'sl' || $columnName == 'urgency' || $columnName == 'days_left'){
             $this->db->order_by('b.expeire_date', 'asc');
+         } elseif($columnName == 'manufacturer_name'){
+            $this->db->order_by('m.manufacturer_name', $columnSortOrder);
          } else {
             $this->db->order_by($columnName, $columnSortOrder);
          }
@@ -401,13 +428,14 @@ class reports extends CI_Model {
             $urgency_badge = '<span class="label '.$urg_class.'">'.$urg_label.'</span>';
             $days_text = $days_left.' '.display('days');
             $data[] = array(
-                'sl'           => $sl,
-                'product_id'   => $medicine_name,
-                'batch_id'     => $record->batch_id,
-                'expeire_date' => $record->expeire_date,
-                'days_left'    => $days_text,
-                'urgency'      => $urgency_badge,
-                'stock'        => $record->stock,
+                'sl'                => $sl,
+                'product_id'        => $medicine_name,
+                'manufacturer_name' => ($record->manufacturer_name != '' ? $record->manufacturer_name : '-'),
+                'batch_id'          => $record->batch_id,
+                'expeire_date'      => $record->expeire_date,
+                'days_left'         => $days_text,
+                'urgency'           => $urgency_badge,
+                'stock'             => $record->stock,
             );
             $sl++;
          }
