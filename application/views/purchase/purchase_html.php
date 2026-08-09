@@ -264,6 +264,7 @@
                      <div class="panel-footer text-left">
                      	<a  class="btn btn-danger" href="<?php echo base_url('Cinvoice');?>"><?php echo display('cancel') ?></a>
 						<button  class="btn btn-info" onclick="printDiv('printableArea')"><span class="fa fa-print"></span></button>
+						<a class="btn btn-success" href="<?php echo base_url('Cpurchase/invoice_excel/'.rawurlencode($purchase[0]['purchase_id'])); ?>"><i class="fa fa-file-excel-o"></i> <?php echo display('download') ?> Excel</a>
 
                     </div>
                 </div>

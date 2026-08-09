@@ -1040,7 +1040,10 @@ public function update_purchase()
 		$this->db->from('product_purchase_details a');//
 		$this->db->join('product_information b','b.product_id = a.product_id','left');
 		$this->db->where('a.purchase_id',$purchase_id);
-		
+		// Tanpa urutan eksplisit, MySQL bebas mengembalikan baris dalam urutan
+		// apa pun sehingga tampilan layar dan hasil unduhan bisa berbeda.
+		$this->db->order_by('a.id','asc');
+
 		$query = $this->db->get();
 		if ($query->num_rows() > 0) {
 			return $query->result_array();	

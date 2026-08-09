@@ -561,6 +561,133 @@ public function invoice_html($purchase_id){
     // dari distributor yang sama.
     $data['price_status']    = $this->Purchases->purchase_price_status($purchase_id);
     $content = $this->parser->parse('purchase/purchase_html', $data, true);
-    $this->template->full_admin_html_view($content); 
+    $this->template->full_admin_html_view($content);
+  }
+
+  /**
+   * Unduh detail satu nota pembelian sebagai berkas Excel/CSV.
+   *
+   * Nilai angka ditulis mentah (tanpa pemisah ribuan maupun simbol mata
+   * uang) supaya di Excel langsung terbaca sebagai angka dan bisa dijumlah.
+   */
+  public function invoice_excel($purchase_id = null)
+  {
+    $this->auth->check_admin_auth();
+    $this->load->model('Purchases');
+
+    if (empty($purchase_id)) {
+      $this->session->set_userdata(array('error_message' => 'Nota pembelian tidak ditemukan.'));
+      redirect(base_url('Cpurchase/manage_purchase'));
+      return;
+    }
+
+    $purchase = $this->Purchases->purchasedatabyid($purchase_id);
+    if (empty($purchase)) {
+      $this->session->set_userdata(array('error_message' => 'Nota pembelian "'.$purchase_id.'" tidak ditemukan.'));
+      redirect(base_url('Cpurchase/manage_purchase'));
+      return;
+    }
+
+    $details      = $this->Purchases->purchase_detailsbyid($purchase_id);
+    $price_status = $this->Purchases->purchase_price_status($purchase_id);
+    $manufacturer = $this->Purchases->manufacturer_info($purchase[0]['manufacturer_id']);
+    $company      = $this->Purchases->retrieve_company();
+
+    // Nama berkas memakai no. faktur bila ada, supaya mudah dikenali.
+    $label = ($purchase[0]['chalan_no'] != '' ? $purchase[0]['chalan_no'] : $purchase_id);
+    $filename = 'detail_pembelian_'.preg_replace('/[^A-Za-z0-9_\-]/', '_', $label).'.csv';
+
+    header('Content-Type: text/csv; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="'.$filename.'"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $out = fopen('php://output', 'w');
+    // BOM UTF-8 supaya Excel membaca huruf beraksen dengan benar.
+    fwrite($out, "\xEF\xBB\xBF");
+
+    // --- Kepala nota ------------------------------------------------
+    if (!empty($company)) {
+      fputcsv($out, array('Perusahaan', $company[0]['company_name']));
+    }
+    fputcsv($out, array('Nomor Faktur', $purchase[0]['chalan_no']));
+    fputcsv($out, array('ID Pembelian', $purchase[0]['purchase_id']));
+    fputcsv($out, array('Tanggal Pembelian', $purchase[0]['purchase_date']));
+    if (!empty($manufacturer)) {
+      fputcsv($out, array('Distributor', $manufacturer[0]['manufacturer_name']));
+    }
+    if ($purchase[0]['purchase_details'] != '') {
+      fputcsv($out, array('Keterangan', $purchase[0]['purchase_details']));
+    }
+    fputcsv($out, array(''));
+
+    // --- Rincian barang ---------------------------------------------
+    fputcsv($out, array(
+      'No', 'Nama Barang', 'Batch', 'Tanggal Kadaluwarsa',
+      'Kuantitas', 'Harga Beli', 'Diskon (%)', 'Jumlah', 'Status Harga', 'Harga Sebelumnya',
+    ));
+
+    $sl        = 1;
+    $sub_total = 0;
+    $sub_qty   = 0;
+    if (!empty($details)) {
+      foreach ($details as $d) {
+        // Barang retur tersimpan sebagai kuantitas negatif; ditulis apa
+        // adanya agar penjumlahan di Excel tetap benar.
+        $qty    = (float) $d['quantity'];
+        $amount = (float) $d['total_amount'];
+
+        $ps = (isset($price_status[$d['product_id']]) ? $price_status[$d['product_id']] : null);
+        if (empty($ps) || $ps['status'] == 'baru') {
+          $status_label = 'Baru';
+          $prev_rate    = '';
+        } else {
+          $map = array('naik' => 'Naik', 'turun' => 'Turun', 'sama' => 'Sama');
+          $status_label = (isset($map[$ps['status']]) ? $map[$ps['status']] : $ps['status']);
+          $prev_rate    = (float) $ps['prev_rate'];
+        }
+
+        fputcsv($out, array(
+          $sl,
+          medicine_name($d['product_name'], $d['strength'], ' - '),
+          ($d['batch_id'] != '' ? $d['batch_id'] : '-'),
+          ($d['expeire_date'] != '' ? $d['expeire_date'] : '-'),
+          $qty,
+          (float) $d['rate'],
+          (float) $d['discount'],
+          $amount,
+          $status_label,
+          $prev_rate,
+        ));
+
+        $sub_total += $amount;
+        $sub_qty   += $qty;
+        $sl++;
+      }
+    }
+
+    // --- Ringkasan ---------------------------------------------------
+    fputcsv($out, array(''));
+    fputcsv($out, array('', 'Subtotal', '', '', $sub_qty, '', '', $sub_total));
+
+    if ($purchase[0]['total_discount'] != '' && (float) $purchase[0]['total_discount'] != 0) {
+      fputcsv($out, array('', 'Total Diskon', '', '', '', '', '', (float) $purchase[0]['total_discount']));
+    }
+
+    // isset() dipakai supaya nota lama (tersimpan sebelum fitur diskon
+    // keseluruhan & PPN ada) tetap bisa diunduh.
+    $od_amount = (isset($purchase[0]['overall_discount_amount']) ? (float) $purchase[0]['overall_discount_amount'] : 0);
+    if ($od_amount > 0) {
+      fputcsv($out, array('', 'Diskon Keseluruhan', '', '', '', '', '', -$od_amount));
+    }
+    $ppn_amount = (isset($purchase[0]['ppn_amount']) ? (float) $purchase[0]['ppn_amount'] : 0);
+    if ($ppn_amount > 0) {
+      fputcsv($out, array('', 'PPN', '', '', '', '', '', $ppn_amount));
+    }
+
+    fputcsv($out, array('', 'Jumlah Total', '', '', '', '', '', (float) $purchase[0]['grand_total_amount']));
+
+    fclose($out);
+    exit;
   }
 }
