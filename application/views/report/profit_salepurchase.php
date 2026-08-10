@@ -37,9 +37,9 @@
                                     <h4 class="pro-margintop">Total Profit :</h4>
                                    </td>
                                    <td class="text-right">
-                                         <h4><?php echo $currency.' '.number_format($todays['sale_amount'], 2, '.', ',')?></h4> 
-                                          <h4><?php echo $currency.' '.number_format($todays['manufacture_amount'], 2, '.', ',')?></h4>
-                                          <h4 class="pro-borde-top"><?php echo $currency.' '.number_format($todays['profit'], 2, '.', ',')?></h4>
+                                         <h4><?php echo $currency.' '.number_format($todays['sale_amount'], 0, ',', '.')?></h4> 
+                                          <h4><?php echo $currency.' '.number_format($todays['manufacture_amount'], 0, ',', '.')?></h4>
+                                          <h4 class="pro-borde-top"><?php echo $currency.' '.number_format($todays['profit'], 0, ',', '.')?></h4>
                                    </td>
                                </tr>
                            </table>
@@ -60,9 +60,9 @@
                                     <h4 class="pro-margintop">Total Profit :</h4>
                                    </td>
                                    <td class="text-right">
-                                          <h4><?php echo $currency.' '.number_format($weekly['sale_amount'], 2, '.', ',')?></h4> 
-                                          <h4><?php echo $currency.' '.number_format($weekly['manufacture_amount'], 2, '.', ',')?></h4>
-                                          <h4 class="pro-borde-top"><?php echo $currency.' '.number_format($weekly['profit'], 2, '.', ',')?></h4>
+                                          <h4><?php echo $currency.' '.number_format($weekly['sale_amount'], 0, ',', '.')?></h4> 
+                                          <h4><?php echo $currency.' '.number_format($weekly['manufacture_amount'], 0, ',', '.')?></h4>
+                                          <h4 class="pro-borde-top"><?php echo $currency.' '.number_format($weekly['profit'], 0, ',', '.')?></h4>
                                    </td>
                                </tr>
                            </table>
@@ -83,9 +83,9 @@
                                     <h4 class="pro-margintop">Total Profit :</h4>
                                    </td>
                                    <td class="text-right">
-                                         <h4><?php echo $currency.' '.number_format($monthly['sale_amount'], 2, '.', ',')?></h4> 
-                                          <h4><?php echo $currency.' '.number_format($monthly['manufacture_amount'], 2, '.', ',')?></h4>
-                                          <h4 class="pro-borde-top"><?php echo $currency.' '.number_format($monthly['profit'], 2, '.', ',')?></h4>
+                                         <h4><?php echo $currency.' '.number_format($monthly['sale_amount'], 0, ',', '.')?></h4> 
+                                          <h4><?php echo $currency.' '.number_format($monthly['manufacture_amount'], 0, ',', '.')?></h4>
+                                          <h4 class="pro-borde-top"><?php echo $currency.' '.number_format($monthly['profit'], 0, ',', '.')?></h4>
                                    </td>
                                </tr>
                            </table>
@@ -162,9 +162,9 @@
                                             <tr>
                                     <td><?php echo html_escape($result['date']);?></td>
                                     <td><?php echo html_escape($result['invoice']);?></td>
-                                    <td class="text-right"><?php echo number_format($result['total_amount'], 2, '.', ',');?></td>
-                                    <td class="text-right"><?php echo number_format($manufacturer_price, 2, '.', ',');?></td>
-                                    <td class="text-right <?php echo ($profit < 0 ? 'text-danger' : '')?>"><?php echo number_format($profit, 2, '.', ',');?></td>
+                                    <td class="text-right"><?php echo number_format($result['total_amount'], 0, ',', '.');?></td>
+                                    <td class="text-right"><?php echo number_format($manufacturer_price, 0, ',', '.');?></td>
+                                    <td class="text-right <?php echo ($profit < 0 ? 'text-danger' : '')?>"><?php echo number_format($profit, 0, ',', '.');?></td>
                                 </tr>
 
                                 <?php   }?>
@@ -172,9 +172,9 @@
                                         <tfoot>
                                             <tr>
                                                 <td colspan="2" class="text-right"><b>Total</b></td>
-                                                <td class="text-right"><b><?php echo number_format($total_sale, 2, '.', ',');?></b></td>
-                                                <td class="text-right"><b><?php echo number_format($total_mprice, 2, '.', ',');?></b></td>
-                                                <td class="text-right"><b><?php echo number_format($totalprofit, 2, '.', ',');?></b></td>
+                                                <td class="text-right"><b><?php echo number_format($total_sale, 0, ',', '.');?></b></td>
+                                                <td class="text-right"><b><?php echo number_format($total_mprice, 0, ',', '.');?></b></td>
+                                                <td class="text-right"><b><?php echo number_format($totalprofit, 0, ',', '.');?></b></td>
                                             </tr>
                                         </tfoot>
                                         
