@@ -74,7 +74,8 @@
                                 <div class="form-group row">
                                     <label for="barcode_or_qrcode" class="col-sm-4 col-form-label"><?php echo display('barcode_or_qrcode') ?> <i class="text-danger"></i></label>
                                     <div class="col-sm-8">
-                                        <input class="form-control" name="product_id" type="text" id="product_id" placeholder="<?php echo display('barcode_or_qrcode') ?>"  tabindex="1" >
+                                        <!-- Hanya angka: product_id dipakai sebagai segmen URL halaman detail obat. -->
+                                        <input class="form-control" name="product_id" type="text" id="product_id" placeholder="<?php echo display('barcode_or_qrcode') ?>" pattern="[0-9]*" inputmode="numeric" title="Hanya boleh berisi angka" tabindex="1" >
                                     </div>
                                 </div>
                                 

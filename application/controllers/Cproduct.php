@@ -29,9 +29,15 @@ class Cproduct extends CI_Controller {
 		$sup_price = $this->input->post('manufacturer_price',true);
 		$s_id = $this->input->post('manufacturer_id',true);
 		$product_model=$this->input->post('type_name',true);
-		
-		
-	
+
+		// product_id dipakai sebagai segmen URL (Cproduct/product_details/<id>).
+		// Kode berhuruf seperti "DARYA043" membuat tautan laporan stok jadi
+		// tidak seragam, jadi barcode/QR wajib angka saja.
+		if (!ctype_digit((string)$product_id)) {
+			$this->session->set_userdata(array('error_message'=>display('barcode_or_qrcode').' hanya boleh berisi angka.'));
+			redirect(base_url('Cproduct'));
+		}
+
 		//manufacturer check
 		if ($this->input->post('manufacturer_id',true) == null) {
 			$this->session->set_userdata(array('error_message'=>display('please_select_manufacturer')));
