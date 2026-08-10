@@ -1,3 +1,22 @@
+/* -------------------------------------------------------------------------
+   Tabel pada layar HP: digeser mendatar, bukan kolomnya disembunyikan.
+
+   Mode responsive milik DataTables menyembunyikan kolom yang tidak muat
+   dan memindahkannya ke baris rincian yang dibuka lewat tombol "+".
+   Masalahnya, CSS ekstensi Responsive (dtr-*) tidak ikut dalam bundel
+   dataTables.min.css aplikasi ini, jadi tombol "+" itu tidak pernah muncul
+   dan kolom yang disembunyikan benar-benar tidak bisa dilihat di HP.
+
+   Nilai bawaan di bawah mematikan mode tersebut untuk SELURUH tabel sekali
+   jalan, sehingga semua kolom tetap ada dan bisa digeser mendatar (aturan
+   gesernya ada di assets/css/table-scroll.css). Tabel yang menyetel
+   `responsive` sendiri saat inisialisasi tetap memakai nilainya sendiri.
+   ------------------------------------------------------------------------- */
+if (window.jQuery && $.fn.dataTable) {
+    $.extend(true, $.fn.dataTable.defaults, {
+        responsive: false
+    });
+}
 
 $(function($){
     "use strict";
@@ -51,7 +70,7 @@ $(function($){
     $('[data-toggle="tooltip"]').tooltip();
     //datatable
     $('.datatable').DataTable({ 
-        responsive: true, 
+        responsive: false, 
         dom: "<'row'<'col-sm-4'l><'col-sm-4 text-center'B><'col-sm-4'f>>tp", 
         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]], 
         buttons: [  
@@ -65,7 +84,7 @@ $(function($){
 
     //datatable
     $('.datatable2').DataTable({ 
-        responsive: true, 
+        responsive: false, 
         paging:false,
         dom: "<'row'<'col-sm-4'B><'col-sm-4'l><'col-sm-4'f>>tp", 
         buttons: [  
@@ -189,7 +208,7 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
    var total_customer = $("#total_customer").val();
    var currency = $("#currency").val();
     $('#customerLIst').DataTable({ 
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
              "columnDefs": [
@@ -271,7 +290,7 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
 /*credit customer part*/
   var total_credit_customer = $("#total_credit_customer").val();
     $('#CreditCustomerList').DataTable({ 
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
              "columnDefs": [
@@ -353,7 +372,7 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
 /*paid customer part*/
      var total_paid_customer = $("#total_paid_customer").val();
     $('#PaidCustomerList').DataTable({ 
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
              "columnDefs": [
@@ -438,7 +457,7 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
      var total_manufacturer = $("#total_manufacturer").val();
      var currency = $("#currency").val();
     var manufacturerTable = $('#manufacturerList').DataTable({
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 0, "asc" ]],
              "columnDefs": [
@@ -505,7 +524,7 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
      var total_supplier = $("#total_supplier").val();
      var currency = $("#currency").val();
     $('#supplierList').DataTable({ 
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 0, "asc" ]],
              "columnDefs": [
@@ -588,7 +607,7 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
     /*product part*/
     var total_product = $("#total_product").val();
      $('#productList').DataTable({ 
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
              "columnDefs": [
@@ -986,7 +1005,7 @@ $(document).ready(function() {
    var currency = $("#currency").val();
    var total_stock = $("#total_stock").val();
     var stockdatatable = $('#checkListStockList').DataTable({
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
              "columnDefs": [
@@ -1125,7 +1144,7 @@ $(document).ready(function() {
    var base_url = $("#base_url").val();
    var currency = $("#currency").val();
     var batchdatatable = $('#batchStock').DataTable({
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
              "columnDefs": [
@@ -1724,7 +1743,7 @@ $(document).ready(function() {
    var base_url = $("#base_url").val();
    var total_outofstock = $("#total_out_of_stock").val();
     $('#outof_stock').DataTable({ 
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[ 2, "asc" ]],
              "columnDefs": [
@@ -1786,7 +1805,7 @@ $(document).ready(function() {
 var CSRF_TOKEN = $('[name="csrf_test_name"]').val();
 var base_url = $('#base_url').val();
     $('#outofDate').DataTable({
-             responsive: true,
+             responsive: false,
 
              // Kolom Distributor disisipkan di indeks 2, sehingga
              // Tanggal Kadaluwarsa kini di indeks 4.
@@ -1841,7 +1860,7 @@ var base_url = $('#base_url').val();
     // Tabel Obat Mendekati Kedaluwarsa
     if ($('#nearExpiry').length) {
     $('#nearExpiry').DataTable({
-             responsive: true,
+             responsive: false,
              // Kolom Distributor disisipkan di indeks 2, sehingga
              // Tanggal Kadaluwarsa kini di indeks 4.
              "aaSorting": [[ 4, "asc" ]],

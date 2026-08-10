@@ -581,7 +581,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
    };
 
  var mydatatable = $('#PurList').DataTable({
-             responsive: true,
+             responsive: false,
 
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [

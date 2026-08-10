@@ -66,6 +66,13 @@
             <!-- THEME RTL -->
             <link href="<?php echo base_url('assets/css/custom-rtl.css') ?>" rel="stylesheet" type="text/css"/>
         <?php } ?>
+        <!-- Geser mendatar tabel pada layar HP. Ditaruh paling akhir supaya
+             aturannya menang atas gaya tabel dari berkas tema di atas. -->
+        <?php
+        $table_scroll_css = FCPATH.'assets/css/table-scroll.css';
+        $table_scroll_ver = (file_exists($table_scroll_css) ? filemtime($table_scroll_css) : '1');
+        ?>
+        <link href="<?php echo base_url('assets/css/table-scroll.css') ?>?v=<?php echo $table_scroll_ver; ?>" rel="stylesheet" type="text/css"/>
         <!-- jQuery -->
        <script src="<?php echo base_url('assets/js/jquery-3.4.1.min.js?v=3.4.1') ?>" type="text/javascript"></script>
        <script src="<?php echo base_url() ?>assets/js/wickedpicker.min.js" ></script>

@@ -1,0 +1,90 @@
+/* =============================================================
+   Geser mendatar untuk tabel pada layar sempit (HP/tablet).
+
+   Latar belakang masalah:
+   - Tabel di aplikasi ini memakai DataTables dengan `responsive: true`.
+     Mode itu MENYEMBUNYIKAN kolom yang tidak muat, bukan menggesernya.
+   - CSS ekstensi Responsive (dtr-inline / dtr-control / dtr-details)
+     TIDAK ikut dalam bundel dataTables.min.css aplikasi ini, sehingga
+     tombol "+" untuk membuka kolom tersembunyi tidak pernah muncul.
+   - Akibatnya kolom yang tersembunyi benar-benar tidak bisa dilihat
+     di HP, dan tabelnya juga tidak bisa digeser.
+
+   Perbaikan: pada layar sempit, pembungkus tabel dibuat bisa digeser
+   mendatar dan tabelnya diberi lebar minimum supaya kolom tidak
+   berdesakan sampai tidak terbaca.
+   ============================================================= */
+
+@media (max-width: 991px) {
+
+    /* Pembungkus bawaan Bootstrap dan pembungkus bawaan DataTables.
+       Keduanya dijadikan area geser supaya berlaku baik pada tabel
+       biasa maupun tabel DataTables. */
+    .table-responsive,
+    .dataTables_wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;   /* geser mulus di iOS */
+    }
+
+    /* Bagian isi tabel DataTables saat memakai scrollX. */
+    .dataTables_wrapper .dataTables_scrollBody {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Lebar minimum: tanpa ini tabel akan dipaksa memuat layar dan
+       kolomnya menyempit sampai tidak terbaca, sehingga tidak ada
+       yang perlu digeser.
+
+       Tabel di dalam .dataTables_scrollBody dikecualikan: tabel dengan
+       scrollX sudah diberi lebar oleh DataTables sendiri, dan menimpanya
+       membuat lebar kolom kepala dan isi tidak lagi sejajar. */
+    .table-responsive > table,
+    .dataTables_wrapper table.dataTable {
+        min-width: 800px;
+    }
+
+    .dataTables_scrollBody table.dataTable,
+    .dataTables_scrollHead table,
+    .dataTables_scrollFoot table {
+        min-width: 0;
+    }
+
+    /* Isi sel tidak dilipat, supaya lebar tabel benar-benar melebar
+       dan geser mendatarnya berfungsi. Kolom nama barang dikecualikan
+       di bawah karena isinya panjang. */
+    .dataTables_wrapper table.dataTable > thead > tr > th,
+    .dataTables_wrapper table.dataTable > tbody > tr > td {
+        white-space: nowrap;
+    }
+
+    /* Kontrol DataTables (panjang halaman, pencarian, tombol unduh)
+       jangan ikut melebar mengikuti tabel. */
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate,
+    .dataTables_wrapper .dt-buttons {
+        white-space: normal;
+    }
+
+    /* Halaman tidak boleh ikut bergeser mendatar; yang bergeser hanya
+       tabelnya. */
+    body {
+        overflow-x: hidden;
+    }
+}
+
+/* Pada layar sangat sempit, lebar minimum diturunkan sedikit supaya
+   tabel berkolom sedikit tidak terasa terlalu lebar. */
+@media (max-width: 480px) {
+    .table-responsive > table,
+    .dataTables_wrapper table.dataTable {
+        min-width: 700px;
+    }
+
+    .dataTables_scrollBody table.dataTable,
+    .dataTables_scrollHead table,
+    .dataTables_scrollFoot table {
+        min-width: 0;
+    }
+}
