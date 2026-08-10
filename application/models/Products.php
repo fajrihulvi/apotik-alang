@@ -331,6 +331,23 @@ public function getProductList($postData=null){
 		$query = $this->db->get();
 		return $this->db->affected_rows();
 	}	
+	// Cari product_id asli bila segmen URL ternyata berisi NAMA obat, bukan ID.
+	// Dipakai Cproduct::product_details supaya Laporan Pembelian & Penjualan
+	// tidak kosong ketika tautan lama memakai /product_details/<NamaObat>.
+	// Mengembalikan product_id bila nama cocok persis dan hanya ada satu obat,
+	// selain itu FALSE (nama ganda tidak bisa ditentukan secara pasti).
+	public function product_id_by_name($product_name)
+	{
+		$this->db->select('product_id');
+		$this->db->from('product_information');
+		$this->db->where('product_name',$product_name);
+		$this->db->limit(2);
+		$query = $this->db->get();
+		if ($query->num_rows() === 1) {
+			return $query->row()->product_id;
+		}
+		return false;
+	}
 	//Product Details
 	public function product_details_info($product_id)
 	{

@@ -486,10 +486,29 @@ class Cproduct extends CI_Controller {
 	//Retrieve Single Item  By Search
 	public function product_details($product_id)
 	{
-		$this->product_id=$product_id;
 		$CI =& get_instance();
 		$this->auth->check_admin_auth();
-		$CI->load->library('lproduct');	
+		$CI->load->model('Products');
+
+		// Segmen URL harus product_id. Tautan lama bisa berisi NAMA obat
+		// (Cproduct/product_details/<NamaObat>); nama tidak pernah cocok dengan
+		// kolom product_id sehingga Laporan Pembelian & Penjualan jadi kosong.
+		// Nama dipetakan ke product_id aslinya lalu dialihkan ke URL yang benar.
+		$product_id = urldecode($product_id);
+		if (!$CI->Products->product_details_info($product_id)) {
+			$resolved_id = $CI->Products->product_id_by_name($product_id);
+			if ($resolved_id !== false) {
+				redirect(base_url('Cproduct/product_details/'.rawurlencode($resolved_id)));
+				return;
+			}
+			// Bukan id, bukan nama yang dikenali: jangan render halaman kosong.
+			$this->session->set_userdata(array('error_message'=>display('no_data_found')));
+			redirect(base_url('Cproduct/manage_product'));
+			return;
+		}
+
+		$this->product_id=$product_id;
+		$CI->load->library('lproduct');
         $content = $CI->lproduct->product_details($product_id);
 		$this->template->full_admin_html_view($content);
 	}
