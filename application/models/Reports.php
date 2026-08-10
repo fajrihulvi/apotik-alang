@@ -1672,159 +1672,95 @@ $query = $this->db->get();
 }
 
 
+# =====================================================================
+# LABA HARIAN / MINGGUAN / BULANAN (menu Invoice Wise)
+#
+# Dulu ketiga ringkasan di bawah menghitung modal dari kolom
+# product_information.manufacturer_price, sehingga angkanya tidak
+# pernah cocok dengan dashboard. Ada tiga sebab:
+#
+#   1. Sumber harga beli berbeda. Kolom manufacturer_price di
+#      database ini hampir seluruhnya kosong, jadi modal terbaca jauh
+#      lebih kecil dari yang sebenarnya. Dashboard memakai harga beli
+#      per batch dari product_purchase_details, yang terisi lengkap.
+#   2. Harga beli tidak dibedakan per batch. Satu obat bisa dibeli
+#      dengan harga berbeda tiap kali kulakan; memakai satu harga
+#      tunggal per produk membuat modal meleset.
+#   3. Rentang "minggu ini" berbeda: dulu dihitung sejak Sabtu lalu,
+#      sedangkan dashboard memakai Senin s/d Minggu.
+#
+# Sekarang ketiganya memakai dashboard_summary() - persis perhitungan
+# yang dipakai dashboard - sehingga angkanya dijamin sama.
+# =====================================================================
+
+/**
+ * Laba hari ini.
+ *
+ * @return array
+ */
 public function todaysprofit(){
-        $date = date('Y-m-d');
-        $this->db->select("invoice_id,total_amount");
-        $this->db->from('invoice');
-        $this->db->where('date', $date); 
-        $this->db->group_by('invoice_id');
-        $query = $this->db->get();
-        $sale =  $query->result_array();
-        
-         $invoice_ids = [];
-         $total_invoiceamount = 0;
-         if($sale){
-        foreach($sale as $sales){
-            $invoice_ids[] = $sales['invoice_id'];
-             $total_invoiceamount += $sales['total_amount'];
-        }
-         }
-         $medicines =[];
-         if($invoice_ids){
-        $medicines = $this->db->select('a.product_id,a.quantity,b.manufacturer_price')
-                               ->from('invoice_details a')
-                               ->join('product_information b','b.product_id=a.product_id')
-                               ->where_in('a.invoice_id',$invoice_ids)
-                               ->get()
-                               ->result_array();
-                           }
-                              
-
-
-          $total_manufacturer_price = 0;
-          if($medicines){
-          foreach($medicines as $manufinfo){
-              $total_manufacturer_price += $manufinfo['quantity']*$manufinfo['manufacturer_price'];
-          }
-          }
-          
-          $data = array(
-              'sale_amount'        => $total_invoiceamount,
-              'manufacture_amount' => $total_manufacturer_price,
-              'profit'             => $total_invoiceamount - $total_manufacturer_price,
-              );
-return $data;
-    
-        
+    $today = date('Y-m-d');
+    return $this->profit_summary_range($today, $today);
 }
 
+/**
+ * Laba minggu berjalan (Senin s/d Minggu), mengikuti definisi minggu
+ * yang dipakai dashboard.
+ *
+ * @return array
+ */
 public function weekly(){
-        $from_date =  date('Y-m-d',strtotime('last saturday'));
-        $to_date  = date('Y-m-d');
-        $date = date('Y-m-d');
-        $this->db->select("invoice_id,total_amount");
-        $this->db->from('invoice');
-        $this->db->where('date >=', $from_date); 
-        $this->db->where('date <=', $to_date); 
-        $this->db->group_by('invoice_id');
-        $query = $this->db->get();
-        $sale =  $query->result_array();
-
-         $invoice_ids = [''];
-         $total_invoiceamount = 0;
-         if($sale){
-        foreach($sale as $sales){
-            $invoice_ids[] = $sales['invoice_id'];
-             $total_invoiceamount += $sales['total_amount'];
-        }
-         }
-         $medicines = [];
-         if($invoice_ids){
-        $this->db->select('a.product_id,a.quantity,b.manufacturer_price');
-                               $this->db->from('invoice_details a');
-                               $this->db->join('product_information b','b.product_id=a.product_id');
-                               $this->db->where_in('a.invoice_id',$invoice_ids);
-                               $rslt = $this->db->get();
-                               $medicines = $rslt->result_array();
-                    }          
-
-
-          $total_manufacturer_price = 0;
-          if($medicines){
-          foreach($medicines as $manufinfo){
-              $total_manufacturer_price += $manufinfo['quantity']*$manufinfo['manufacturer_price'];
-          }
-          }
-          
-          $data = array(
-              'sale_amount'        => $total_invoiceamount,
-              'manufacture_amount' => $total_manufacturer_price,
-              'profit'             => $total_invoiceamount - $total_manufacturer_price,
-              );
-              return $data;
+    $today = date('Y-m-d');
+    return $this->profit_summary_range(
+        date('Y-m-d', strtotime('monday this week', strtotime($today))),
+        date('Y-m-d', strtotime('sunday this week', strtotime($today)))
+    );
 }
 
+/**
+ * Laba bulan berjalan (tanggal 1 s/d akhir bulan), mengikuti dashboard.
+ *
+ * @return array
+ */
 public function monthly(){
-        $from_date =  date('Y-m-01');
-        $to_date  = date('Y-m-d');
-        $date = date('Y-m-d');
-        $this->db->select("invoice_id,total_amount");
-        $this->db->from('invoice');
-        $this->db->where('date >=', $from_date); 
-        $this->db->where('date <=', $to_date); 
-        $this->db->group_by('invoice_id');
-        $query = $this->db->get();
-        $sale =  $query->result_array();
-         $invoice_ids = [];
-         $total_invoiceamount = 0;
-         if($sale){
-        foreach($sale as $sales){
-            $invoice_ids[] = $sales['invoice_id'];
-             $total_invoiceamount += $sales['total_amount'];
-        }
-         }
-         $medicines= [];
-         if($invoice_ids){
-        $medicines = $this->db->select('a.product_id,a.quantity,b.manufacturer_price')
-                               ->from('invoice_details a')
-                               ->join('product_information b','b.product_id=a.product_id')
-                               ->where_in('a.invoice_id',$invoice_ids)
-                               ->get()
-                               ->result_array();
-                              
-
-}
-          $total_manufacturer_price = 0;
-          if($medicines){
-          foreach($medicines as $manufinfo){
-              $total_manufacturer_price += $manufinfo['quantity']*$manufinfo['manufacturer_price'];
-          }
-          }
-          
-          $data = array(
-              'sale_amount'        => $total_invoiceamount,
-              'manufacture_amount' => $total_manufacturer_price,
-              'profit'             => $total_invoiceamount - $total_manufacturer_price,
-              );
-              return $data;
+    return $this->profit_summary_range(date('Y-m-01'), date('Y-m-t'));
 }
 
+/**
+ * Bungkus dashboard_summary() ke bentuk yang dipakai tampilan laporan
+ * ini, supaya sumber angkanya benar-benar satu.
+ *
+ * @param string $from_date Y-m-d
+ * @param string $to_date   Y-m-d
+ * @return array
+ */
+private function profit_summary_range($from_date, $to_date){
+    $summary = $this->dashboard_summary($from_date, $to_date);
+
+    return array(
+        'sale_amount'        => $summary['total_sell'],
+        'manufacture_amount' => $summary['total_cost'],
+        'profit'             => $summary['gross_margin'],
+    );
+}
+
+  /**
+   * Harga beli (modal) satu faktur, memakai harga per batch seperti
+   * dashboard - bukan lagi product_information.manufacturer_price.
+   *
+   * @param string $invoice_id
+   * @return float
+   */
   public function invoice_manufacturerprice($invoice_id){
-        $medicines = $this->db->select('a.product_id,a.quantity,b.manufacturer_price')
-                               ->from('invoice_details a')
-                               ->join('product_information b','b.product_id=a.product_id')
-                               ->where('a.invoice_id',$invoice_id)
-                               ->get()
-                               ->result_array();
-                               
-                                 $total_manufacturer_price = 0;
-                    if($medicines){
-                   foreach($medicines as $manufinfo){
-              $total_manufacturer_price += $manufinfo['quantity']*$manufinfo['manufacturer_price'];
-          }
-          }
-          
-          return $total_manufacturer_price;
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT COALESCE(SUM(d.quantity * {$cost}), 0) AS total_cost
+                  FROM invoice_details d
+                 WHERE d.invoice_id = ?";
+
+        $row = $this->db->query($sql, array($invoice_id))->row_array();
+
+        return (!empty($row['total_cost']) ? (float) $row['total_cost'] : 0);
   }
 
   public function medicine_list(){

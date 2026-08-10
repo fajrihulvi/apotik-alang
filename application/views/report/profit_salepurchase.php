@@ -33,7 +33,7 @@
                                <tr>
                                    <td class="text-right">
                                     <h4>Total Sale Price :</h4>
-                                    <h4>Total Manufacturer Price :</h4>
+                                    <h4>Jumlah Purchase Price :</h4>
                                     <h4 class="pro-margintop">Total Profit :</h4>
                                    </td>
                                    <td class="text-right">
@@ -56,7 +56,7 @@
                                <tr>
                                    <td class="text-right">
                                     <h4>Total Sale Price :</h4>
-                                    <h4>Total Manufacturer Price :</h4>
+                                    <h4>Jumlah Purchase Price :</h4>
                                     <h4 class="pro-margintop">Total Profit :</h4>
                                    </td>
                                    <td class="text-right">
@@ -79,7 +79,7 @@
                                <tr>
                                    <td class="text-right">
                                     <h4>Total Sale Price :</h4>
-                                    <h4>Total Manufacturer Price :</h4>
+                                    <h4>Jumlah Purchase Price :</h4>
                                     <h4 class="pro-margintop">Total Profit :</h4>
                                    </td>
                                    <td class="text-right">
@@ -137,40 +137,44 @@
                                             <th>Date</th>
                                             <th>Invoice No</th>
                                             <th class="text-center">Total Sale Price</th>
-                                            <th class="text-center">Total Manufacturer Price</th>
+                                            <th class="text-center">Jumlah Purchase Price</th>
                                             <th class="text-center">Profit</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                             <?php 
+                                             <?php
+                                             // Nilai jual, modal, dan laba dijumlahkan sambil baris
+                                             // dicetak, lalu dipakai lagi pada baris Total di bawah.
+                                             // Semua angka diformat seragam (dua desimal) supaya
+                                             // kolomnya mudah dibandingkan - sebelumnya nilai jual
+                                             // dan modal tercetak apa adanya tanpa format.
                                              $total_sale = 0;
                                              $total_mprice = 0;
                                              $totalprofit = 0;
-                             foreach($salepurchase as $result){?>
+                             foreach($salepurchase as $result){
+                                    $manufacturer_price = $this->Reports->invoice_manufacturerprice($result['invoice_id']);
+                                    $profit             = $result['total_amount'] - $manufacturer_price;
+
+                                    $total_sale   += $result['total_amount'];
+                                    $total_mprice += $manufacturer_price;
+                                    $totalprofit  += $profit;
+                             ?>
                                             <tr>
-                                    <td><?php echo $result['date'];?></td>
-                                    <td><?php echo $result['invoice'];?></td>
-                                    <td class="text-right"><?php echo $result['total_amount'];
-                                       $total_sale  += $result['total_amount'];
-                                    ?></td>
-                                    <td class="text-right"><?php echo  $manufacturer_price = $this->Reports->invoice_manufacturerprice($result['invoice_id']);
-                                    $total_mprice +=$manufacturer_price;
-                                    ?></td>
-                                    
-                                    <td class="text-right"><?php   $profit = $result['total_amount'] - $manufacturer_price;
-                                    echo number_format( $profit, 2, '.', ',');
-                                    $totalprofit +=$profit;
-                                    ?></td>
+                                    <td><?php echo html_escape($result['date']);?></td>
+                                    <td><?php echo html_escape($result['invoice']);?></td>
+                                    <td class="text-right"><?php echo number_format($result['total_amount'], 2, '.', ',');?></td>
+                                    <td class="text-right"><?php echo number_format($manufacturer_price, 2, '.', ',');?></td>
+                                    <td class="text-right <?php echo ($profit < 0 ? 'text-danger' : '')?>"><?php echo number_format($profit, 2, '.', ',');?></td>
                                 </tr>
-                                
+
                                 <?php   }?>
                                         </tbody>
                                         <tfoot>
                                             <tr>
                                                 <td colspan="2" class="text-right"><b>Total</b></td>
-                                                <td class="text-right"><b><?php echo  html_escape($total_sale);?></b></td>
-                                                <td class="text-right"><b><?php echo  html_escape($total_mprice);?></b></td>
-                                                <td class="text-right"><b><?php echo  html_escape($totalprofit);?></b></td>
+                                                <td class="text-right"><b><?php echo number_format($total_sale, 2, '.', ',');?></b></td>
+                                                <td class="text-right"><b><?php echo number_format($total_mprice, 2, '.', ',');?></b></td>
+                                                <td class="text-right"><b><?php echo number_format($totalprofit, 2, '.', ',');?></b></td>
                                             </tr>
                                         </tfoot>
                                         
