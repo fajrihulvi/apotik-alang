@@ -620,29 +620,33 @@ var twelveHour = $('.timepicker-12-hr').wickedpicker();
           
            'lengthMenu':[[10, 25, 50,100,250,500, total_product], [10, 25, 50,100,250,500, "All"]],
 
+             // Kolom yang ikut terunduh. 6 = Harga Jual, 7 = Harga Pembelian;
+             // keduanya dulu tidak ikut sehingga file hasil unduhan tidak
+             // memuat harga sama sekali. Kolom gambar dan tombol aksi tetap
+             // dikecualikan karena isinya HTML, bukan data.
              dom:"'<'col-sm-4'l><'col-sm-4 text-center'><'col-sm-4'>Bfrtip", buttons:[ {
                 extend: "copy",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4,5 ] //Your Colume value those you want
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7 ] //Your Colume value those you want
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "csv", title: "ProductList",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4,5] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7 ] //Your Colume value those you want print
                            }, className: "btn-sm prints"
             }
             , {
                 extend: "excel",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4,5 ] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7 ] //Your Colume value those you want print
                            }, title: "ProductList", className: "btn-sm prints"
             }
             , {
                 extend: "pdf",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4,5 ] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7 ] //Your Colume value those you want print
                            }, title: "ProductList", className: "btn-sm prints"
             }
             , {
                 extend: "print",exportOptions: {
-                       columns: [ 0, 1, 2, 3, 4,5 ] //Your Colume value those you want print
+                       columns: [ 0, 1, 2, 3, 4, 5, 6, 7 ] //Your Colume value those you want print
                            },title: "<center>ProductList</center>", className: "btn-sm prints"
             }
             ],
