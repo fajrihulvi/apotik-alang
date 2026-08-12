@@ -600,9 +600,14 @@ class Lreport {
 		$data = array(
 				'title' 		=> display('profit_report_manufacturer_wise'),
 				'salepurchase'  => $salepurchase,
+				// Modal dan nama distributor tiap faktur diambil sekali jalan,
+				// bukan satu query per baris seperti sebelumnya.
+				'invoice_map'   => $CI->Reports->invoice_cost_distributor_map($from,$to),
 				'todays'        => $todays_profit,
 				'weekly'        => $weekly,
 				'monthly'       => $monthly,
+				'start_date'    => $from,
+				'end_date'      => $to,
 				'currency' 		=> $currency_details[0]['currency'],
 			);
 	

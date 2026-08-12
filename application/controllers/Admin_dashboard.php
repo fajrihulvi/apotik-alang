@@ -988,4 +988,65 @@ class Admin_dashboard extends CI_Controller {
         $content  = $CI->lreport->daily_profit($from_date,$to_date);
         $this->template->full_admin_html_view($content);
     }
+
+    /**
+     * Unduh laporan Invoice Wise sesuai rentang tanggal yang sedang dilihat.
+     * Isi dan urutan kolomnya sama persis dengan tabel di layar.
+     */
+    public function daily_profit_excel(){
+        $CI =& get_instance();
+        $this->auth->check_admin_auth();
+        if (!$this->permission1->method('profit_loss','read')->access()) {
+            $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+            redirect('Admin_dashboard/daily_profit');
+        }
+        $CI->load->library('excel_export');
+        $CI->load->model('Reports');
+
+        $from_date = (!empty($this->input->get('from_date'))?$this->input->get('from_date'):date('Y-m-d'));
+        $to_date   = (!empty($this->input->get('to_date'))?$this->input->get('to_date'):date('Y-m-d'));
+
+        $salepurchase = $CI->Reports->profitloss_days($from_date,$to_date);
+        $invoice_map  = $CI->Reports->invoice_cost_distributor_map($from_date,$to_date);
+
+        $rows         = array();
+        $total_sale   = 0;
+        $total_mprice = 0;
+        $total_profit = 0;
+
+        if (!empty($salepurchase)) {
+            foreach ($salepurchase as $result) {
+                $info   = (isset($invoice_map[$result['invoice_id']])
+                            ? $invoice_map[$result['invoice_id']]
+                            : array('cost' => 0, 'distributor' => '-'));
+                $cost   = $info['cost'];
+                $profit = $result['total_amount'] - $cost;
+
+                $total_sale   += $result['total_amount'];
+                $total_mprice += $cost;
+                $total_profit += $profit;
+
+                $rows[] = array(
+                    $result['date'],
+                    $result['invoice'],
+                    $info['distributor'],
+                    (float) $result['total_amount'],
+                    (float) $cost,
+                    (float) $profit,
+                );
+            }
+        }
+
+        $CI->excel_export->download(
+            'laporan_invoice_wise_'.date('Ymd', strtotime($from_date)).'_'.date('Ymd', strtotime($to_date)).'.xlsx',
+            array(array(
+                'name'   => 'Invoice Wise',
+                'title'  => $this->excel_title('Laporan Invoice Wise', $from_date, $to_date),
+                'header' => array('Tanggal','No Faktur','Nama Distributor','Total Harga Jual','Total Harga Beli','Gross Margin'),
+                'rows'   => $rows,
+                'money'  => array(3, 4, 5),
+                'footer' => array('','','Total', $total_sale, $total_mprice, $total_profit),
+            ))
+        );
+    }
 }

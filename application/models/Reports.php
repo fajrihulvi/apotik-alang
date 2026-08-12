@@ -1808,6 +1808,49 @@ private function profit_summary_range($from_date, $to_date){
         return (!empty($row['total_cost']) ? (float) $row['total_cost'] : 0);
   }
 
+  /**
+   * Modal dan nama distributor untuk semua faktur dalam satu rentang,
+   * diambil sekali jalan.
+   *
+   * Tampilan Invoice Wise dulu memanggil invoice_manufacturerprice()
+   * per baris, jadi satu halaman laporan bisa menembak puluhan query.
+   * Di sini semuanya dihitung dalam satu query dan dikembalikan sebagai
+   * peta invoice_id => array('cost' => ..., 'distributor' => ...).
+   *
+   * Satu faktur bisa memuat obat dari beberapa distributor, sehingga
+   * namanya digabung dan dipisah koma, bukan diambil salah satu saja.
+   *
+   * @param string $from_date Y-m-d
+   * @param string $to_date   Y-m-d
+   * @return array
+   */
+  public function invoice_cost_distributor_map($from_date, $to_date)
+  {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT d.invoice_id,
+                       COALESCE(SUM(d.quantity * {$cost}), 0) AS total_cost,
+                       GROUP_CONCAT(DISTINCT m.manufacturer_name ORDER BY m.manufacturer_name SEPARATOR ', ') AS distributor
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+             LEFT JOIN product_information p ON p.product_id = d.product_id
+             LEFT JOIN manufacturer_information m ON m.manufacturer_id = p.manufacturer_id
+                 WHERE i.date BETWEEN ? AND ?
+              GROUP BY d.invoice_id";
+
+        $query = $this->db->query($sql, array($from_date, $to_date));
+
+        $map = array();
+        foreach ($query->result_array() as $row) {
+            $map[$row['invoice_id']] = array(
+                'cost'        => (float) $row['total_cost'],
+                'distributor' => (!empty($row['distributor']) ? $row['distributor'] : '-'),
+            );
+        }
+
+        return $map;
+  }
+
   public function medicine_list(){
         $this->db->select("*");
         $this->db->from('product_information');
