@@ -755,13 +755,55 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
         return false;
     }
     
+    /**
+     * Nama jenis pembayaran untuk satu baris laporan.
+     *
+     * Penjualan memakai master `payment_type`, jadi nama diambil dari sana.
+     * Data lama yang id-nya belum ada di master tetap dinamai seperti pada
+     * modul faktur (1 = Cash Payment, selain itu Bank Payment).
+     *
+     * @param array $row Baris hasil query, boleh punya payment_type_name
+     * @return string
+     */
+    public function payment_type_label($row)
+    {
+        if (!empty($row['payment_type_name'])) {
+            return $row['payment_type_name'];
+        }
+        if (!isset($row['payment_type']) || $row['payment_type'] === '' || $row['payment_type'] === null) {
+            return '-';
+        }
+        return ($row['payment_type'] == 1 ? 'Cash Payment' : 'Bank Payment');
+    }
+
+    /**
+     * Nama jenis pembayaran pembelian. Modul pembelian memakai pilihan tetap
+     * 1/2/3, bukan master payment_type.
+     *
+     * @param array $row
+     * @return string
+     */
+    public function purchase_payment_type_label($row)
+    {
+        if (!isset($row['payment_type']) || $row['payment_type'] === '' || $row['payment_type'] === null) {
+            return '-';
+        }
+        switch ((int) $row['payment_type']) {
+            case 1: return 'Cash Payment';
+            case 2: return 'Bank Payment';
+            case 3: return 'Due';
+        }
+        return '-';
+    }
+
     //Retrieve todays_sales_report
     public function todays_sales_report($per_page,$page)
     {
         $today = date('Y-m-d');
-        $this->db->select("a.*,b.customer_id,b.customer_name");
+        $this->db->select("a.*,b.customer_id,b.customer_name,pt.payment_type_name");
         $this->db->from('invoice a');
         $this->db->join('customer_information b','b.customer_id = a.customer_id');
+        $this->db->join('payment_type pt','pt.id = a.payment_type','left');
         $this->db->where('a.date',$today);
         $this->db->limit($per_page,$page);
         $this->db->order_by('a.invoice_id','desc');
@@ -855,11 +897,12 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
     public function retrieve_dateWise_SalesReports($start_date,$end_date)
     {
         $dateRange = "a.date BETWEEN '$start_date%' AND '$end_date%'";
-        
-        $this->db->select("a.*,b.customer_id,b.customer_name");
+
+        $this->db->select("a.*,b.customer_id,b.customer_name,pt.payment_type_name");
         $this->db->from('invoice a');
         $this->db->join('customer_information b','b.customer_id = a.customer_id');
-        $this->db->where($dateRange, NULL, FALSE);  
+        $this->db->join('payment_type pt','pt.id = a.payment_type','left');
+        $this->db->where($dateRange, NULL, FALSE);
         $this->db->order_by('a.date','desc');
         $this->db->limit('500');
         $query = $this->db->get();
@@ -944,11 +987,12 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
     //RETRIEVE DATE WISE SINGE PRODUCT REPORT
     public function retrieve_product_sales_report($perpage,$page)
     {
-        $this->db->select("a.*,b.product_name,b.product_model,c.date,c.total_amount,d.customer_name");
+        $this->db->select("a.*,b.product_name,b.product_model,c.date,c.total_amount,d.customer_name,c.payment_type,pt.payment_type_name");
         $this->db->from('invoice_details a');
         $this->db->join('product_information b','b.product_id = a.product_id');
         $this->db->join('invoice c','c.invoice_id = a.invoice_id');
         $this->db->join('customer_information d','d.customer_id = c.customer_id');
+        $this->db->join('payment_type pt','pt.id = c.payment_type','left');
         $this->db->order_by('c.date','desc');
         $this->db->limit($perpage,$page);
         $query = $this->db->get();
@@ -973,19 +1017,20 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
     public function retrieve_product_search_sales_report( $start_date,$end_date )
     {
         $dateRange = "c.date BETWEEN '$start_date%' AND '$end_date%'";
-        $this->db->select("a.*,b.product_name,b.product_model,c.date,d.customer_name");
+        $this->db->select("a.*,b.product_name,b.product_model,c.date,d.customer_name,c.payment_type,pt.payment_type_name");
         $this->db->from('invoice_details a');
         $this->db->join('product_information b','b.product_id = a.product_id');
         $this->db->join('invoice c','c.invoice_id = a.invoice_id');
         $this->db->join('customer_information d','d.customer_id = c.customer_id');
-        $this->db->where($dateRange, NULL, FALSE); 
+        $this->db->join('payment_type pt','pt.id = c.payment_type','left');
+        $this->db->where($dateRange, NULL, FALSE);
         $this->db->order_by('c.date','desc');
         $query = $this->db->get();
         if ($query->num_rows() > 0) {
-            return $query->result_array();  
+            return $query->result_array();
         }
         return false;
-    }   
+    }
     //RETRIEVE DATE WISE SEARCH SINGLE PRODUCT REPORT
     public function retrieve_product_search_sales_report_count( $start_date,$end_date )
     {

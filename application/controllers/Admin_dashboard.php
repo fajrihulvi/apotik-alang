@@ -588,6 +588,7 @@ class Admin_dashboard extends CI_Controller {
 					$row['product_name'],
 					$row['product_model'],
 					$row['customer_name'],
+					$CI->Reports->payment_type_label($row),
 					$row['quantity'],
 					$row['rate'],
 					$row['total_price'],
@@ -598,11 +599,13 @@ class Admin_dashboard extends CI_Controller {
 		$CI->excel_export->download($filename, array(array(
 			'name'   => 'Penjualan Produk',
 			'title'  => $this->excel_title('Laporan Penjualan Per Produk', $label_from, $label_to),
-			'header' => array('Tanggal','Nama Produk','Model Produk','Pelanggan','Jumlah','Harga','Total'),
+			'header' => array('Tanggal','Nama Produk','Model Produk','Pelanggan','Jenis Pembayaran','Jumlah','Harga','Total'),
 			'rows'   => $rows,
-			'number' => array(4),
-			'money'  => array(5, 6),
-			'footer' => array('','','','','','Total', $total_amount),
+			'number' => array(5),
+			'money'  => array(6, 7),
+			// Label "Total" ditaruh di kolom non-uang, sebab kolom uang selalu
+			// ditulis sebagai angka sehingga teks di sana berubah jadi 0.
+			'footer' => array('','','','','Total','','', $total_amount),
 		)));
 	}
 
@@ -619,6 +622,7 @@ class Admin_dashboard extends CI_Controller {
 	{
 		$CI =& get_instance();
 		$CI->load->library('occational');
+		$CI->load->model('Reports');
 
 		$rows  = array();
 		$total = 0;
@@ -629,6 +633,7 @@ class Admin_dashboard extends CI_Controller {
 					$CI->occational->dateConvert($row['date']),
 					(!empty($row['invoice']) ? $row['invoice'] : $row['invoice_id']),
 					$row['customer_name'],
+					$CI->Reports->payment_type_label($row),
 					$row['total_amount'],
 				);
 			}
@@ -636,10 +641,10 @@ class Admin_dashboard extends CI_Controller {
 
 		return array(
 			'title'  => $this->excel_title($heading, $from, $to),
-			'header' => array('Tanggal','No Faktur','Nama Pelanggan','Total'),
+			'header' => array('Tanggal','No Faktur','Nama Pelanggan','Jenis Pembayaran','Total'),
 			'rows'   => $rows,
-			'money'  => array(3),
-			'footer' => array('','','Total Penjualan', $total),
+			'money'  => array(4),
+			'footer' => array('','','','Total Penjualan', $total),
 		);
 	}
 
@@ -656,6 +661,7 @@ class Admin_dashboard extends CI_Controller {
 	{
 		$CI =& get_instance();
 		$CI->load->library('occational');
+		$CI->load->model('Reports');
 
 		$rows  = array();
 		$total = 0;
@@ -666,6 +672,7 @@ class Admin_dashboard extends CI_Controller {
 					$CI->occational->dateConvert($row['purchase_date']),
 					$row['chalan_no'],
 					$row['manufacturer_name'],
+					$CI->Reports->purchase_payment_type_label($row),
 					$row['grand_total_amount'],
 				);
 			}
@@ -673,10 +680,10 @@ class Admin_dashboard extends CI_Controller {
 
 		return array(
 			'title'  => $this->excel_title($heading, $from, $to),
-			'header' => array('Tanggal','No Faktur','Nama Distributor','Total'),
+			'header' => array('Tanggal','No Faktur','Nama Distributor','Jenis Pembayaran','Total'),
 			'rows'   => $rows,
-			'money'  => array(3),
-			'footer' => array('','','Total Pembelian', $total),
+			'money'  => array(4),
+			'footer' => array('','','','Total Pembelian', $total),
 		);
 	}
 

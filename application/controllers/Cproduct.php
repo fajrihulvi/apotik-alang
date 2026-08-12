@@ -245,19 +245,30 @@ class Cproduct extends CI_Controller {
     	{
   
 	     while($csv_line = fgetcsv($fp,1024)){
-	            //keep this if condition if you want to remove the first row
-	            for($i = 1, $j = count($csv_line); $i < $j; $i++)
-	            {	               
-	              $product_id = $this->generator(20);	               
-	              $insert_csv = array();
-	              $insert_csv['manufacturer_id'] = (!empty($csv_line[0])?$csv_line[0]:null);
-	              $insert_csv['product_name'] = (!empty($csv_line[1])?$csv_line[1]:null);
-	              $insert_csv['generic_name'] = (!empty($csv_line[2])?$csv_line[2]:null);
-	              $insert_csv['strength'] = (!empty($csv_line[3])?$csv_line[3]:null);
-	              $insert_csv['category_id'] = (!empty($csv_line[4])?$csv_line[4]:null);
-	              $insert_csv['manufacturer_price'] = (!empty($csv_line[5])?$csv_line[5]:null);
-	              $insert_csv['sale_price'] = (!empty($csv_line[6])?$csv_line[6]:null);
+	            // Baris kosong (Excel biasa menyisakan satu di akhir file) dibaca
+	            // sebagai array([0] => null). Baris seperti ini harus dilewati:
+	            // kalau tidak, $insert_csv masih berisi data baris SEBELUMNYA dan
+	            // obat terakhir jadi terimport dua kali.
+	            $baris_kosong = (count($csv_line) <= 1 && trim((string)$csv_line[0]) === '');
+	            if($baris_kosong){
+	              continue;
 	            }
+	            // Nama obat wajib ada; tanpa itu barisnya tidak bisa dipakai.
+	            if(!isset($csv_line[1]) || trim((string)$csv_line[1]) === ''){
+	              $count++;
+	              continue;
+	            }
+
+	            $product_id = $this->generator(20);
+	            $insert_csv = array();
+	            $insert_csv['manufacturer_id'] = (!empty($csv_line[0])?$csv_line[0]:null);
+	            $insert_csv['product_name'] = (!empty($csv_line[1])?$csv_line[1]:null);
+	            $insert_csv['generic_name'] = (!empty($csv_line[2])?$csv_line[2]:null);
+	            $insert_csv['strength'] = (!empty($csv_line[3])?$csv_line[3]:null);
+	            $insert_csv['category_id'] = (!empty($csv_line[4])?$csv_line[4]:null);
+	            $insert_csv['manufacturer_price'] = (!empty($csv_line[5])?$csv_line[5]:null);
+	            $insert_csv['sale_price'] = (!empty($csv_line[6])?$csv_line[6]:null);
+
 	             $check_manufacturer = $this->db->select('*')->from('manufacturer_information')->where('manufacturer_name',$insert_csv['manufacturer_id'])->get()->row();
 	            if(!empty($check_manufacturer)){
 	            	$manufacturer_id = $check_manufacturer->manufacturer_id;
