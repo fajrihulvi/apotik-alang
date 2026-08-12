@@ -109,33 +109,6 @@
 		            	<div>
 			            	
 							
-                       <table class="table table-striped table-hover">
-                       	<tr><td class="text-center"><?php echo display('total_sale_qty');?></td><td class="text-right"><?php  if($total_sale_qty >0){
-                       		echo html_escape($total_sale_qty);
-                       	}else{
-                       		echo 0;
-                       	} ?> <?php if($quantity > 0){  echo 'Out Of'.' '.$quantity;}else{
-                       		echo '';
-                       	} ?></td></tr>
-                       	<tr><td class="text-center"><?php echo display('total_purchase_pric');?></td><td class="text-right"><?php 
-echo (($position==0)?"$currency ".number_format($tpurchase, 2, '.', ','):number_format($tpurchase, 2, '.', ',')." $currency");?></td></tr>
-                       	<tr><td class="text-center"><?php echo display('total_sale');?></td><td class="text-right">
-                       		<?php 
-echo (($position==0)?"$currency ".number_format($total_sale, 2, '.', ','):number_format($total_sale, 2, '.', ',')." $currency");?>
-	
-</td></tr>
-                       	<tr><td class="text-center"><?php  $profit = $total_sale-$tpurchase;
-                       	if($profit > 0){
-                       		echo display('net_profit');
-                       	}else{
-                       		echo display('loss');
-                       	} ?></td><td class="text-right"><?php
-		$profit=$total_sale-$tpurchase;
-		 echo (($position==0)?"$currency ".number_format($profit, 2, '.', ','):number_format($profit, 2, '.', ',')." $currency"); ?>
- 	
- </td></tr>
-                       </table>
-
                        <!-- Rincian per tanggal per distributor -->
                        <div class="table-responsive">
                            <table class="table table-bordered table-striped table-hover">
