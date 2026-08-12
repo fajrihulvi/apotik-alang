@@ -1809,6 +1809,62 @@ private function profit_summary_range($from_date, $to_date){
   }
 
   /**
+   * Rincian penjualan per tanggal per distributor untuk laporan
+   * Distributor Wise.
+   *
+   * Satu baris = satu tanggal untuk satu distributor, berisi nilai jual,
+   * nilai modal, dan selisihnya. Modal memakai harga beli per batch
+   * (product_purchase_details.rate) - harga saat barang dibeli - sama
+   * seperti dashboard dan laporan Invoice Wise, supaya angkanya
+   * konsisten antar laporan.
+   *
+   * Distributor ditelusuri lewat product_information.manufacturer_id
+   * milik tiap obat yang terjual.
+   *
+   * @param string      $from_date       Y-m-d
+   * @param string      $to_date         Y-m-d
+   * @param string|null $manufacturer_id Kosong berarti semua distributor
+   * @return array
+   */
+  public function profit_manufacturer_datewise($from_date, $to_date, $manufacturer_id = null)
+  {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT i.date,
+                       p.manufacturer_id,
+                       COALESCE(m.manufacturer_name, '-')      AS manufacturer_name,
+                       COALESCE(SUM(d.quantity), 0)            AS total_qty,
+                       COALESCE(SUM(d.total_price), 0)         AS total_sell,
+                       COALESCE(SUM(d.quantity * {$cost}), 0)  AS total_cost
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+             LEFT JOIN product_information p ON p.product_id = d.product_id
+             LEFT JOIN manufacturer_information m ON m.manufacturer_id = p.manufacturer_id
+                 WHERE i.date BETWEEN ? AND ?";
+
+        $params = array($from_date, $to_date);
+
+        if (!empty($manufacturer_id)) {
+            $sql .= " AND p.manufacturer_id = ?";
+            $params[] = $manufacturer_id;
+        }
+
+        $sql .= " GROUP BY i.date, p.manufacturer_id
+                  ORDER BY i.date ASC, manufacturer_name ASC";
+
+        $rows = $this->db->query($sql, $params)->result_array();
+
+        foreach ($rows as $k => $row) {
+            $rows[$k]['total_qty']    = (float) $row['total_qty'];
+            $rows[$k]['total_sell']   = (float) $row['total_sell'];
+            $rows[$k]['total_cost']   = (float) $row['total_cost'];
+            $rows[$k]['gross_margin'] = (float) $row['total_sell'] - (float) $row['total_cost'];
+        }
+
+        return $rows;
+  }
+
+  /**
    * Modal dan nama distributor untuk semua faktur dalam satu rentang,
    * diambil sekali jalan.
    *

@@ -58,11 +58,11 @@
 		                <?php echo form_open('Admin_dashboard/profit_manufacturer',array('class' => 'form-inline','method' => 'post'))?>
 		                <?php date_default_timezone_set("Asia/Dhaka"); $today = date('Y-m-d'); ?>
 		                <div class="row">
-                            <label for="manufacturer" class="col-sm-3 col-form-label"><?php echo display('manufacturer') ?><i class="text-danger">*</i></label>
+                            <label for="manufacturer" class="col-sm-3 col-form-label"><?php echo display('manufacturer') ?></label>
 
                             <div class="col-sm-6">
                              <select name="manufacturer_id" class="form-control">
-                                <option value="">Select Manufacturer </option>
+                                <option value="">Semua Distributor</option>
                                  <?php foreach($manufacturer as $manufacturers){?>
                                  <option value="<?php echo html_escape($manufacturers['manufacturer_id']);?>"><?php echo html_escape($manufacturers['manufacturer_name']);?></option>
                                  <?php }?>

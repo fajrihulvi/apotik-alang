@@ -939,9 +939,72 @@ class Admin_dashboard extends CI_Controller {
         $to_date         = $this->input->post('to_date',true);
         $content = $CI->lreport->profit_report_manufacturer($manufacturer_id,$from_date,$to_date);
         $this->template->full_admin_html_view($content);
-        
 
-    } 
+
+    }
+
+    /**
+     * Unduh laporan Distributor Wise: satu baris per tanggal per
+     * distributor, mengikuti rentang tanggal dan pilihan distributor
+     * yang sedang dilihat di layar.
+     */
+    public function profit_manufacturer_excel(){
+        $CI =& get_instance();
+        $this->auth->check_admin_auth();
+        if (!$this->permission1->method('profit_loss','read')->access()) {
+            $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+            redirect('Admin_dashboard/profit_manufacturer_form');
+        }
+        $CI->load->library('excel_export');
+        $CI->load->model('Reports');
+        $CI->load->model('manufacturers');
+
+        $manufacturer_id = $this->input->get('manufacturer_id');
+        $from_date       = (!empty($this->input->get('from_date'))?$this->input->get('from_date'):date('Y-m-d'));
+        $to_date         = (!empty($this->input->get('to_date'))?$this->input->get('to_date'):date('Y-m-d'));
+
+        $report = $CI->Reports->profit_manufacturer_datewise($from_date,$to_date,$manufacturer_id);
+
+        $rows       = array();
+        $total_sell = 0;
+        $total_cost = 0;
+        $total_gm   = 0;
+
+        foreach ($report as $row) {
+            $total_sell += $row['total_sell'];
+            $total_cost += $row['total_cost'];
+            $total_gm   += $row['gross_margin'];
+
+            $rows[] = array(
+                $row['date'],
+                $row['manufacturer_name'],
+                $row['total_sell'],
+                $row['total_cost'],
+                $row['gross_margin'],
+            );
+        }
+
+        // Kalau difilter ke satu distributor, namanya ikut ditulis di judul.
+        $heading = 'Laporan Distributor Wise';
+        if (!empty($manufacturer_id)) {
+            $info = $CI->manufacturers->retrieve_manufacturer_editdata($manufacturer_id);
+            if (!empty($info[0]['manufacturer_name'])) {
+                $heading .= ' - '.$info[0]['manufacturer_name'];
+            }
+        }
+
+        $CI->excel_export->download(
+            'laporan_distributor_wise_'.date('Ymd', strtotime($from_date)).'_'.date('Ymd', strtotime($to_date)).'.xlsx',
+            array(array(
+                'name'   => 'Distributor Wise',
+                'title'  => $this->excel_title($heading, $from_date, $to_date),
+                'header' => array('Tanggal','Nama Distributor','Total Sell Price','Total Purchase Price','Gross Margin'),
+                'rows'   => $rows,
+                'money'  => array(2, 3, 4),
+                'footer' => array('','Total', $total_sell, $total_cost, $total_gm),
+            ))
+        );
+    }
 // product wise profit report form
      public function profit_productwise_form(){
         $CI =& get_instance();

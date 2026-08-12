@@ -43,10 +43,10 @@
 		                <?php echo form_open('Admin_dashboard/profit_manufacturer',array('class' => 'form-inline','method' => 'post'))?>
 		                <?php date_default_timezone_set("Asia/Dhaka"); $today = date('Y-m-d'); ?>
 		                <div class="row">
-                            <label for="manufacturer" class="col-sm-3 col-form-label"><?php echo display('manufacturer') ?><i class="text-danger">*</i></label>
+                            <label for="manufacturer" class="col-sm-3 col-form-label"><?php echo display('manufacturer') ?></label>
                             <div class="col-sm-6">
                                  <select name="manufacturer_id" class="form-control">
-                                <option value="">Select Manufacturer </option>
+                                <option value="">Semua Distributor</option>
                                  <?php foreach($manufacturer as $manufacturers){?>
                                  <option value="<?php echo html_escape($manufacturers['manufacturer_id']);?>" <?php if($manufacturer_id == $manufacturers['manufacturer_id']){echo 'selected';}?>><?php echo html_escape($manufacturers['manufacturer_name']);?></option>
                                  <?php }?>
@@ -89,7 +89,8 @@
 		            <div class="panel-heading">
 		                <div class="panel-title">
 		                    <h4><?php echo display('profit_report_manufacturer_wise') ?>
-		                    <span class="text-right"><a  class="btn btn-warning" href="#" onclick="printDiv('profit_div')"><?php echo display('print') ?></a></span></h4>
+		                    <span class="text-right"><a  class="btn btn-warning" href="#" onclick="printDiv('profit_div')"><?php echo display('print') ?></a>
+		                    <a class="btn btn-success" href="<?php echo base_url('Admin_dashboard/profit_manufacturer_excel')?>?from_date=<?php echo urlencode($from) ?>&amp;to_date=<?php echo urlencode($to) ?>&amp;manufacturer_id=<?php echo urlencode($manufacturer_id) ?>"><i class="fa fa-file-excel-o"></i> Download Excel</a></span></h4>
 		                </div>
 		            </div>
 		           
@@ -134,9 +135,57 @@ echo (($position==0)?"$currency ".number_format($total_sale, 2, '.', ','):number
  	
  </td></tr>
                        </table>
+
+                       <!-- Rincian per tanggal per distributor -->
+                       <div class="table-responsive">
+                           <table class="table table-bordered table-striped table-hover">
+                               <thead>
+                                   <tr>
+                                       <th><?php echo display('date') ?></th>
+                                       <th>Nama Distributor</th>
+                                       <th class="text-center">Total Sell Price</th>
+                                       <th class="text-center">Total Purchase Price</th>
+                                       <th class="text-center">Gross Margin</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                               <?php
+                               $row_sell = 0;
+                               $row_cost = 0;
+                               $row_margin = 0;
+                               if(!empty($datewise)){
+                                   foreach($datewise as $drow){
+                                       $row_sell   += $drow['total_sell'];
+                                       $row_cost   += $drow['total_cost'];
+                                       $row_margin += $drow['gross_margin'];
+                               ?>
+                                   <tr>
+                                       <td><?php echo html_escape($drow['date']);?></td>
+                                       <td><?php echo html_escape($drow['manufacturer_name']);?></td>
+                                       <td class="text-right"><?php echo number_format($drow['total_sell'], 0, ',', '.');?></td>
+                                       <td class="text-right"><?php echo number_format($drow['total_cost'], 0, ',', '.');?></td>
+                                       <td class="text-right <?php echo ($drow['gross_margin'] < 0 ? 'text-danger' : '')?>"><?php echo number_format($drow['gross_margin'], 0, ',', '.');?></td>
+                                   </tr>
+                               <?php
+                                   }
+                               }else{
+                               ?>
+                                   <tr><td colspan="5" class="text-center">Tidak ada data pada rentang tanggal ini.</td></tr>
+                               <?php } ?>
+                               </tbody>
+                               <tfoot>
+                                   <tr>
+                                       <td colspan="2" class="text-right"><b>Total</b></td>
+                                       <td class="text-right"><b><?php echo number_format($row_sell, 0, ',', '.');?></b></td>
+                                       <td class="text-right"><b><?php echo number_format($row_cost, 0, ',', '.');?></b></td>
+                                       <td class="text-right"><b><?php echo number_format($row_margin, 0, ',', '.');?></b></td>
+                                   </tr>
+                               </tfoot>
+                           </table>
+                       </div>
 <h4> <?php echo display('print_date') ?>: <?php echo date("d/m/Y h:i:s"); ?> </h4>
 			            </div>
-		                
+
 		            </div>
 		            <div></div>
 		        </div>

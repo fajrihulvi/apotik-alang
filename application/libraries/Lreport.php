@@ -469,22 +469,39 @@ class Lreport {
         $company_info = $CI->Reports->retrieve_company();
 		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
 		$company_info = $CI->Reports->retrieve_company();
-		foreach($profit_purchase as $k=>$v){}
-		foreach($profit_sale as $k=>$v){}
+
+		// Rincian per tanggal per distributor. Kalau distributor tidak
+		// dipilih, seluruh distributor ikut tampil.
+		$datewise = $CI->Reports->profit_manufacturer_datewise($from_date,$to_date,$manufacturer_id);
+
+		// Ringkasan di atas tabel dijumlahkan dari rincian yang sama, supaya
+		// kedua bagian tidak pernah bercerita beda. Query lama memakai
+		// kuantitas dikali rata-rata harga, yang hanya berupa perkiraan dan
+		// menghasilkan 0 kalau distributor tidak dipilih.
+		$total_sale = 0;
+		$tpurchase  = 0;
+		$total_qty  = 0;
+		foreach($datewise as $row){
+			$total_sale += $row['total_sell'];
+			$tpurchase  += $row['total_cost'];
+			$total_qty  += $row['total_qty'];
+		}
+
 		$data = array(
 				'title' 		=> 	display('profit_report_manufacturer_wise'),
 				'currency' 		=> 	$currency_details[0]['currency'],
 				'position' 		=> 	$currency_details[0]['currency_position'],
 				'manufacturer_id' => $manufacturer_id,
-				'quantity'      =>  $profit_purchase[0]['quantity'],
-				'tpurchase'     =>  $profit_sale[0]['quantity']*$profit_purchase[0]['avg_r'],
+				'quantity'      =>  (!empty($profit_purchase[0]['quantity']) ? $profit_purchase[0]['quantity'] : 0),
+				'tpurchase'     =>  $tpurchase,
 				'manufacturer'  =>  $manufacturer_list,
 				'from'          =>  $from_date,
 				'to'            =>  $to_date,
 				'logo'          =>  $currency_details[0]['logo'],
 				'manufacturer_info' => $manufacturer_info,
-				'total_sale_qty'=> $profit_sale[0]['quantity'],
-				'total_sale'    => $profit_sale[0]['quantity']*$profit_sale[0]['avg_r'],
+				'total_sale_qty'=> $total_qty,
+				'total_sale'    => $total_sale,
+				'datewise'      =>  $datewise,
 
 			);
 	
