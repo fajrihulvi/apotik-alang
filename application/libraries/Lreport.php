@@ -549,21 +549,16 @@ class Lreport {
 		$CI->load->model('Reports');
 		$CI->load->model('Products');
 		$CI->load->library('occational');
-		$profit_purchase = $CI->Reports->profit_report_productwise($product_id,$from_date,$to_date);
-		$profit_sale = $CI->Reports->profit_report_product_salesss($product_id,$from_date,$to_date);
 		$product_detail = $CI->Products->retrieve_product_editdata($product_id);
-        $company_info = $CI->Reports->retrieve_company();
 		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
-		$company_info = $CI->Reports->retrieve_company();
 		$medicine_list    = $CI->Reports->medicine_list();
-		foreach($profit_sale as $k=>$v){}
-			foreach($profit_purchase as $k=>$v){}
+
+		// Rincian per tanggal per obat. Kalau obat tidak dipilih, seluruh
+		// obat ikut tampil.
+		$datewise = $CI->Reports->profit_productwise_datewise($from_date,$to_date,$product_id);
+
 		$data = array(
 				'title' 		=> 	display('profit_report_product_wise'),
-				'currency' 		=> 	$currency_details[0]['currency'],
-				'position' 		=> 	$currency_details[0]['currency_position'],
-				'quantity'      =>  $profit_purchase[0]['quantity'],
-				'tpurchase'     =>  $profit_sale[0]['quantity']*$profit_purchase[0]['avg_r'],
 				'product_id'    =>  $product_id,
 				'from'          =>  $from_date,
 				'to'            =>  $to_date,
@@ -571,8 +566,7 @@ class Lreport {
 				'logo'          =>  $currency_details[0]['logo'],
 				'product_detail'=> $product_detail,
 				'product_info'  => $product_detail,
-				'total_sale_qty'=> $profit_sale[0]['quantity'],
-				'total_sale'    => $profit_sale[0]['quantity']*$profit_sale[0]['avg_r'],
+				'datewise'      =>  $datewise,
 
 			);
 	

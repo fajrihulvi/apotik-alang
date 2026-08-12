@@ -1809,6 +1809,59 @@ private function profit_summary_range($from_date, $to_date){
   }
 
   /**
+   * Rincian penjualan per tanggal per obat untuk laporan Obat Wise.
+   *
+   * Satu baris = satu tanggal untuk satu obat, lengkap dengan jumlah,
+   * satuan, dan distributornya. Modal memakai harga beli per batch
+   * (product_purchase_details.rate) seperti laporan lain, supaya
+   * angkanya konsisten.
+   *
+   * @param string      $from_date  Y-m-d
+   * @param string      $to_date    Y-m-d
+   * @param string|null $product_id Kosong berarti semua obat
+   * @return array
+   */
+  public function profit_productwise_datewise($from_date, $to_date, $product_id = null)
+  {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT i.date,
+                       d.product_id,
+                       COALESCE(pr.product_name, '-')          AS product_name,
+                       COALESCE(pr.unit, '-')                  AS unit,
+                       COALESCE(m.manufacturer_name, '-')      AS manufacturer_name,
+                       COALESCE(SUM(d.quantity), 0)            AS total_qty,
+                       COALESCE(SUM(d.total_price), 0)         AS total_sell,
+                       COALESCE(SUM(d.quantity * {$cost}), 0)  AS total_cost
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+             LEFT JOIN product_information pr ON pr.product_id = d.product_id
+             LEFT JOIN manufacturer_information m ON m.manufacturer_id = pr.manufacturer_id
+                 WHERE i.date BETWEEN ? AND ?";
+
+        $params = array($from_date, $to_date);
+
+        if (!empty($product_id)) {
+            $sql .= " AND d.product_id = ?";
+            $params[] = $product_id;
+        }
+
+        $sql .= " GROUP BY i.date, d.product_id
+                  ORDER BY i.date ASC, product_name ASC";
+
+        $rows = $this->db->query($sql, $params)->result_array();
+
+        foreach ($rows as $k => $row) {
+            $rows[$k]['total_qty']    = (float) $row['total_qty'];
+            $rows[$k]['total_sell']   = (float) $row['total_sell'];
+            $rows[$k]['total_cost']   = (float) $row['total_cost'];
+            $rows[$k]['gross_margin'] = (float) $row['total_sell'] - (float) $row['total_cost'];
+        }
+
+        return $rows;
+  }
+
+  /**
    * Rincian penjualan per tanggal per distributor untuk laporan
    * Distributor Wise.
    *

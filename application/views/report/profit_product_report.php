@@ -55,11 +55,11 @@
                     <?php echo form_open('Admin_dashboard/profit_productwise',array('class' => 'form-inline','method' => 'post'))?>
                     <?php date_default_timezone_set("Asia/Dhaka"); $today = date('Y-m-d'); ?>
                     <div class="row">
-                            <label for="medicine" class="col-sm-3 col-form-label"><?php echo display('medicine') ?><i class="text-danger">*</i></label>
+                            <label for="medicine" class="col-sm-3 col-form-label"><?php echo display('medicine') ?></label>
 
                             <div class="col-sm-6">
                             <select name="product_id" class="form-control">
-                             <option value="">Select Medicine</option>
+                             <option value="">Semua Obat</option>
                              <?php foreach($medicine_list as $medicine){?>
                            <option value="<?php echo html_escape($medicine['product_id'])?>" <?php if($medicine['product_id'] == $product_id){'selected';}?>><?php echo medicine_name(html_escape($medicine['product_name']),html_escape($medicine['strength']),' ')?></option>
                              <?php }?>

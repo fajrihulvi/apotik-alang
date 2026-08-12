@@ -1038,9 +1038,77 @@ class Admin_dashboard extends CI_Controller {
         $to_date    = $this->input->post('to_date',true);
         $content    = $CI->lreport->profit_productwise($product_id,$from_date,$to_date);
         $this->template->full_admin_html_view($content);
-        
 
-    } 
+
+    }
+
+    /**
+     * Unduh laporan Obat Wise: satu baris per tanggal per obat, mengikuti
+     * rentang tanggal dan pilihan obat yang sedang dilihat di layar.
+     */
+    public function profit_productwise_excel(){
+        $CI =& get_instance();
+        $this->auth->check_admin_auth();
+        if (!$this->permission1->method('profit_loss','read')->access()) {
+            $this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+            redirect('Admin_dashboard/profit_productwise_form');
+        }
+        $CI->load->library('excel_export');
+        $CI->load->model('Reports');
+        $CI->load->model('Products');
+
+        $product_id = $this->input->get('product_id');
+        $from_date  = (!empty($this->input->get('from_date'))?$this->input->get('from_date'):date('Y-m-d'));
+        $to_date    = (!empty($this->input->get('to_date'))?$this->input->get('to_date'):date('Y-m-d'));
+
+        $report = $CI->Reports->profit_productwise_datewise($from_date,$to_date,$product_id);
+
+        $rows       = array();
+        $total_qty  = 0;
+        $total_sell = 0;
+        $total_cost = 0;
+        $total_gm   = 0;
+
+        foreach ($report as $row) {
+            $total_qty  += $row['total_qty'];
+            $total_sell += $row['total_sell'];
+            $total_cost += $row['total_cost'];
+            $total_gm   += $row['gross_margin'];
+
+            $rows[] = array(
+                $row['date'],
+                $row['product_name'],
+                $row['total_qty'],
+                $row['unit'],
+                $row['manufacturer_name'],
+                $row['total_sell'],
+                $row['total_cost'],
+                $row['gross_margin'],
+            );
+        }
+
+        // Kalau difilter ke satu obat, namanya ikut ditulis di judul.
+        $heading = 'Laporan Obat Wise';
+        if (!empty($product_id)) {
+            $info = $CI->Products->retrieve_product_editdata($product_id);
+            if (!empty($info[0]['product_name'])) {
+                $heading .= ' - '.$info[0]['product_name'];
+            }
+        }
+
+        $CI->excel_export->download(
+            'laporan_obat_wise_'.date('Ymd', strtotime($from_date)).'_'.date('Ymd', strtotime($to_date)).'.xlsx',
+            array(array(
+                'name'   => 'Obat Wise',
+                'title'  => $this->excel_title($heading, $from_date, $to_date),
+                'header' => array('Tanggal','Nama Obat','Jumlah Obat','Satuan','Nama Distributor','Total Sell Price','Total Purchase Price','Gross Margin'),
+                'rows'   => $rows,
+                'number' => array(2),
+                'money'  => array(5, 6, 7),
+                'footer' => array('','Total', $total_qty, '', '', $total_sell, $total_cost, $total_gm),
+            ))
+        );
+    }
     
     public function daily_profit(){
         $CI =& get_instance();

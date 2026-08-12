@@ -42,10 +42,10 @@
 		                <?php echo form_open('Admin_dashboard/profit_productwise',array('class' => 'form-inline','method' => 'post'))?>
 		                <?php date_default_timezone_set("Asia/Dhaka"); $today = date('Y-m-d'); ?>
 		                <div class="row">
-                            <label for="manufacturer" class="col-sm-3 col-form-label"><?php echo display('product_name') ?> <i class="text-danger">*</i></label>
+                            <label for="manufacturer" class="col-sm-3 col-form-label"><?php echo display('product_name') ?></label>
                             <div class="col-sm-6">
                                <select name="product_id" class="form-control" width="200px">
-                             <option value="">Select Medicine</option>
+                             <option value="">Semua Obat</option>
                              <?php foreach($medicine_list as $medicine){?>
                             <option value="<?php echo html_escape($medicine['product_id'])?>"  <?php if($medicine['product_id'] == $product_id){echo 'selected';}?>><?php echo medicine_name(html_escape($medicine['product_name']),html_escape($medicine['strength']),' ')?></option>
                              <?php }?>
@@ -89,7 +89,8 @@
 		        <div class="panel panel-bd lobidrag">
 		            <div class="panel-heading">
 		                <div class="panel-title">
-		                    <h4><?php echo display('profit_report_product_wise') ?><span class="text-right"><a  class="btn btn-warning" href="#" onclick="printDiv('profit_div')"><?php echo display('print') ?></a></span></h4>
+		                    <h4><?php echo display('profit_report_product_wise') ?><span class="text-right"><a  class="btn btn-warning" href="#" onclick="printDiv('profit_div')"><?php echo display('print') ?></a>
+		                    <a class="btn btn-success" href="<?php echo base_url('Admin_dashboard/profit_productwise_excel')?>?from_date=<?php echo urlencode($from) ?>&amp;to_date=<?php echo urlencode($to) ?>&amp;product_id=<?php echo urlencode($product_id) ?>"><i class="fa fa-file-excel-o"></i> Download Excel</a></span></h4>
 		                </div>
 		            </div>
 		           
@@ -111,28 +112,63 @@
 		            	<div>
 			            	
 							
-                       <table class="table table-striped table-hover">
-                       	<tr><td class="text-center"><?php echo display('total_sale_qty');?></td><td class="text-right"><?php  if($total_sale_qty >0){
-                       		echo $total_sale_qty;
-                       	}else{
-                       		echo 0;
-                       	} ?> <?php if($quantity > 0){  echo 'Out Of'.' '.html_escape($quantity);
-                       }else{
-                       		echo '';
-                       	} ?></td></tr>
-                       	<tr><td class="text-center"><?php echo display('total_purchase_pric');?></td><td class="text-right"><?php 
-echo (($position==0)?"$currency ".number_format($tpurchase, 2, '.', ','):number_format($tpurchase, 2, '.', ',')." $currency");?></td></tr>
-                       	<tr><td class="text-center"><?php echo display('total_sale');?></td><td class="text-right"><?php 
-echo (($position==0)?"$currency ".number_format($total_sale, 2, '.', ','):number_format($total_sale, 2, '.', ',')." $currency");?></td></tr>
-                       	<tr><td class="text-center"><?php  $profit = $total_sale-$tpurchase;
-                       	if($profit > 0){
-                       		echo display('net_profit');
-                       	}else{
-                       		echo display('loss');
-                       	} ?></td><td class="text-right"><?php
-$profit=$total_sale-$tpurchase;
- echo (($position==0)?"$currency ".number_format($profit, 2, '.', ','):number_format($profit, 2, '.', ',')." $currency"); ?></td></tr>
-                       </table>
+                       <!-- Rincian per tanggal per obat -->
+                       <div class="table-responsive">
+                           <table class="table table-bordered table-striped table-hover">
+                               <thead>
+                                   <tr>
+                                       <th><?php echo display('date') ?></th>
+                                       <th>Nama Obat</th>
+                                       <th class="text-center">Jumlah Obat</th>
+                                       <th>Satuan</th>
+                                       <th>Nama Distributor</th>
+                                       <th class="text-center">Total Sell Price</th>
+                                       <th class="text-center">Total Purchase Price</th>
+                                       <th class="text-center">Gross Margin</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                               <?php
+                               $row_qty    = 0;
+                               $row_sell   = 0;
+                               $row_cost   = 0;
+                               $row_margin = 0;
+                               if(!empty($datewise)){
+                                   foreach($datewise as $drow){
+                                       $row_qty    += $drow['total_qty'];
+                                       $row_sell   += $drow['total_sell'];
+                                       $row_cost   += $drow['total_cost'];
+                                       $row_margin += $drow['gross_margin'];
+                               ?>
+                                   <tr>
+                                       <td><?php echo html_escape($drow['date']);?></td>
+                                       <td><?php echo html_escape($drow['product_name']);?></td>
+                                       <td class="text-right"><?php echo number_format($drow['total_qty'], 0, ',', '.');?></td>
+                                       <td><?php echo html_escape($drow['unit']);?></td>
+                                       <td><?php echo html_escape($drow['manufacturer_name']);?></td>
+                                       <td class="text-right"><?php echo number_format($drow['total_sell'], 0, ',', '.');?></td>
+                                       <td class="text-right"><?php echo number_format($drow['total_cost'], 0, ',', '.');?></td>
+                                       <td class="text-right <?php echo ($drow['gross_margin'] < 0 ? 'text-danger' : '')?>"><?php echo number_format($drow['gross_margin'], 0, ',', '.');?></td>
+                                   </tr>
+                               <?php
+                                   }
+                               }else{
+                               ?>
+                                   <tr><td colspan="8" class="text-center">Tidak ada data pada rentang tanggal ini.</td></tr>
+                               <?php } ?>
+                               </tbody>
+                               <tfoot>
+                                   <tr>
+                                       <td colspan="2" class="text-right"><b>Total</b></td>
+                                       <td class="text-right"><b><?php echo number_format($row_qty, 0, ',', '.');?></b></td>
+                                       <td colspan="2"></td>
+                                       <td class="text-right"><b><?php echo number_format($row_sell, 0, ',', '.');?></b></td>
+                                       <td class="text-right"><b><?php echo number_format($row_cost, 0, ',', '.');?></b></td>
+                                       <td class="text-right"><b><?php echo number_format($row_margin, 0, ',', '.');?></b></td>
+                                   </tr>
+                               </tfoot>
+                           </table>
+                       </div>
 <span class="text-left"><h4> <?php echo display('print_date') ?>: <?php echo date("d/m/Y h:i:s"); ?> </h4></span>
 			            </div>
 
