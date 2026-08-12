@@ -95,26 +95,21 @@
 										<tr>
 											<th class="text-center"><?php echo display('sl') ?></th>
 											<th class="text-center"><?php echo display('medicine_name') ?></th>
-											<th class="text-center"><?php echo display('manufacturer_name') ?></th>
-											<th class="text-center"><?php echo display('product_model') ?></th>
 											<th class="text-center"><?php echo display('sell_price') ?></th>
-											<th class="text-center">Purchase Price</th>
-											<th class="text-center"><?php echo display('in_qnty') ?></th>
-											<th class="text-center"><?php echo display('out_qnty') ?></th>
+											<th class="text-center">Harga Beli</th>
 											<th class="text-center"><?php echo display('stock') ?></th>
-											<th class="text-center"><?php echo display('stock_sale')?></th>
-											<th class="text-center"><?php echo display('stock_purchase_price')?></th>
+											<th class="text-center"><?php echo display('manufacturer_name') ?></th>
 										</tr>
 									</thead>
 									<tbody>
 										 <tfoot>
 											<tr>
-                <th colspan="8" class="text-right"><?php echo display('total')?>:</th>
+                <th colspan="4" class="text-right"><?php echo display('total')?>:</th>
                 <th id="stockqty"></th>
-                  <th></th>  <th></th> 
+                <th></th>
             </tr>
-											
-										</tfoot> 
+
+										</tfoot>
 								
 			                    </table>
 			                </div>

@@ -1008,8 +1008,10 @@ $(document).ready(function() {
              responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
+             // Kolom Stok (indeks 4) sengaja dibiarkan bisa diurutkan, supaya
+             // stok bisa diurutkan dari terbanyak ke tersedikit atau sebaliknya.
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,2,3,4,5,6,7,8,9,10] },
+                { "bSortable": false, "aTargets": [0,2,3,5] },
 
             ],
            'processing': true,
@@ -1047,15 +1049,10 @@ $(document).ready(function() {
           'columns': [
              { data: 'sl' },
              { data: 'product_name' },
-             { data: 'manufacturer_name' },
-             { data: 'product_model'},
              { data: 'sales_price' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
              { data: 'purchase_p' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
-             { data: 'totalPurchaseQnty' },
-             { data: 'totalSalesQnty' },
              { data: 'stok_quantity',class:"stock" },
-             { data: 'total_sale_price',class:"total_sale" ,render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
-             { data: 'purchase_total' ,class:"total_purchase",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
+             { data: 'manufacturer_name' },
 
           ],
 
@@ -1073,32 +1070,6 @@ $(document).ready(function() {
         return x + y;
       }, 0);
     $(this.footer()).html(sum.toLocaleString());
-  });
-
-   api.columns('.total_sale', {
-    page: 'current'
-  }).every(function() {
-    var sum = this
-      .data()
-      .reduce(function(a, b) {
-        var x = parseFloat(a) || 0;
-        var y = parseFloat(b) || 0;
-        return x + y;
-      }, 0);
-    $(this.footer()).html(currency+' '+sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
-  });
-
-     api.columns('.total_purchase', {
-    page: 'current'
-  }).every(function() {
-    var sum = this
-      .data()
-      .reduce(function(a, b) {
-        var x = parseFloat(a) || 0;
-        var y = parseFloat(b) || 0;
-        return x + y;
-      }, 0);
-    $(this.footer()).html(currency+' '+sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}));
   });
 }
 

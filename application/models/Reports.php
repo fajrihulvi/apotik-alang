@@ -610,41 +610,57 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          $records = $this->db->get()->result();
          $totalRecordwithFilter = $records[0]->allcount;
 
+         // Stok dihitung di SQL (barang masuk - barang keluar), bukan lagi
+         // lewat dua query tambahan per baris. Dengan begitu:
+         //   1. kolom Stok bisa diurutkan di server, sebab ORDER BY butuh
+         //      nilainya sudah ada saat query jalan;
+         //   2. satu halaman cukup satu query, tidak lagi 2xN query.
+         // Rumusnya sama persis dengan perhitungan lama, jadi angka yang
+         // tampil tidak berubah.
+         $stock_expression = "(COALESCE((SELECT SUM(pd.quantity) FROM product_purchase_details pd WHERE pd.product_id = a.product_id), 0)
+                             - COALESCE((SELECT SUM(idt.quantity) FROM invoice_details idt WHERE idt.product_id = a.product_id), 0))";
+
+         // Hanya kolom yang benar-benar ada yang boleh dipakai untuk ORDER BY,
+         // supaya nama kolom dari sisi klien tidak bisa menyusup ke SQL.
+         $sortable = array(
+            'product_name'      => 'a.product_name',
+            'sales_price'       => 'a.price',
+            'purchase_p'        => 'a.manufacturer_price',
+            'manufacturer_name' => 'm.manufacturer_name',
+            'stok_quantity'     => $stock_expression,
+         );
+         $orderColumn = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.product_name');
+         $orderDir    = (strtolower($columnSortOrder) === 'desc' ? 'DESC' : 'ASC');
+
          ## Fetch records
          $this->db->select("a.*,
                 a.product_name,
                 a.product_id,
                 a.product_model,
                 a.manufacturer_price,
-                m.manufacturer_name
-                ");
+                m.manufacturer_name,
+                {$stock_expression} AS stok_quantity
+                ", FALSE);
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information m','m.manufacturer_id = a.manufacturer_id','left');
          $applyFilter();
-         $this->db->order_by($columnName, $columnSortOrder);
+         $this->db->order_by($orderColumn.' '.$orderDir, '', FALSE);
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
          $data = array();
-         $sl =1;
+         $sl = $start + 1;
          $base_url = base_url();
          foreach($records as $record ){
-          $stockin = $this->db->select('sum(quantity) as totalSalesQnty')->from('invoice_details')->where('product_id',$record->product_id)->get()->row();
-         $stockout = $this->db->select('sum(quantity) as totalPurchaseQnty')->from('product_purchase_details')->where('product_id',$record->product_id)->get()->row();
              $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
-               
-            $data[] = array( 
+
+            $data[] = array(
                 'sl'            =>   $sl,
                 'product_name'  =>  $medicine_name,
-                'manufacturer_name'=> $record->manufacturer_name,
-                'product_model' =>  $record->product_model,
                 'sales_price'   =>  $record->price,
                 'purchase_p'    =>  $record->manufacturer_price,
-                'totalPurchaseQnty'=>$stockout->totalPurchaseQnty,
-                'totalSalesQnty'=>  $stockin->totalSalesQnty,
-                'stok_quantity' =>  $stockout->totalPurchaseQnty-$stockin->totalSalesQnty,
-                'total_sale_price'=> ($stockout->totalPurchaseQnty-$stockin->totalSalesQnty)*$record->price,
-                'purchase_total' =>  ($stockout->totalPurchaseQnty-$stockin->totalSalesQnty)*$record->manufacturer_price,
-            ); 
+                'stok_quantity' =>  $record->stok_quantity,
+                'manufacturer_name'=> $record->manufacturer_name,
+            );
             $sl++;
          }
 
