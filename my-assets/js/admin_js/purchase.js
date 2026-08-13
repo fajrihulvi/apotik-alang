@@ -1,4 +1,77 @@
-"use strict";   
+"use strict";
+
+/*
+ * Tanggal jatuh tempo hanya berlaku untuk jenis pembayaran "Due Payment"
+ * (nilai 3). Saat jenis lain dipilih, isiannya dikosongkan dan atribut
+ * required dilepas -- kalau tidak, field tersembunyi yang wajib diisi
+ * membuat form tidak bisa disubmit tanpa pesan yang terlihat.
+ *
+ * Dipanggil dari bank_paymet() (account.js) lewat hook window
+ * purchase_due_date_hook di bawah, dan sekali lagi saat halaman siap
+ * supaya form Ubah Pembelian langsung menampilkan keadaan yang benar.
+ */
+function due_date_toggle(val) {
+    var $div = $('#due_date_div');
+    if (!$div.length) { return; }
+
+    var $due = $('#due_date');
+    if (String(val) === '3') {
+        $div.show();
+        $due.attr('required', true);
+    } else {
+        $div.hide();
+        $due.removeAttr('required').val('');
+        // Status pembayaran ikut dikembalikan ke "belum", karena
+        // pembelian tunai/transfer ditangani terpisah di sisi server.
+        $('#payment_status').val(0).trigger('change');
+    }
+}
+
+/*
+ * Tanggal & catatan pelunasan hanya relevan bila statusnya "Sudah
+ * Dibayar". Hanya ada di form Ubah Pembelian.
+ */
+function paid_field_toggle() {
+    var $status = $('#payment_status');
+    if (!$status.length) { return; }
+
+    if ($status.val() === '1') {
+        $('.due-paid-field').show();
+        // Tanggal bayar diisi hari ini bila masih kosong, supaya tidak
+        // tersimpan sebagai lunas tanpa tanggal.
+        var $paid = $('#paid_date');
+        if ($paid.length && $paid.val() === '') {
+            var d = new Date();
+            var m = ('0' + (d.getMonth() + 1)).slice(-2);
+            var t = ('0' + d.getDate()).slice(-2);
+            $paid.val(d.getFullYear() + '-' + m + '-' + t);
+        }
+    } else {
+        $('.due-paid-field').hide();
+    }
+}
+
+$(document).ready(function() {
+    // bank_paymet() di account.js dipakai bersama banyak modul lain, jadi
+    // fungsi itu tidak diubah. Sebagai gantinya perubahan dropdown
+    // ditangkap langsung di sini.
+    $(document).on('change', '#paytype, #paytype_select', function() {
+        due_date_toggle($(this).val());
+    });
+
+    $(document).on('change', '#payment_status', function() {
+        paid_field_toggle();
+    });
+
+    // Keadaan awal: form Tambah selalu mulai dari "Cash Payment",
+    // sedangkan form Ubah mengikuti data yang tersimpan.
+    var initial = $('#paytype_select').length
+                    ? $('#paytype_select').val()
+                    : $('#paytype').val();
+    due_date_toggle(initial);
+    paid_field_toggle();
+});
+
 function product_pur_or_list(sl) {
 
      var csrf_test_name = $('[name="csrf_test_name"]').val();
@@ -541,8 +614,11 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
    // Diskon(10), Total Harga(11), Jumlah Total(12). Saat diunduh nilainya
    // dikirim apa adanya (tanpa pemisah ribuan / simbol mata uang) supaya di
    // Excel langsung terbaca sebagai angka dan bisa dijumlah.
+   //
+   // Kolom 13 (Jatuh Tempo) dan 14 (Status Pembayaran) ikut diunduh supaya
+   // daftar tagihan bisa ditindaklanjuti di luar aplikasi.
    var purNumericCols = [8, 9, 10, 11, 12];
-   var purExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ];
+   var purExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ];
 
    // Tampilan angka di layar tetap diformat ribuan; nilai mentahnya dipakai
    // untuk pengurutan dan unduhan.
@@ -585,13 +661,14 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
 
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0, 13, 14] },
-                // Kolom Aksi & Status jangan disembunyikan mode responsive
-                // saat tabel melebar (responsivePriority makin kecil = makin
-                // diprioritaskan untuk tetap tampil).
-                { "responsivePriority": 1, "targets": 14 },
-                { "responsivePriority": 2, "targets": 13 },
-                { "responsivePriority": 3, "targets": 0 },
+                { "bSortable": false, "aTargets": [0, 15, 16] },
+                // Kolom Aksi, Status & Status Pembayaran jangan disembunyikan
+                // mode responsive saat tabel melebar (responsivePriority makin
+                // kecil = makin diprioritaskan untuk tetap tampil).
+                { "responsivePriority": 1, "targets": 16 },
+                { "responsivePriority": 2, "targets": 15 },
+                { "responsivePriority": 3, "targets": 14 },
+                { "responsivePriority": 4, "targets": 0 },
 
             ],
            'processing': true,
@@ -626,6 +703,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
          data.todate = $('#to_date').val();
          data.filter_invoice = $('#filter_invoice').val() || [];
          data.filter_product = $('#filter_product').val() || [];
+         data.filter_payment = $('#filter_payment').val() || '';
          data.csrf_test_name = csrf_test_name;
 
 }
@@ -644,6 +722,8 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
              { data: 'product_discount', class:"text-right", render: purRenderNumber(0, '%')},
              { data: 'product_total', class:"text-right", render: purRenderNumber(2)},
              { data: 'total_amount',class:"total_sale text-right", render: purRenderNumber(2)},
+             { data: 'due_date', class:"text-center"},
+             { data: 'payment_state', class:"text-center"},
              { data: 'status', class:"text-center"},
              { data: 'button'},
           ],
@@ -703,8 +783,88 @@ if ($('#filter_invoice').length && $('#PurList').length) {
 
    $('#btn-purchase-filter-reset').click(function(){
       $('#filter_invoice, #filter_product').val(null).trigger('change');
+      $('#filter_payment').val('');
       $('#from_date, #to_date').val('');
       mydatatable.ajax.reload();
+   });
+
+   // Menyaring status pembayaran langsung memuat ulang tabel, tanpa
+   // harus menekan tombol Cari -- pilihannya hanya satu klik.
+   $('#filter_payment').change(function(){
+      mydatatable.ajax.reload();
+   });
+}
+
+/* ---------------------------------------------------------------
+ * Tandai pembayaran ke distributor sudah lunas.
+ * --------------------------------------------------------------- */
+if ($('#markPaidModal').length) {
+
+   // Tombol dibuat ulang setiap tabel dimuat, jadi penanganannya
+   // didelegasikan dari dokumen.
+   $(document).on('click', '.btn-mark-paid', function(){
+      var $b = $(this);
+
+      $('#mp_purchase_id').val($b.data('purchase'));
+      $('#mp_invoice').text($b.data('invoice') || '-');
+      $('#mp_manufacturer').text($b.data('manufacturer') || '-');
+      $('#mp_due').text($b.data('due') || '-');
+
+      var total = parseFloat($b.data('total'));
+      $('#mp_total').text(isNaN(total) ? '-' : (currency + ' ' + total.toLocaleString('en-US', {
+         minimumFractionDigits: 2, maximumFractionDigits: 2
+      })));
+
+      // Bawaannya hari ini: pembayaran biasanya dicatat saat dilakukan.
+      var d = new Date();
+      var m = ('0' + (d.getMonth() + 1)).slice(-2);
+      var t = ('0' + d.getDate()).slice(-2);
+      $('#mp_paid_date').val(d.getFullYear() + '-' + m + '-' + t);
+
+      $('#mp_paid_note').val('');
+      $('#mp_error').hide().text('');
+      $('#mp_submit').prop('disabled', false).text('Simpan');
+
+      $('#markPaidModal').modal('show');
+   });
+
+   $('#mp_submit').click(function(){
+      var $btn = $(this);
+      var paid_date = $('#mp_paid_date').val();
+
+      if (!paid_date) {
+         $('#mp_error').text('Tanggal bayar wajib diisi.').show();
+         return;
+      }
+
+      // Dikunci selama permintaan berjalan supaya satu nota tidak
+      // terkirim dua kali karena klik ganda.
+      $btn.prop('disabled', true).text('Menyimpan...');
+
+      $.ajax({
+         url: base_url + 'Cpurchase/purchase_mark_paid',
+         method: 'post',
+         dataType: 'json',
+         data: {
+            purchase_id: $('#mp_purchase_id').val(),
+            paid_date:   paid_date,
+            paid_note:   $('#mp_paid_note').val(),
+            csrf_test_name: csrf_test_name
+         },
+         success: function(res){
+            if (res && res.success) {
+               $('#markPaidModal').modal('hide');
+               mydatatable.ajax.reload(null, false);
+            } else {
+               $('#mp_error').text((res && res.message) ? res.message : 'Gagal menyimpan.').show();
+               $btn.prop('disabled', false).text('Simpan');
+            }
+         },
+         error: function(){
+            $('#mp_error').text('Gagal menghubungi server. Coba lagi.').show();
+            $btn.prop('disabled', false).text('Simpan');
+         }
+      });
    });
 }
 

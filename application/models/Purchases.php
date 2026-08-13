@@ -59,6 +59,8 @@ class Purchases extends CI_Model {
             'product_discount'  => 'd.discount',
             'product_total'     => 'd.total_amount',
             'total_amount'      => 'a.grand_total_amount',
+            'due_date'          => 'a.due_date',
+            'payment_state'     => 'a.payment_status',
          );
          $orderBy = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.purchase_date');
          $columnSortOrder = (strtolower($columnSortOrder) == 'asc' ? 'asc' : 'desc');
@@ -75,9 +77,14 @@ class Purchases extends CI_Model {
          $filter_invoice = $dropEmpty($filter_invoice);
          $filter_product = $dropEmpty($filter_product);
 
+         // Filter status pembayaran: lunas / belum / overdue.
+         $filter_payment = $this->input->post('filter_payment',true);
+         $today          = date('Y-m-d');
+
          // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
          $applyFilter = function($withSearch = true) use (
-            $fromdate, $todate, $searchValue, $filter_invoice, $filter_product
+            $fromdate, $todate, $searchValue, $filter_invoice, $filter_product,
+            $filter_payment, $today
          ){
             if(!empty($fromdate) && !empty($todate)){
                $this->db->where('a.purchase_date >=', $fromdate);
@@ -88,6 +95,30 @@ class Purchases extends CI_Model {
             }
             if(!empty($filter_product)){
                $this->db->where_in('d.product_id', $filter_product);
+            }
+            // Status pembayaran. Nota tunai/transfer selalu terhitung lunas
+            // karena uangnya keluar bersamaan dengan nota dibuat.
+            if($filter_payment == 'lunas'){
+               $this->db->group_start();
+                  $this->db->where('a.payment_status', 1);
+                  $this->db->or_where('a.payment_type !=', 3);
+               $this->db->group_end();
+            }elseif($filter_payment == 'belum'){
+               // Belum dibayar dan belum lewat jatuh tempo (termasuk nota
+               // tanpa tanggal jatuh tempo, yang tidak pernah dianggap telat).
+               $this->db->where('a.payment_status', 0);
+               $this->db->where('a.payment_type', 3);
+               $this->db->group_start();
+                  $this->db->where('a.due_date IS NULL', NULL, FALSE);
+                  $this->db->or_where("a.due_date = ''", NULL, FALSE);
+                  $this->db->or_where('a.due_date >=', $today);
+               $this->db->group_end();
+            }elseif($filter_payment == 'overdue'){
+               $this->db->where('a.payment_status', 0);
+               $this->db->where('a.payment_type', 3);
+               $this->db->where('a.due_date IS NOT NULL', NULL, FALSE);
+               $this->db->where("a.due_date != ''", NULL, FALSE);
+               $this->db->where('a.due_date <', $today);
             }
             // Pencarian bebas: no. faktur, distributor, tanggal, dan juga
             // nama barang / batch-nya.
@@ -129,6 +160,7 @@ class Purchases extends CI_Model {
 
          ## Fetch records
          $this->db->select('a.purchase_id, a.chalan_no, a.purchase_date, a.grand_total_amount,
+                            a.payment_type, a.due_date, a.payment_status, a.paid_date,
                             b.manufacturer_name,
                             d.id as detail_id, d.batch_id, d.expeire_date,
                             d.quantity, d.rate, d.discount, d.total_amount,
@@ -161,8 +193,43 @@ class Purchases extends CI_Model {
          $button .=' <a href="'.$base_url.'Cpurchase/purchase_update_form/'.$record->purchase_id.'" class="btn btn-info btn-sm" data-toggle="tooltip" data-placement="left" title="'. display('update').'"><i class="fa fa-pencil" aria-hidden="true"></i></a> ';
      }
 
-      
-               
+            // Status pembayaran ke distributor.
+            $pay_state = $this->payment_state($record->payment_type, $record->payment_status, $record->due_date);
+
+            // Tombol "Tandai Lunas" hanya untuk nota Due Payment yang
+            // memang masih terutang, dan hanya bagi yang boleh mengubah.
+            if($pay_state != 'lunas' && $this->permission1->method('manage_purchase','update')->access()){
+               $button .= ' <button type="button" class="btn btn-warning btn-sm btn-mark-paid"'
+                        . ' data-purchase="'.html_escape($record->purchase_id).'"'
+                        . ' data-invoice="'.html_escape($record->chalan_no).'"'
+                        . ' data-manufacturer="'.html_escape($record->manufacturer_name).'"'
+                        . ' data-due="'.html_escape($record->due_date).'"'
+                        . ' data-total="'.(float)$record->grand_total_amount.'"'
+                        . ' title="Tandai sudah dibayar"><i class="fa fa-money" aria-hidden="true"></i></button>';
+            }
+
+            // Kolom status pembayaran: label berwarna + tanggal terkait.
+            if($pay_state == 'lunas'){
+               $payment_html = '<span class="label" style="background:#5cb85c;color:#fff;">'
+                             . '<i class="fa fa-check"></i> '.display('paid').'</span>';
+               if($record->payment_type == 3 && $record->paid_date != ''){
+                  $payment_html .= '<br><small class="text-muted">'.$record->paid_date.'</small>';
+               }
+            }elseif($pay_state == 'overdue'){
+               // Berapa hari terlewat, supaya tagihan paling tua terlihat.
+               $telat = (int) floor((strtotime(date('Y-m-d')) - strtotime($record->due_date)) / 86400);
+               $payment_html = '<span class="label" style="background:#d9534f;color:#fff;">'
+                             . '<i class="fa fa-exclamation-triangle"></i> '.display('overdue').'</span>'
+                             . '<br><small class="text-danger">'.$record->due_date.' ('.$telat.' hari)</small>';
+            }else{
+               $payment_html = '<span class="label" style="background:#f0ad4e;color:#fff;">'
+                             . '<i class="fa fa-clock-o"></i> '.display('unpaid').'</span>';
+               if($record->due_date != ''){
+                  $payment_html .= '<br><small class="text-muted">'.$record->due_date.'</small>';
+               }
+            }
+
+
             // Kolom status: ringkasan naik/turun/sama dibanding harga
             // pembelian sebelumnya untuk obat + distributor yang sama.
             $st     = (isset($price_status[$record->purchase_id])
@@ -206,6 +273,8 @@ class Purchases extends CI_Model {
                 'product_discount' =>(float)$record->discount,
                 'product_total'    =>(float)$record->total_amount,
                 'total_amount'     =>(float)$record->grand_total_amount,
+                'due_date'         =>($record->due_date != '' ? $record->due_date : '-'),
+                'payment_state'    =>$payment_html,
                 'status'           =>$status,
                 'button'           =>$button,
 
@@ -467,6 +536,137 @@ class Purchases extends CI_Model {
 		);
 	}
 
+	/**
+	 * Susun nilai kolom jatuh tempo & status pembayaran untuk disimpan.
+	 *
+	 * Pembelian tunai (1) dan transfer (2) uangnya sudah keluar pada saat
+	 * nota dibuat, jadi otomatis berstatus lunas dan tidak punya tanggal
+	 * jatuh tempo. Hanya "Due Payment" (3) yang menyisakan utang, dan
+	 * status lunasnya ditentukan belakangan lewat purchase_mark_paid()
+	 * atau form Ubah Pembelian.
+	 *
+	 * @param  int    $paytype       jenis pembayaran (1|2|3)
+	 * @param  string $due_date      tanggal jatuh tempo kiriman form
+	 * @param  string $purchase_date tanggal pembelian, dipakai sebagai
+	 *                               tanggal bayar untuk tunai/transfer
+	 * @param  array  $existing      nilai tersimpan saat ini (dipakai saat
+	 *                               update supaya pelunasan tidak hilang)
+	 * @return array  due_date, payment_status, paid_date, paid_note
+	 */
+	private function due_payment_fields($paytype, $due_date, $purchase_date, $existing = array())
+	{
+		// Tunai & transfer: lunas seketika.
+		if ($paytype != 3) {
+			return array(
+				'due_date'       => NULL,
+				'payment_status' => 1,
+				'paid_date'      => ($purchase_date != '' ? $purchase_date : date('Y-m-d')),
+				'paid_note'      => NULL,
+			);
+		}
+
+		// Due Payment. Status diambil dari form bila dikirim (form Ubah
+		// Pembelian punya dropdownnya); bila tidak, nilai lama dipertahankan
+		// supaya nota yang sudah dilunasi tidak berubah jadi belum dibayar.
+		$posted_status = $this->input->post('payment_status', true);
+		if ($posted_status !== NULL && $posted_status !== '') {
+			$status = ((int) $posted_status === 1 ? 1 : 0);
+		} else {
+			$status = (isset($existing['payment_status']) ? (int) $existing['payment_status'] : 0);
+		}
+
+		if ($status === 1) {
+			$paid_date = $this->input->post('paid_date', true);
+			if ($paid_date == '') {
+				$paid_date = (isset($existing['paid_date']) && $existing['paid_date'] != ''
+				              ? $existing['paid_date'] : date('Y-m-d'));
+			}
+			$paid_note = $this->input->post('paid_note', true);
+			if ($paid_note === NULL) {
+				$paid_note = (isset($existing['paid_note']) ? $existing['paid_note'] : NULL);
+			}
+		} else {
+			// Belum dibayar: jejak pelunasan dikosongkan supaya tidak ada
+			// tanggal bayar yang tertinggal dari status sebelumnya.
+			$paid_date = NULL;
+			$paid_note = NULL;
+		}
+
+		return array(
+			'due_date'       => ($due_date != '' ? $due_date : NULL),
+			'payment_status' => $status,
+			'paid_date'      => $paid_date,
+			'paid_note'      => $paid_note,
+		);
+	}
+
+	/**
+	 * Tentukan status pembayaran satu nota untuk ditampilkan.
+	 *
+	 * @param  int    $payment_type
+	 * @param  int    $payment_status
+	 * @param  string $due_date
+	 * @return string 'lunas' | 'belum' | 'overdue'
+	 */
+	public function payment_state($payment_type, $payment_status, $due_date)
+	{
+		if ((int) $payment_status === 1) {
+			return 'lunas';
+		}
+		// Nota tunai/transfer lama (dibuat sebelum kolom status ada)
+		// dianggap lunas: uangnya memang sudah keluar saat itu.
+		if ((int) $payment_type !== 3) {
+			return 'lunas';
+		}
+		// Tanpa tanggal jatuh tempo tidak ada dasar untuk menyebut telat.
+		if ($due_date == '') {
+			return 'belum';
+		}
+		return (strtotime($due_date) < strtotime(date('Y-m-d')) ? 'overdue' : 'belum');
+	}
+
+	/**
+	 * Tandai satu nota pembelian sudah dibayar ke distributor.
+	 *
+	 * Dipakai tombol "Tandai Lunas" di halaman Kelola Pembelian.
+	 *
+	 * @param  string $purchase_id
+	 * @param  string $paid_date
+	 * @param  string $paid_note
+	 * @return array  success (bool), message (string)
+	 */
+	public function purchase_mark_paid($purchase_id, $paid_date, $paid_note = '')
+	{
+		$purchase = $this->db->select('purchase_id, payment_type, payment_status')
+		                     ->from('product_purchase')
+		                     ->where('purchase_id', $purchase_id)
+		                     ->get()->row();
+
+		if (empty($purchase)) {
+			return array('success' => FALSE, 'message' => 'Nota pembelian tidak ditemukan.');
+		}
+		if ((int) $purchase->payment_type !== 3) {
+			return array('success' => FALSE, 'message' => 'Hanya pembelian "Due Payment" yang perlu ditandai lunas.');
+		}
+		if ((int) $purchase->payment_status === 1) {
+			return array('success' => FALSE, 'message' => 'Nota ini sudah ditandai lunas sebelumnya.');
+		}
+
+		// Tanggal kosong / tidak dikenali diganti hari ini, supaya tidak
+		// tersimpan sebagai lunas tanpa tanggal.
+		$ts = ($paid_date != '' ? strtotime($paid_date) : FALSE);
+		$paid_date = ($ts === FALSE ? date('Y-m-d') : date('Y-m-d', $ts));
+
+		$this->db->where('purchase_id', $purchase_id);
+		$this->db->update('product_purchase', array(
+			'payment_status' => 1,
+			'paid_date'      => $paid_date,
+			'paid_note'      => ($paid_note != '' ? $paid_note : NULL),
+		));
+
+		return array('success' => TRUE, 'message' => 'Pembayaran ditandai lunas pada '.$paid_date.'.');
+	}
+
 	public function purchase_entry()
 	{
 		$purchase_id = date('YmdHis');
@@ -497,7 +697,13 @@ class Purchases extends CI_Model {
 		$this->form_validation->set_rules('product_id[]', 'Medicine Name', 'required');
 		$this->form_validation->set_rules('batch_id[]', 'Batch Id', 'required');
 		$this->form_validation->set_rules('expeire_date[]', 'Expiry Date', 'required');
-		$this->form_validation->set_rules('product_quantity[]', 'Quantity', 'required');
+		// Jatuh tempo wajib diisi khusus untuk "Due Payment". Diperiksa di
+		// sisi server juga, bukan hanya lewat atribut required di HTML,
+		// karena atribut itu bisa dilewati dari browser.
+		if ($this->input->post('paytype', true) == 3) {
+			$this->form_validation->set_rules('due_date', 'Tanggal Jatuh Tempo', 'required');
+		}
+$this->form_validation->set_rules('product_quantity[]', 'Quantity', 'required');
 		
 		if ($this->form_validation->run()) {
 
@@ -521,6 +727,14 @@ class Purchases extends CI_Model {
 		// yang dipakai untuk grand total dan seluruh jurnal akuntansi.
 		$overall = $this->calculate_overall_discount();
 
+		// Jatuh tempo & status pembayaran.
+		//
+		// Pembelian tunai / transfer uangnya sudah keluar saat nota dibuat,
+		// jadi langsung berstatus lunas dan tidak punya tanggal jatuh tempo.
+		// Hanya "Due Payment" (3) yang menyisakan utang ke distributor.
+		$paytype  = $this->input->post('paytype',true);
+		$due_data = $this->due_payment_fields($paytype, $this->input->post('due_date',true), $this->input->post('purchase_date',true));
+
 		$data=array(
 			'purchase_id'		=>	$purchase_id,
 			'chalan_no'			=>	$this->input->post('chalan_no',true),
@@ -538,6 +752,10 @@ class Purchases extends CI_Model {
 			'status'			=>	1,
 			'bank_id'           =>  $this->input->post('bank_id',true),
 			'payment_type'      =>  $this->input->post('paytype',true),
+			'due_date'          =>  $due_data['due_date'],
+			'payment_status'    =>  $due_data['payment_status'],
+			'paid_date'         =>  $due_data['paid_date'],
+			'paid_note'         =>  $due_data['paid_note'],
 		);
 		$this->db->insert('product_purchase',$data);
 
@@ -759,6 +977,19 @@ public function update_purchase()
 		$overall = $this->calculate_overall_discount();
 		$grand_total_price = $overall['grand_total'];
 
+		// Nilai jatuh tempo yang tersimpan dibaca lebih dulu supaya
+		// pelunasan yang sudah dicatat tidak hilang saat nota diubah.
+		$existing = $this->db->select('payment_status, paid_date, paid_note')
+		                     ->from('product_purchase')
+		                     ->where('purchase_id', $purchase_id)
+		                     ->get()->row_array();
+		$due_data = $this->due_payment_fields(
+			$this->input->post('paytype',true),
+			$this->input->post('due_date',true),
+			$this->input->post('purchase_date',true),
+			(is_array($existing) ? $existing : array())
+		);
+
 		$data=array(
 			'purchase_id'       =>  $purchase_id,
 			'chalan_no'			=>	$this->input->post('chalan_no',true),
@@ -775,6 +1006,10 @@ public function update_purchase()
 			'purchase_details'	=>	$this->input->post('purchase_details',true),
 			'bank_id'           =>  $this->input->post('bank_id',true),
 			'payment_type'      =>  $this->input->post('paytype',true),
+			'due_date'          =>  $due_data['due_date'],
+			'payment_status'    =>  $due_data['payment_status'],
+			'paid_date'         =>  $due_data['paid_date'],
+			'paid_note'         =>  $due_data['paid_note'],
 		);
            $cashinhand = array(
       'VNo'            =>  $purchase_id,

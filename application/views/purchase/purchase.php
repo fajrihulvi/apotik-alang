@@ -88,6 +88,17 @@
 		                        <select id="filter_product" class="form-control" multiple="multiple" data-placeholder="Nama Barang"></select>
 		                    </div>
 		                </div>
+		                <div class="col-sm-2">
+		                    <div class="form-group">
+		                        <label for="filter_payment"><?php echo display('payment_status') ?></label>
+		                        <select id="filter_payment" class="form-control">
+		                            <option value="">Semua</option>
+		                            <option value="belum"><?php echo display('unpaid') ?></option>
+		                            <option value="overdue"><?php echo display('overdue') ?></option>
+		                            <option value="lunas"><?php echo display('paid') ?></option>
+		                        </select>
+		                    </div>
+		                </div>
 		                <div class="col-sm-12">
 		                    <button type="button" id="btn-purchase-filter" class="btn btn-success"><?php echo display('find') ?></button>
 		                    <button type="button" id="btn-purchase-filter-reset" class="btn btn-default">Reset</button>
@@ -125,6 +136,8 @@
 										<th>Diskon</th>
 										<th>Total Harga</th>
 										<th><?php echo display('total_ammount') ?></th>
+										<th><?php echo display('due_date') ?></th>
+										<th><?php echo display('payment_status') ?></th>
 										<th>Status</th>
 										<th><?php echo display('action') ?></th>
 									</tr>
@@ -149,12 +162,62 @@
 										<th></th>
 										<th></th>
 										<th></th>
+										<th></th>
+										<th></th>
 									</tr>
                                 </tfoot>
 		                    </table>
 		                </div>
 		                <input type="hidden" id="total_purchase_no" value="<?php echo html_escape($total_purhcase);?>" name="">
 		      <input type="hidden" id="currency" value="{currency}" name="">
+		            </div>
+		        </div>
+		    </div>
+		</div>
+
+		<!-- Konfirmasi pembayaran ke distributor. Dibuka oleh tombol
+		     "Tandai Lunas" pada baris nota Due Payment yang masih terutang. -->
+		<div class="modal fade" id="markPaidModal" tabindex="-1" role="dialog" aria-hidden="true">
+		    <div class="modal-dialog" role="document">
+		        <div class="modal-content">
+		            <div class="modal-header">
+		                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		                <h4 class="modal-title">Tandai Pembayaran Lunas</h4>
+		            </div>
+		            <div class="modal-body">
+		                <input type="hidden" id="mp_purchase_id" value="">
+
+		                <div class="form-group">
+		                    <label><?php echo display('invoice_no') ?></label>
+		                    <p class="form-control-static" id="mp_invoice">-</p>
+		                </div>
+		                <div class="form-group">
+		                    <label><?php echo display('manufacturer_name') ?></label>
+		                    <p class="form-control-static" id="mp_manufacturer">-</p>
+		                </div>
+		                <div class="form-group">
+		                    <label><?php echo display('due_date') ?></label>
+		                    <p class="form-control-static" id="mp_due">-</p>
+		                </div>
+		                <div class="form-group">
+		                    <label><?php echo display('total_ammount') ?></label>
+		                    <p class="form-control-static" id="mp_total">-</p>
+		                </div>
+
+		                <div class="form-group">
+		                    <label for="mp_paid_date">Tanggal Bayar <i class="text-danger">*</i></label>
+		                    <input type="text" class="form-control datepicker" id="mp_paid_date" autocomplete="off">
+		                </div>
+		                <div class="form-group">
+		                    <label for="mp_paid_note">Catatan Bayar</label>
+		                    <input type="text" class="form-control" id="mp_paid_note" placeholder="mis. no. bukti transfer">
+		                </div>
+
+		                <div class="alert alert-danger" id="mp_error" style="display:none;"></div>
+		            </div>
+		            <div class="modal-footer">
+		                <button type="button" class="btn btn-default" data-dismiss="modal">Batal</button>
+		                <button type="button" class="btn btn-success" id="mp_submit">Simpan</button>
 		            </div>
 		        </div>
 		    </div>

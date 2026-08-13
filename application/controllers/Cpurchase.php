@@ -29,6 +29,37 @@ class Cpurchase extends CI_Controller {
         echo json_encode($data);
     }
 
+        /**
+         * Tandai satu nota "Due Payment" sudah dibayar ke distributor.
+         *
+         * Dipanggil lewat AJAX dari tombol "Tandai Lunas" pada halaman
+         * Kelola Pembelian. Menjawab JSON supaya tabel bisa dimuat ulang
+         * tanpa berpindah halaman.
+         */
+        public function purchase_mark_paid(){
+        $this->auth->check_admin_auth();
+        $this->load->model('Purchases');
+        header('Content-Type: application/json');
+
+        // Hak akses sama dengan mengubah pembelian: menandai lunas
+        // mengubah data nota, bukan sekadar membacanya.
+        if(!$this->permission1->method('manage_purchase','update')->access()){
+            echo json_encode(array('success'=>FALSE,'message'=>'Anda tidak berhak mengubah data pembelian.'));
+            return;
+        }
+
+        $purchase_id = $this->input->post('purchase_id',true);
+        $paid_date   = $this->input->post('paid_date',true);
+        $paid_note   = $this->input->post('paid_note',true);
+
+        if(empty($purchase_id)){
+            echo json_encode(array('success'=>FALSE,'message'=>'Nota pembelian tidak dipilih.'));
+            return;
+        }
+
+        echo json_encode($this->Purchases->purchase_mark_paid($purchase_id, $paid_date, $paid_note));
+    }
+
         // Isi dropdown filter (faktur & nama barang) pada Kelola Pembelian.
         public function purchase_filter_options(){
         $this->auth->check_admin_auth();

@@ -167,6 +167,17 @@ class Lpurchase {
 		$ppn_input = (isset($purchase_detail[0]['ppn_input'])
 		              ? $purchase_detail[0]['ppn_input'] : 0);
 
+		// Jatuh tempo & status pembayaran. Dibaca aman dengan alasan yang
+		// sama seperti diskon & PPN di atas.
+		$due_date       = (isset($purchase_detail[0]['due_date'])
+		                   ? $purchase_detail[0]['due_date'] : '');
+		$payment_status = (isset($purchase_detail[0]['payment_status'])
+		                   ? $purchase_detail[0]['payment_status'] : 0);
+		$paid_date      = (isset($purchase_detail[0]['paid_date'])
+		                   ? $purchase_detail[0]['paid_date'] : '');
+		$paid_note      = (isset($purchase_detail[0]['paid_note'])
+		                   ? $purchase_detail[0]['paid_note'] : '');
+
 		$data=array(
 			'title'				=>	display('purchase_edit'),
 			'purchase_id'		=>	$purchase_detail[0]['purchase_id'],
@@ -191,6 +202,10 @@ class Lpurchase {
 			'discount_type' 	=> $currency_details[0]['discount_type'],
 			'bank_list'         => $bank_list,
 			'paytype'           => $purchase_detail[0]['payment_type'],
+			'due_date'          => $due_date,
+			'payment_status'    => $payment_status,
+			'paid_date'         => $paid_date,
+			'paid_note'         => $paid_note,
 			);
 
 		$chapterList = $CI->parser->parse('purchase/edit_purchase_form',$data,true);

@@ -156,13 +156,13 @@
                                         echo display('payment_type');
                                         ?> <i class="text-danger">*</i></label>
                                     <div class="col-sm-9">
-                                        <select name="paytype" class="form-control" required="" onchange="bank_paymet(this.value)" tabindex="5">
+                                        <select name="paytype" class="form-control" id="paytype_select" required="" onchange="bank_paymet(this.value)" tabindex="5">
                                             <option value="">Select Payment Option</option>
                                             <option value="1" <?php if($paytype ==1){echo 'selected';}?>>Cash Payment</option>
                                             <option value="2" <?php if($paytype ==2){echo 'selected';}?>>Bank Payment</option>
-                                            <option value="3" <?php if($paytype ==3){echo 'selected';}?>>Due Payment</option> 
+                                            <option value="3" <?php if($paytype ==3){echo 'selected';}?>>Due Payment</option>
                                         </select>
-                                       <input type="hidden" name="" id="paytype" value="{paytype}"> 
+                                       <input type="hidden" name="" id="paytype" value="{paytype}">
 
                                      
                                     </div>
@@ -181,11 +181,62 @@
                                             <option value="<?php echo html_escape($bank['bank_id'])?>" <?php if($bank['bank_id'] == $bank_id){echo 'selected';}?>><?php echo html_escape($bank['bank_name']);?></option>
                                         <?php }?>
                                     </select>
-                                 
+
                                 </div>
-                             
+
                             </div>
                         </div>
+                        </div>
+
+                        <!-- Jatuh tempo & status pembayaran. Hanya tampil bila
+                             jenis pembayaran "Due Payment"; diatur oleh
+                             due_date_toggle() di purchase.js. -->
+                        <div class="row" id="due_date_div" style="display:none;">
+                            <div class="col-sm-6">
+                                <div class="form-group row">
+                                    <label for="due_date" class="col-sm-3 col-form-label"><?php
+                                        echo display('due_date');
+                                        ?> <i class="text-danger">*</i></label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control datepicker" name="due_date" id="due_date" placeholder="<?php echo display('due_date') ?>" value="<?php echo html_escape($due_date) ?>" autocomplete="off" />
+                                        <span class="help-block small">Tanggal pembayaran ke distributor harus dilunasi.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6">
+                                <div class="form-group row">
+                                    <label for="payment_status" class="col-sm-4 col-form-label"><?php
+                                        echo display('payment_status');
+                                        ?></label>
+                                    <div class="col-sm-8">
+                                        <select name="payment_status" class="form-control" id="payment_status">
+                                            <option value="0" <?php if($payment_status != 1){echo 'selected';}?>><?php echo display('unpaid') ?></option>
+                                            <option value="1" <?php if($payment_status == 1){echo 'selected';}?>><?php echo display('paid') ?></option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tanggal & catatan pelunasan. Tampil hanya bila
+                                 status di atas "Sudah Dibayar". -->
+                            <div class="col-sm-6 due-paid-field" style="display:none;">
+                                <div class="form-group row">
+                                    <label for="paid_date" class="col-sm-3 col-form-label">Tanggal Bayar</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control datepicker" name="paid_date" id="paid_date" placeholder="Tanggal Bayar" value="<?php echo html_escape($paid_date) ?>" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-sm-6 due-paid-field" style="display:none;">
+                                <div class="form-group row">
+                                    <label for="paid_note" class="col-sm-4 col-form-label">Catatan Bayar</label>
+                                    <div class="col-sm-8">
+                                        <input type="text" class="form-control" name="paid_note" id="paid_note" placeholder="mis. no. bukti transfer" value="<?php echo html_escape($paid_note) ?>" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="table-responsive">

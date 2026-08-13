@@ -211,16 +211,16 @@
                                         echo display('payment_type');
                                         ?> <i class="text-danger">*</i></label>
                                     <div class="col-sm-9">
-                                        <select name="paytype" class="form-control" required="" onchange="bank_paymet(this.value)" tabindex="5">
+                                        <select name="paytype" class="form-control" id="paytype" required="" onchange="bank_paymet(this.value)" tabindex="5">
                                             <option value="1">Cash Payment</option>
                                             <option value="2">Bank Payment</option>
-                                            <option value="3">Due Payment</option> 
+                                            <option value="3">Due Payment</option>
                                         </select>
-                                      
 
-                                     
+
+
                                     </div>
-                                 
+
                                 </div>
                             </div>
                              <div class="col-sm-6" id="bank_div">
@@ -235,11 +235,28 @@
                                             <option value="<?php echo html_escape($bank['bank_id'])?>"><?php echo html_escape($bank['bank_name']);?></option>
                                         <?php }?>
                                     </select>
-                                 
+
                                 </div>
-                             
+
                             </div>
                         </div>
+                        </div>
+
+                        <!-- Tanggal jatuh tempo. Hanya tampil (dan wajib diisi)
+                             bila jenis pembayaran "Due Payment"; diatur oleh
+                             due_date_toggle() di purchase.js. -->
+                        <div class="row">
+                            <div class="col-sm-6" id="due_date_div" style="display:none;">
+                                <div class="form-group row">
+                                    <label for="due_date" class="col-sm-3 col-form-label"><?php
+                                        echo display('due_date');
+                                        ?> <i class="text-danger">*</i></label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control datepicker" name="due_date" id="due_date" placeholder="<?php echo display('due_date') ?>" tabindex="6" autocomplete="off" />
+                                        <span class="help-block small">Tanggal pembayaran ke distributor harus dilunasi.</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="table-responsive">
