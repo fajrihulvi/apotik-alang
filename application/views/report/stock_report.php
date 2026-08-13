@@ -95,17 +95,19 @@
 										<tr>
 											<th class="text-center"><?php echo display('sl') ?></th>
 											<th class="text-center"><?php echo display('medicine_name') ?></th>
+											<th class="text-center"><?php echo display('stock') ?></th>
 											<th class="text-center"><?php echo display('sell_price') ?></th>
 											<th class="text-center">Harga Beli</th>
-											<th class="text-center"><?php echo display('stock') ?></th>
 											<th class="text-center"><?php echo display('manufacturer_name') ?></th>
 										</tr>
 									</thead>
 									<tbody>
 										 <tfoot>
 											<tr>
-                <th colspan="4" class="text-right"><?php echo display('total')?>:</th>
+                <th colspan="2" class="text-right"><?php echo display('total')?>:</th>
                 <th id="stockqty"></th>
+                <th></th>
+                <th></th>
                 <th></th>
             </tr>
 

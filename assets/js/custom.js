@@ -1012,10 +1012,10 @@ $(document).ready(function() {
              responsive: false,
 
              "aaSorting": [[ 1, "asc" ]],
-             // Kolom Stok (indeks 4) sengaja dibiarkan bisa diurutkan, supaya
+             // Kolom Stok (indeks 2) sengaja dibiarkan bisa diurutkan, supaya
              // stok bisa diurutkan dari terbanyak ke tersedikit atau sebaliknya.
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,2,3,5] },
+                { "bSortable": false, "aTargets": [0,3,4,5] },
 
             ],
            'processing': true,
@@ -1053,9 +1053,9 @@ $(document).ready(function() {
           'columns': [
              { data: 'sl' },
              { data: 'product_name' },
+             { data: 'stok_quantity',class:"stock" },
              { data: 'sales_price' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
              { data: 'purchase_p' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
-             { data: 'stok_quantity',class:"stock" },
              { data: 'manufacturer_name' },
 
           ],

@@ -180,6 +180,11 @@ class Lproduct {
 		if(!empty($purchaseData)){	
 			foreach($purchaseData as $k=>$v){
 				$purchaseData[$k]['final_date'] = $CI->occational->dateConvert($purchaseData[$k]['purchase_date']);
+				// Tanggal kadaluarsa batch. Sebagian nota lama tidak mengisi kolom ini,
+				// jadi dateConvert() hanya dipanggil bila formatnya memang yyyy-mm-dd.
+				$expire = (isset($purchaseData[$k]['expeire_date']) ? trim($purchaseData[$k]['expeire_date']) : '');
+				$expireValid = (substr_count($expire,'-') == 2 && $expire != '0000-00-00');
+				$purchaseData[$k]['final_expire_date'] = ($expireValid ? $CI->occational->dateConvert($expire) : '-');
 				$totalPrcsAmnt = ($totalPrcsAmnt + $purchaseData[$k]['total_amount']);
 				$totalPurchase = ($totalPurchase + $purchaseData[$k]['quantity']);
 			}

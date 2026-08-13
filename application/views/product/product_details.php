@@ -99,6 +99,7 @@
 											<th><?php echo display('invoice_id') ?></th>
 										<th><?php echo display('manufacturer_name') ?></th>
 										<th><?php echo display('quantity') ?></th>
+										<th><?php echo display('expire_date') ?></th>
 									<th><?php echo display('purchase_price') ?></th>
 										<th class="text-right"><?php echo display('total_ammount') ?></th>
 									</tr>
@@ -124,6 +125,7 @@
 											{manufacturer_name}
 										</td>
 										<td  class="text-right">{quantity}</td>
+										<td>{final_expire_date}</td>
 										<td  class="text-right"><?php echo (($position==0)?"$currency {rate}":"{rate} $currency") ?></td>
 										<td class="text-right"> <?php echo (($position==0)?"$currency {total_amount}":"{total_amount} $currency") ?></td>
 									</tr>
@@ -137,6 +139,7 @@
 										<td colspan="3" class="text-right"><b><?php echo display('total') ?></b></td>
 										<td></td>
 										<td  class="text-right"> {total_purchase}</td>
+										<td></td>
 										<td class="text-right"><b><?php echo display('grand_total') ?></b></td>
 										<td class="text-right"><b> <?php echo (($position==0)?"$currency {purchaseTotalAmount}":"{purchaseTotalAmount} $currency") ?></b></td>
 									</tr>
