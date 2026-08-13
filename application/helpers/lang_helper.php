@@ -84,3 +84,44 @@ if (!function_exists('display')) {
 }
 
  
+
+if (!function_exists('payment_needs_bank')) {
+
+    /**
+     * Apakah satu jenis pembayaran perlu memilih rekening bank?
+     *
+     * Dulu form transaksi menampilkan kolom bank hanya kalau nilai yang
+     * dipilih kebetulan bernilai 2, karena pilihannya ditulis tetap
+     * (1 = Cash, 2 = Bank). Setelah pilihan diambil dari master
+     * payment_type, id 2 tidak lagi dijamin berarti "bank" - dan jenis
+     * baru yang ditambahkan admin (id 3, 4, ...) tidak akan pernah
+     * memunculkan kolom bank.
+     *
+     * Karena master hanya menyimpan nama, penentuannya memakai nama itu:
+     * apa pun selain tunai dianggap lewat bank. Daftar kata tunai dibuat
+     * dwibahasa supaya "Cash" maupun "Tunai" sama-sama dikenali.
+     *
+     * @param  string $payment_type_name Nama jenis pembayaran dari master
+     * @return bool                      true bila kolom bank perlu tampil
+     */
+    function payment_needs_bank($payment_type_name = null)
+    {
+        $name = strtolower(trim((string) $payment_type_name));
+
+        if ($name === '') {
+            return false;
+        }
+
+        // Pembayaran tunai (dan sejenisnya) tidak memerlukan rekening bank.
+        $cash_words = array('cash', 'tunai', 'cash payment', 'pembayaran tunai');
+
+        foreach ($cash_words as $word) {
+            if ($name === $word) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+}

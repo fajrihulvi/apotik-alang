@@ -11,6 +11,41 @@ class Invoices extends CI_Model {
 		$this->load->model('Web_settings');
 		$this->auth->check_admin_auth();
 	}
+
+	/**
+	 * Apakah jenis pembayaran tertentu masuk lewat bank?
+	 *
+	 * Jurnal penjualan dulu hanya mengenal dua nilai tetap: 2 = bank,
+	 * 1 = kas. Setelah pilihan diambil dari master payment_type, jenis
+	 * baru yang ditambahkan admin (id 3, 4, ...) tidak akan cocok dengan
+	 * keduanya, sehingga penjualannya tidak tercatat sama sekali di kas
+	 * maupun bank. Di sini penentuannya memakai nama dari master, sama
+	 * seperti yang dipakai form untuk memunculkan kolom rekening.
+	 *
+	 * @param  string|int $paytype id jenis pembayaran
+	 * @return bool                true bila masuk lewat bank
+	 */
+	public function paytype_is_bank($paytype)
+	{
+		if (empty($paytype)) {
+			return false;
+		}
+
+		$row = $this->db->select('payment_type_name')
+			->from('payment_type')
+			->where('id', $paytype)
+			->get()
+			->row();
+
+		// Jenis lama yang tidak ada di master: pertahankan arti lamanya,
+		// yaitu 2 = bank.
+		if (empty($row)) {
+			return ($paytype == 2);
+		}
+
+		return payment_needs_bank($row->payment_type_name);
+	}
+
 	//Count invoice
 	public function count_invoice()
 	{
@@ -406,7 +441,7 @@ public function pos_invoice_setup($product_id){
 		$this->form_validation->set_rules('product_id[]', 'Medicine Name', 'required');
 		$this->form_validation->set_rules('batch_id[]', 'Batch Id', 'required');
 		$this->form_validation->set_rules('product_quantity[]', 'Quantity', 'required');
-		
+
 		if ($this->form_validation->run()) {
 		$result = array();
 
@@ -586,13 +621,14 @@ public function pos_invoice_setup($product_id){
     ); 
        if(!empty($this->input->post('paid_amount',true))){
        		$this->db->insert('acc_transaction',$cuscredit);
-       	if($this->input->post('paytype',true) == 2){
+       	// Bank atau kas ditentukan dari master, supaya jenis pembayaran
+       	// baru tetap tercatat dan tidak ada penjualan yang terlewat.
+       	if($this->paytype_is_bank($this->input->post('paytype',true))){
        	$this->db->insert('acc_transaction',$bankc);
-       	}
-       		if($this->input->post('paytype',true) == 1){
+       	}else{
        	$this->db->insert('acc_transaction',$cc);
        	}
-       
+
   }
 
 		
@@ -896,10 +932,11 @@ public function retrieve_invoice_editdata($invoice_id)
     ); 
        if(!empty($this->input->post('paid_amount',true))){
        $this->db->insert('acc_transaction',$cuscredit);
-       	if($this->input->post('paytype',true) == 2){
+       	// Bank atau kas ditentukan dari master, supaya jenis pembayaran
+       	// baru tetap tercatat dan tidak ada penjualan yang terlewat.
+       	if($this->paytype_is_bank($this->input->post('paytype',true))){
        	$this->db->insert('acc_transaction',$bankc);
-             	}
-       		if($this->input->post('paytype',true) == 1){
+             	}else{
        	$this->db->insert('acc_transaction',$cc);
        	}
   }

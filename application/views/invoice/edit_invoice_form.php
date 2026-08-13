@@ -72,10 +72,11 @@
                                         echo display('payment_type');
                                         ?> <i class="text-danger">*</i></label>
                                     <div class="col-sm-8">
-                                        <select name="paytype" class="form-control" required="" onchange="bank_paymet(this.value)">
+                                        <select name="paytype" class="form-control" required="" onchange="bank_paymet(this)">
                                             <option value="">Select Payment Option</option>
-                                            <option value="1" <?php if($paytype ==1){echo 'selected';}?>>Cash Payment</option>
-                                            <option value="2"  <?php if($paytype ==2){echo 'selected';}?>>Bank Payment</option> 
+                                            <?php foreach($payment_types as $ptype){ ?>
+                                            <option value="<?php echo html_escape($ptype['id'])?>" data-bank="<?php echo (payment_needs_bank($ptype['payment_type_name']) ? 1 : 0)?>" <?php if($paytype == $ptype['id']){echo 'selected';}?>><?php echo html_escape($ptype['payment_type_name'])?></option>
+                                            <?php } ?>
                                         </select>
                                       
                             <input type="hidden" name="" id="paytype" value="{paytype}"> 

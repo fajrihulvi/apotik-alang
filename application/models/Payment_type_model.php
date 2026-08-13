@@ -18,6 +18,23 @@ class Payment_type_model extends CI_Model {
 			->result_array();
 	}
 
+	/**
+	 * Jenis pembayaran yang masih aktif, untuk mengisi dropdown di form
+	 * transaksi. Yang berstatus nonaktif sengaja tidak ikut supaya tidak
+	 * bisa dipilih lagi pada transaksi baru.
+	 *
+	 * @return array
+	 */
+	public function read_active()
+	{
+		return $this->db->select('id, payment_type_name')
+			->from($this->table)
+			->where('status', 1)
+			->order_by('id', 'asc')
+			->get()
+			->result_array();
+	}
+
 	public function read_by_id($id = null)
 	{
 		return $this->db->select("*")

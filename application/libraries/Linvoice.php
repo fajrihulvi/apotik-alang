@@ -105,6 +105,7 @@ public function invoice_list_invoice_no($invoice_no)
                 ->result_array();
                 $tablecolumn = $CI->db->list_fields('tax_collection');
                 $num_column = count($tablecolumn)-4;
+		$CI->load->model('Payment_type_model');
 		$data = array(
 				'title' 		=> display('add_new_pos_invoice'),
 				'customer_name' => $customer_details[0]['customer_name'],
@@ -113,6 +114,9 @@ public function invoice_list_invoice_no($invoice_no)
 				'taxes'         => $taxfield,
 				'bank_list'     => $bank_list,
                 'taxnumber'     => $num_column,
+                // Jenis pembayaran diambil dari master, bukan lagi ditulis
+                // tetap di form.
+                'payment_types' => $CI->Payment_type_model->read_active(),
 			);
 		$invoiceForm = $CI->parser->parse('invoice/add_pos_invoice_form',$data,true);
 		return $invoiceForm;
@@ -158,13 +162,17 @@ public function invoice_list_invoice_no($invoice_no)
                 ->from('tax_settings')
                 ->get()
                 ->result_array();
+		$CI->load->model('Payment_type_model');
 		$data = array(
 				'title'         => display('add_new_invoice'),
 				'customer_name' => $customer_details[0]['customer_name'],
 				'customer_id' 	=> $customer_details[0]['customer_id'],
 				'discount_type' => $currency_details[0]['discount_type'],
 				'taxes'         => $taxfield,
-				'bank_list'     => $bank_list
+				'bank_list'     => $bank_list,
+				// Jenis pembayaran diambil dari master, bukan lagi ditulis
+				// tetap di form.
+				'payment_types' => $CI->Payment_type_model->read_active(),
 			);
 		$invoiceForm = $CI->parser->parse('invoice/add_invoice_form',$data,true);
 		return $invoiceForm;
@@ -184,6 +192,7 @@ public function invoice_edit_data($invoice_id)
 		$CI =& get_instance();
 		$CI->load->model('Invoices');
 		$CI->load->model('Web_settings');
+		$CI->load->model('Payment_type_model');
 		$invoice_detail = $CI->Invoices->retrieve_invoice_editdata($invoice_id);
 		$bank_list      = $CI->Web_settings->bank_list();
 		$taxinfo        = $CI->Invoices->service_invoice_taxinfo($invoice_id);
@@ -222,7 +231,10 @@ public function invoice_edit_data($invoice_id)
 			'discount_type'  	=>	$currency_details[0]['discount_type'],
 			'bank_id'           =>  $invoice_detail[0]['bank_id'],
 			'paytype'           =>  $invoice_detail[0]['payment_type'],
-			'bank_list'         =>  $bank_list
+			'bank_list'         =>  $bank_list,
+			// Jenis pembayaran diambil dari master, bukan lagi ditulis tetap
+			// di form.
+			'payment_types'     =>  $CI->Payment_type_model->read_active()
 			);
 		$chapterList = $CI->parser->parse('invoice/edit_invoice_form',$data,true);
 		return $chapterList;

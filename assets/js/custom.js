@@ -1491,15 +1491,26 @@ $("#rpttax"+i).html(sum.toLocaleString(undefined, {minimumFractionDigits: 2, max
     }
 
       "use strict";
+      // Menerima elemen <select> (form transaksi, jenis pembayaran dari
+      // master) maupun nilai mentah (pemanggil lama). Kalau yang dikirim
+      // elemen, penentuan "perlu bank" dibaca dari data-bank pada option
+      // terpilih, sebab id 2 tidak lagi otomatis berarti bank.
       function bank_paymet(val){
-        if(val==2){
-           var style = 'block'; 
+        var needBank;
+        if(val && typeof val === 'object' && val.options){
+           var opt = val.options[val.selectedIndex];
+           needBank = !!(opt && opt.getAttribute('data-bank') == 1);
+        }else{
+           needBank = (val == 2);
+        }
+
+        var style = needBank ? 'block' : 'none';
+        if(needBank){
            document.getElementById('bank_id').setAttribute("required", true);
         }else{
-   var style ='none';
-    document.getElementById('bank_id').removeAttribute("required");
+           document.getElementById('bank_id').removeAttribute("required");
         }
-           
+
     document.getElementById('bank_div').style.display = style;
     }
 
@@ -1510,15 +1521,19 @@ $("#rpttax"+i).html(sum.toLocaleString(undefined, {minimumFractionDigits: 2, max
 
        $( document ).ready(function() {
         "use strict";
-        var paytype = $("#paytype").val();
-       if(paytype==2){
-           var style = 'block';           
+        // Saat form ubah faktur dibuka, kolom bank ikut tampil kalau jenis
+        // pembayaran yang tersimpan memang lewat bank. Penandanya dibaca
+        // dari data-bank pada pilihan yang sedang terpilih; nilai 2 hanya
+        // dipakai sebagai cadangan untuk form lama yang belum punya penanda.
+        var $selected = $('select[name="paytype"] option:selected');
+        var needBank;
+        if($selected.length && typeof $selected.attr('data-bank') !== 'undefined'){
+           needBank = ($selected.attr('data-bank') == 1);
         }else{
-     var style ='none';
-   
+           needBank = ($("#paytype").val() == 2);
         }
-           
-    $('#bank_div').css('display',style);
+
+    $('#bank_div').css('display', needBank ? 'block' : 'none');
     });
 
 
