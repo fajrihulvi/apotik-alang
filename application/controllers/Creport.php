@@ -26,6 +26,72 @@ public function CheckList(){
         echo json_encode($data);
     }
 
+    /**
+     * Simpan harga jual yang diubah langsung dari tabel Laporan Stock
+     * (klik dua kali pada kolom Harga Jual).
+     *
+     * Menjawab lewat JSON supaya tabel bisa memperbarui satu baris saja
+     * tanpa memuat ulang halaman.
+     */
+    public function update_sales_price()
+    {
+        $this->auth->check_admin_auth();
+        header('Content-Type: application/json');
+
+        // Mengubah harga jual = mengubah data barang, jadi izinnya
+        // mengikuti hak "ubah" pada menu Obat - bukan sekadar hak baca
+        // laporan. Pengguna yang hanya boleh melihat laporan tidak bisa
+        // mengubah harga.
+        if (!$this->permission1->method('manage_medicine','update')->access()) {
+            echo json_encode(array(
+                'status'  => false,
+                'message' => display('you_are_not_access_this_part'),
+            ));
+            return;
+        }
+
+        $this->load->model('Reports');
+
+        $product_id = $this->input->post('product_id', true);
+        $price      = $this->input->post('price', true);
+
+        // Pemisah ribuan dari tampilan dibuang lebih dulu, supaya pengguna
+        // boleh mengetik "12.500", "12,500", maupun "12500". Titik/koma
+        // terakhir dianggap desimal hanya bila diikuti 1-2 angka
+        // ("12500,50"); selain itu dianggap pemisah ribuan.
+        $price = trim((string) $price);
+        $price = preg_replace('/\s+/', '', $price);
+        if (preg_match('/^(.*)[.,](\d{1,2})$/', $price, $m)) {
+            $price = preg_replace('/[.,]/', '', $m[1]).'.'.$m[2];
+        } else {
+            $price = preg_replace('/[.,]/', '', $price);
+        }
+
+        if ($product_id === null || $product_id === '') {
+            echo json_encode(array('status' => false, 'message' => 'Barang tidak dikenali.'));
+            return;
+        }
+        if ($price === '' || !is_numeric($price)) {
+            echo json_encode(array('status' => false, 'message' => 'Harga jual harus berupa angka.'));
+            return;
+        }
+        if ((float) $price < 0) {
+            echo json_encode(array('status' => false, 'message' => 'Harga jual tidak boleh negatif.'));
+            return;
+        }
+
+        if (!$this->Reports->update_sales_price($product_id, (float) $price)) {
+            echo json_encode(array('status' => false, 'message' => 'Barang tidak ditemukan.'));
+            return;
+        }
+
+        echo json_encode(array(
+            'status'  => true,
+            'price'   => (float) $price,
+            'message' => display('successfully_updated'),
+        ));
+    }
+
     // Isi dropdown filter (nama barang & faktur pembelian) untuk Laporan Stock.
     public function stock_filter_options(){
         $this->auth->check_admin_auth();

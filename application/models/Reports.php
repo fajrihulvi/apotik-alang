@@ -660,6 +660,9 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
                 'purchase_p'    =>  $record->manufacturer_price,
                 'stok_quantity' =>  $record->stok_quantity,
                 'manufacturer_name'=> $record->manufacturer_name,
+                // Dipakai kolom Harga Jual yang bisa diubah langsung di tabel
+                // (klik dua kali). Tidak ditampilkan sebagai kolom sendiri.
+                'product_id'    =>  $record->product_id,
             );
             $sl++;
          }
@@ -674,6 +677,32 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
 
          return $response; 
     }
+    /**
+     * Ubah harga jual satu barang dari tabel Laporan Stock.
+     *
+     * Dipakai oleh fitur klik-dua-kali pada kolom Harga Jual. Hanya kolom
+     * price yang disentuh, supaya data barang lainnya tidak ikut berubah.
+     *
+     * @param string $product_id
+     * @param float  $price
+     * @return bool  false bila barang tidak ditemukan
+     */
+    public function update_sales_price($product_id, $price)
+    {
+        $ada = $this->db->select('product_id')
+                        ->from('product_information')
+                        ->where('product_id', $product_id)
+                        ->get()->num_rows();
+        if ($ada < 1) {
+            return FALSE;
+        }
+
+        $this->db->where('product_id', $product_id);
+        $this->db->update('product_information', array('price' => $price));
+
+        return TRUE;
+    }
+
     //Stock report manufacturer by date
     public function stock_report_manufacturer_bydate($product_id=null,$manufacturer_id=null,$date=null,$perpage=null,$page=null){
 

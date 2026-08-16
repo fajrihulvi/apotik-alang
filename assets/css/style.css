@@ -1200,3 +1200,34 @@ font-family: "Helvetica Neue", Roboto, Arial, "Droid Sans", sans-serif !importan
         height: auto;
     }
 }
+
+/* ==================================================================
+   UBAH HARGA JUAL LANGSUNG DI LAPORAN STOCK
+   Sel kolom Harga Jual bisa diklik dua kali untuk diubah.
+   ================================================================== */
+
+/* Petunjuk halus bahwa sel ini bisa diubah. */
+td.sales-price-cell {
+    cursor: pointer;
+    position: relative;
+}
+
+td.sales-price-cell:hover {
+    background-color: #fdf7e3;
+    box-shadow: inset 0 0 0 1px #e6d8a8;
+}
+
+/* Kotak isian dibuat sepenuhnya mengisi sel supaya lebar kolom
+   tidak berubah saat masuk mode ubah. */
+td.sales-price-cell.editing {
+    padding: 2px !important;
+    background-color: #fffdf5;
+}
+
+td.sales-price-cell input.sales-price-input {
+    width: 100%;
+    height: 28px;
+    padding: 2px 6px;
+    margin: 0;
+    display: inline-block;
+}

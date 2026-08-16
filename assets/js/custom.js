@@ -1081,7 +1081,17 @@ $(document).ready(function() {
              { data: 'sl' },
              { data: 'product_name' },
              { data: 'stok_quantity',class:"stock" },
-             { data: 'sales_price' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
+             // Kolom Harga Jual bisa diubah langsung: klik dua kali pada sel.
+             // product_id disimpan di atribut sel supaya baris tahu barang
+             // mana yang sedang diubah tanpa perlu kolom tambahan.
+             { data: 'sales_price' ,class:"text-right sales-price-cell",
+               render: $.fn.dataTable.render.number( ',', '.', 2, currency ),
+               createdCell: function(td, cellData, rowData) {
+                  $(td).attr('data-product-id', rowData.product_id)
+                       .attr('data-price', cellData)
+                       .attr('title', 'Klik dua kali untuk mengubah harga jual');
+               }
+             },
              { data: 'purchase_p' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
              { data: 'manufacturer_name' },
 
@@ -1107,6 +1117,114 @@ $(document).ready(function() {
 
 
     });
+
+// ---------------------------------------------------------------------
+// UBAH HARGA JUAL LANGSUNG DARI TABEL (klik dua kali)
+//
+// Sel kolom Harga Jual diganti sementara menjadi kotak isian. Nilai
+// disimpan lewat AJAX, lalu selnya kembali menjadi teks biasa dengan
+// harga yang baru - tabel tidak dimuat ulang supaya halaman, urutan,
+// dan filter yang sedang aktif tidak hilang.
+// ---------------------------------------------------------------------
+if ($('#checkListStockList').length) {
+
+   // Format angka mengikuti tampilan kolomnya (mis. "Rp 12.500,00").
+   function stockFormatPrice(nilai) {
+      var n = parseFloat(nilai) || 0;
+      return currency + n.toLocaleString('id-ID', {
+         minimumFractionDigits: 2,
+         maximumFractionDigits: 2
+      });
+   }
+
+   // Kembalikan sel ke tampilan teks biasa.
+   function stockResetCell($td, harga) {
+      $td.attr('data-price', harga)
+         .removeClass('editing')
+         .html(stockFormatPrice(harga));
+   }
+
+   $('#checkListStockList tbody').on('dblclick', 'td.sales-price-cell', function() {
+      var $td = $(this);
+      // Sedang diubah, jangan buat kotak isian kedua.
+      if ($td.hasClass('editing')) {
+         return;
+      }
+      var hargaLama = $td.attr('data-price');
+
+      $td.addClass('editing').html(
+         $('<input>', {
+            type: 'text',
+            'class': 'form-control input-sm text-right sales-price-input',
+            value: hargaLama
+         })
+      );
+      $td.find('input').focus().select();
+   });
+
+   // Esc membatalkan, Enter menyimpan.
+   $('#checkListStockList tbody').on('keydown', 'input.sales-price-input', function(e) {
+      if (e.which === 27) {
+         var $td = $(this).closest('td');
+         stockResetCell($td, $td.attr('data-price'));
+      } else if (e.which === 13) {
+         $(this).blur();
+      }
+   });
+
+   // Simpan saat kotak isian kehilangan fokus.
+   $('#checkListStockList tbody').on('blur', 'input.sales-price-input', function() {
+      var $input = $(this);
+      var $td    = $input.closest('td');
+      var hargaLama = $td.attr('data-price');
+      var hargaBaru = $.trim($input.val());
+
+      // Tidak diubah atau dikosongkan: kembalikan seperti semula.
+      if (hargaBaru === '' || hargaBaru === hargaLama) {
+         stockResetCell($td, hargaLama);
+         return;
+      }
+
+      var product_id = $td.attr('data-product-id');
+      $td.html('<i class="fa fa-spinner fa-spin"></i>');
+
+      $.ajax({
+         url: base_url + 'Creport/update_sales_price',
+         type: 'POST',
+         dataType: 'json',
+         data: {
+            product_id: product_id,
+            price: hargaBaru,
+            csrf_test_name: CSRF_TOKEN
+         },
+         success: function(res) {
+            if (res && res.status) {
+               stockResetCell($td, res.price);
+               if (typeof toastr !== 'undefined') {
+                  toastr.success(res.message);
+               }
+            } else {
+               // Gagal: harga lama dikembalikan supaya angka di layar
+               // tidak berbeda dengan isi database.
+               stockResetCell($td, hargaLama);
+               if (typeof toastr !== 'undefined') {
+                  toastr.error(res && res.message ? res.message : 'Gagal menyimpan harga jual.');
+               } else {
+                  alert(res && res.message ? res.message : 'Gagal menyimpan harga jual.');
+               }
+            }
+         },
+         error: function() {
+            stockResetCell($td, hargaLama);
+            if (typeof toastr !== 'undefined') {
+               toastr.error('Gagal menghubungi server.');
+            } else {
+               alert('Gagal menghubungi server.');
+            }
+         }
+      });
+   });
+}
 
 // Dropdown filter multiple + pencarian (select2) untuk Laporan Stock:
 // beberapa nama barang dan/atau beberapa faktur pembelian.
