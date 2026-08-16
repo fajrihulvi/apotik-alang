@@ -76,13 +76,13 @@
 		    <div class="col-sm-12">
 		        <div class="panel panel-default">
 		            <div class="panel-body">
-		                <div class="col-sm-5">
+		                <div class="col-sm-4">
 		                    <div class="form-group">
 		                        <label for="filter_invoice"><?php echo display('invoice_no') ?></label>
 		                        <select id="filter_invoice" class="form-control" multiple="multiple" data-placeholder="<?php echo display('invoice_no') ?>"></select>
 		                    </div>
 		                </div>
-		                <div class="col-sm-5">
+		                <div class="col-sm-4">
 		                    <div class="form-group">
 		                        <label for="filter_product">Nama Barang</label>
 		                        <select id="filter_product" class="form-control" multiple="multiple" data-placeholder="Nama Barang"></select>
@@ -96,6 +96,22 @@
 		                            <option value="belum"><?php echo display('unpaid') ?></option>
 		                            <option value="overdue"><?php echo display('overdue') ?></option>
 		                            <option value="lunas"><?php echo display('paid') ?></option>
+		                        </select>
+		                    </div>
+		                </div>
+		                <!-- Filter kolom Status: perbandingan harga beli terhadap
+		                     pembelian sebelumnya untuk obat + distributor yang sama.
+		                     Satu nota bisa memuat beberapa barang, jadi nota akan
+		                     tampil bila ADA minimal satu barang yang cocok. -->
+		                <div class="col-sm-2">
+		                    <div class="form-group">
+		                        <label for="filter_price_status">Status Harga</label>
+		                        <select id="filter_price_status" class="form-control">
+		                            <option value="">Semua</option>
+		                            <option value="naik">Harga Naik</option>
+		                            <option value="turun">Harga Turun</option>
+		                            <option value="sama">Harga Mendatar</option>
+		                            <option value="baru">Belum Ada Riwayat</option>
 		                        </select>
 		                    </div>
 		                </div>

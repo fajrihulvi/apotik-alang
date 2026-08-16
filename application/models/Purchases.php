@@ -81,10 +81,32 @@ class Purchases extends CI_Model {
          $filter_payment = $this->input->post('filter_payment',true);
          $today          = date('Y-m-d');
 
+         // Filter kolom Status (perbandingan harga beli): naik / turun /
+         // sama / baru. Perbandingannya sama persis dengan yang dipakai
+         // purchase_price_status_bulk(), hanya saja dikerjakan di SQL supaya
+         // bisa menyaring sebelum paginasi.
+         $filter_price_status = $this->input->post('filter_price_status',true);
+         $allowed_status      = array('naik','turun','sama','baru');
+         if(!in_array($filter_price_status, $allowed_status, TRUE)){
+            $filter_price_status = '';
+         }
+
+         // Harga beli terakhir untuk obat + distributor yang sama SEBELUM
+         // baris ini. Urutannya (tanggal, id) mengikuti urutan input.
+         $prev_rate_sql = "(SELECT d2.rate
+                              FROM product_purchase_details d2
+                              JOIN product_purchase p2 ON p2.purchase_id = d2.purchase_id
+                             WHERE d2.product_id = d.product_id
+                               AND p2.manufacturer_id = a.manufacturer_id
+                               AND (p2.purchase_date < a.purchase_date
+                                    OR (p2.purchase_date = a.purchase_date AND d2.id < d.id))
+                          ORDER BY p2.purchase_date DESC, d2.id DESC
+                             LIMIT 1)";
+
          // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
          $applyFilter = function($withSearch = true) use (
             $fromdate, $todate, $searchValue, $filter_invoice, $filter_product,
-            $filter_payment, $today
+            $filter_payment, $today, $filter_price_status, $prev_rate_sql
          ){
             if(!empty($fromdate) && !empty($todate)){
                $this->db->where('a.purchase_date >=', $fromdate);
@@ -119,6 +141,17 @@ class Purchases extends CI_Model {
                $this->db->where('a.due_date IS NOT NULL', NULL, FALSE);
                $this->db->where("a.due_date != ''", NULL, FALSE);
                $this->db->where('a.due_date <', $today);
+            }
+            // Status harga. Baris tanpa harga sebelumnya berarti obat itu
+            // belum pernah dibeli dari distributor tersebut.
+            if($filter_price_status === 'baru'){
+               $this->db->where("{$prev_rate_sql} IS NULL", NULL, FALSE);
+            }elseif($filter_price_status === 'naik'){
+               $this->db->where("d.rate > {$prev_rate_sql}", NULL, FALSE);
+            }elseif($filter_price_status === 'turun'){
+               $this->db->where("d.rate < {$prev_rate_sql}", NULL, FALSE);
+            }elseif($filter_price_status === 'sama'){
+               $this->db->where("d.rate = {$prev_rate_sql}", NULL, FALSE);
             }
             // Pencarian bebas: no. faktur, distributor, tanggal, dan juga
             // nama barang / batch-nya.

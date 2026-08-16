@@ -704,6 +704,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
          data.filter_invoice = $('#filter_invoice').val() || [];
          data.filter_product = $('#filter_product').val() || [];
          data.filter_payment = $('#filter_payment').val() || '';
+         data.filter_price_status = $('#filter_price_status').val() || '';
          data.csrf_test_name = csrf_test_name;
 
 }
@@ -784,6 +785,7 @@ if ($('#filter_invoice').length && $('#PurList').length) {
    $('#btn-purchase-filter-reset').click(function(){
       $('#filter_invoice, #filter_product').val(null).trigger('change');
       $('#filter_payment').val('');
+      $('#filter_price_status').val('');
       $('#from_date, #to_date').val('');
       mydatatable.ajax.reload();
    });
@@ -791,6 +793,11 @@ if ($('#filter_invoice').length && $('#PurList').length) {
    // Menyaring status pembayaran langsung memuat ulang tabel, tanpa
    // harus menekan tombol Cari -- pilihannya hanya satu klik.
    $('#filter_payment').change(function(){
+      mydatatable.ajax.reload();
+   });
+
+   // Sama halnya untuk filter status harga.
+   $('#filter_price_status').change(function(){
       mydatatable.ajax.reload();
    });
 }
