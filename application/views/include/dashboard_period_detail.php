@@ -274,6 +274,103 @@ $has_breakdown = !empty($breakdown);
             </div>
         </div>
 
+        <!-- Rincian seluruh barang terjual (berhalaman) -->
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="panel panel-bd lobidisable">
+                    <div class="panel-heading">
+                        <div class="panel-title">
+                            <h4>
+                                <i class="fa fa-list"></i> Rincian Seluruh Barang Terjual
+                                <?php if ($total_rows > 0) { ?>
+                                <small>(<?php echo number_format($total_rows, 0, ',', '.')?> barang)</small>
+                                <?php } ?>
+                            </h4>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <?php if (!empty($all_products)) { ?>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">#</th>
+                                        <th><?php echo display('product_name')?></th>
+                                        <th><?php echo display('product_type')?></th>
+                                        <th class="text-right">Jumlah Terjual</th>
+                                        <th class="text-right">Transaksi</th>
+                                        <th class="text-right">Sell Price</th>
+                                        <th class="text-right">Purchase Price</th>
+                                        <th class="text-right">Gross Margin</th>
+                                        <th class="text-right">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <?php
+                                // Nomor urut diteruskan dari halaman sebelumnya,
+                                // jadi halaman 2 dimulai dari 26 - bukan 1 lagi.
+                                $no = $offset + 1;
+                                foreach ($all_products as $item) { ?>
+                                    <tr>
+                                        <td class="text-center"><?php echo $no++?></td>
+                                        <td>
+                                            <a href="<?php echo base_url('Cproduct/product_details/'.$item['product_id'])?>">
+                                                <?php echo html_escape($item['product_name'])?>
+                                            </a>
+                                        </td>
+                                        <td><?php echo html_escape($item['product_model'])?></td>
+                                        <td class="text-right"><?php echo number_format($item['total_qty'], 0, ',', '.')?></td>
+                                        <td class="text-right"><?php echo number_format($item['total_invoice'], 0, ',', '.')?></td>
+                                        <td class="text-right"><?php echo dashboard_money($item['total_sell'], $currency, $position)?></td>
+                                        <td class="text-right"><?php echo dashboard_money($item['total_cost'], $currency, $position)?></td>
+                                        <td class="text-right <?php echo ($item['gross_margin'] < 0 ? 'text-danger' : '')?>">
+                                            <?php echo dashboard_money($item['gross_margin'], $currency, $position)?>
+                                        </td>
+                                        <td class="text-right"><?php echo number_format($item['margin_percent'], 2, ',', '.')?>%</td>
+                                    </tr>
+                                <?php } ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <?php
+                                        // Baris ini memuat total SELURUH periode, bukan
+                                        // hanya halaman yang sedang tampil, supaya
+                                        // angkanya tetap sama dengan kartu di atas.
+                                        ?>
+                                        <th colspan="3" class="text-right">Total Seluruh Periode</th>
+                                        <th class="text-right"><?php echo number_format($summary['total_qty'], 0, ',', '.')?></th>
+                                        <th class="text-right"><?php echo number_format($summary['total_invoice'], 0, ',', '.')?></th>
+                                        <th class="text-right"><?php echo dashboard_money($summary['total_sell'], $currency, $position)?></th>
+                                        <th class="text-right"><?php echo dashboard_money($summary['total_cost'], $currency, $position)?></th>
+                                        <th class="text-right"><?php echo dashboard_money($summary['gross_margin'], $currency, $position)?></th>
+                                        <th class="text-right"><?php echo number_format($summary['margin_percent'], 2, ',', '.')?>%</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <p class="text-muted" style="margin-top:18px;">
+                                    Menampilkan
+                                    <?php echo number_format($offset + 1, 0, ',', '.')?>
+                                    &ndash;
+                                    <?php echo number_format(min($offset + $per_page, $total_rows), 0, ',', '.')?>
+                                    dari <?php echo number_format($total_rows, 0, ',', '.')?> barang
+                                </p>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="text-right"><?php echo htmlspecialchars_decode($links)?></div>
+                            </div>
+                        </div>
+                        <?php } else { ?>
+                        <p class="text-muted">Belum ada penjualan pada periode ini.</p>
+                        <?php } ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </section>
 </div>
 

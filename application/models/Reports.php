@@ -2404,6 +2404,87 @@ private function profit_summary_range($from_date, $to_date){
     }
 
     /**
+     * Seluruh barang yang terjual pada satu periode, satu halaman
+     * sekaligus. Ini versi lengkap dari dashboard_top_products() yang
+     * hanya menampilkan 10 teratas.
+     *
+     * Urutannya sengaja sama (terlaris lebih dulu) supaya sepuluh baris
+     * pertama tabel ini cocok dengan tabel Top 10 di atasnya.
+     *
+     * @param string $from_date Y-m-d
+     * @param string $to_date   Y-m-d
+     * @param int    $per_page  jumlah baris per halaman
+     * @param int    $offset    baris ke berapa halaman ini dimulai
+     * @return array
+     */
+    public function dashboard_all_products($from_date, $to_date, $per_page, $offset = 0)
+    {
+        $cost = $this->dashboard_cost_expression();
+
+        $sql = "SELECT
+                    d.product_id,
+                    p.product_name,
+                    p.product_model,
+                    COALESCE(SUM(d.quantity), 0)           AS total_qty,
+                    COALESCE(SUM(d.total_price), 0)        AS total_sell,
+                    COALESCE(SUM(d.quantity * {$cost}), 0) AS total_cost,
+                    COUNT(DISTINCT i.invoice_id)           AS total_invoice
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+             LEFT JOIN product_information p ON p.product_id = d.product_id
+                 WHERE i.date BETWEEN ? AND ?
+              GROUP BY d.product_id
+              ORDER BY total_qty DESC, total_sell DESC
+                 LIMIT ".(int) $per_page." OFFSET ".(int) $offset;
+
+        $rows = $this->db->query($sql, array($from_date, $to_date))->result_array();
+
+        $products = array();
+        foreach ($rows as $row) {
+            $sell   = (float) $row['total_sell'];
+            $cost_v = (float) $row['total_cost'];
+            $margin = $sell - $cost_v;
+
+            $products[] = array(
+                'product_id'    => $row['product_id'],
+                // Produk yang sudah dihapus tetap ditampilkan agar
+                // penjualannya tidak hilang dari laporan.
+                'product_name'  => (!empty($row['product_name']) ? $row['product_name'] : '('.display('product_name').' -)'),
+                'product_model' => (!empty($row['product_model']) ? $row['product_model'] : '-'),
+                'total_qty'     => (float) $row['total_qty'],
+                'total_sell'    => $sell,
+                'total_cost'    => $cost_v,
+                'gross_margin'  => $margin,
+                // Margin dibagi omzet, sama seperti di kartu ringkasan.
+                'margin_percent'=> ($sell > 0 ? ($margin / $sell) * 100 : 0),
+                'total_invoice' => (int) $row['total_invoice'],
+            );
+        }
+
+        return $products;
+    }
+
+    /**
+     * Banyaknya barang berbeda yang terjual pada satu periode, dipakai
+     * untuk menghitung jumlah halaman pada tabel rincian.
+     *
+     * @param string $from_date Y-m-d
+     * @param string $to_date   Y-m-d
+     * @return int
+     */
+    public function dashboard_all_products_count($from_date, $to_date)
+    {
+        $sql = "SELECT COUNT(DISTINCT d.product_id) AS jumlah
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+                 WHERE i.date BETWEEN ? AND ?";
+
+        $row = $this->db->query($sql, array($from_date, $to_date))->row_array();
+
+        return (!empty($row['jumlah']) ? (int) $row['jumlah'] : 0);
+    }
+
+    /**
      * Rincian ringkasan per potongan waktu, dipakai untuk tabel dan
      * grafik breakdown (per hari, per minggu, atau per bulan).
      *

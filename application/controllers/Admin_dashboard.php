@@ -240,6 +240,46 @@ class Admin_dashboard extends CI_Controller {
 
 		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
 
+		#
+		# Paginasi tabel rincian seluruh barang terjual.
+		#
+		# Segmen 3 URL sudah dipakai nama periode
+		# (Admin_dashboard/period_detail/year), jadi nomor baris awal
+		# halaman ditaruh di segmen 4.
+		#
+		$per_page = 25;
+		$total_rows = $CI->Reports->dashboard_all_products_count($range['from'], $range['to']);
+
+		$config = array();
+		$config['base_url']       = base_url('Admin_dashboard/period_detail/'.$period);
+		$config['total_rows']     = $total_rows;
+		$config['per_page']       = $per_page;
+		$config['uri_segment']    = 4;
+		$config['num_links']      = 3;
+		/* Mengikuti gaya paginasi BootStrap 3 seperti laporan lain */
+		$config['full_tag_open']  = "<ul class='pagination'>";
+		$config['full_tag_close'] = "</ul>";
+		$config['num_tag_open']   = '<li>';
+		$config['num_tag_close']  = '</li>';
+		$config['cur_tag_open']   = "<li class='disabled'><li class='active'><a href='#'>";
+		$config['cur_tag_close']  = "<span class='sr-only'></span></a></li>";
+		$config['next_tag_open']  = "<li>";
+		$config['next_tag_close'] = "</li>";
+		$config['prev_tag_open']  = "<li>";
+		$config['prev_tagl_close']= "</li>";
+		$config['first_tag_open'] = "<li>";
+		$config['first_tagl_close']= "</li>";
+		$config['last_tag_open']  = "<li>";
+		$config['last_tagl_close']= "</li>";
+
+		$this->pagination->initialize($config);
+
+		// Segmen 4 berisi nomor baris awal, bukan nomor halaman.
+		$offset = (int) $this->uri->segment(4);
+		if ($offset < 0 || $offset >= $total_rows) {
+			$offset = 0;
+		}
+
 		$data = array(
 			'title'         => $range['title'],
 			'period'        => $period,
@@ -249,6 +289,11 @@ class Admin_dashboard extends CI_Controller {
 			'summary'       => $CI->Reports->dashboard_summary($range['from'], $range['to']),
 			'breakdown'     => $CI->Reports->dashboard_breakdown($this->dashboard_buckets($period, $range)),
 			'top_products'  => $CI->Reports->dashboard_top_products($range['from'], $range['to'], 10),
+			'all_products'  => $CI->Reports->dashboard_all_products($range['from'], $range['to'], $per_page, $offset),
+			'total_rows'    => $total_rows,
+			'offset'        => $offset,
+			'per_page'      => $per_page,
+			'links'         => $this->pagination->create_links(),
 			'currency'      => $currency_details[0]['currency'],
 			'position'      => $currency_details[0]['currency_position'],
 		);
