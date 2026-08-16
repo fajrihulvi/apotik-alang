@@ -799,6 +799,18 @@ $(document).ready(function() {
       };
    }
 
+   // Kolom yang HARUS tetap dibaca sebagai teks, walau isinya kebetulan
+   // berupa angka: Tanggal(3), Nama Barang(5), Satuan(7), dan Batch(9).
+   //
+   // Ini penting karena DataTables Buttons menandai sel sebagai angka bila
+   // isinya "mirip angka" (aturan: /^-?[0-9.]+$/ dan tidak diawali "0").
+   // Akibatnya di hasil unduhan:
+   //   - tanggal "2026-08-06" ikut dihitung sebagai angka -> tampil "2026"
+   //   - nama barang yang hanya berisi angka -> tampil apa adanya "4"
+   //   - kode batch "512" / "370" -> jadi angka, nol di depan bisa hilang
+   // Menambahkan awalan tak terlihat memaksa sel tetap bertipe teks.
+   var invTextCols = [3, 5, 7, 9];
+
    var invExportOptions = {
       columns: invExportCols,
       format: {
@@ -807,6 +819,7 @@ $(document).ready(function() {
             if (typeof data === 'string') {
                data = data.replace(/<[^>]*>/g, '').trim();
             }
+
             if (invNumericCols.indexOf(colIdx) !== -1) {
                // Kembalikan ke angka mentah: hapus pemisah ribuan dan
                // simbol mata uang yang hanya dipakai untuk tampilan.
@@ -814,6 +827,20 @@ $(document).ready(function() {
                var n = parseFloat(raw);
                return (isNaN(n) ? data : n);
             }
+
+            if (invTextCols.indexOf(colIdx) !== -1) {
+               var teks = (data === null || data === undefined) ? '' : String(data);
+               // Hanya nilai yang berisiko disalahartikan yang diberi
+               // penanda, supaya teks biasa tidak ikut berubah.
+               if (teks !== '' && /^-?[0-9.]+$/.test(teks)) {
+                  // U+200B (zero width space): tidak terlihat saat dibaca,
+                  // tetapi membuat sel dianggap teks - sehingga tanggal dan
+                  // nama barang tampil utuh.
+                  return '​' + teks;
+               }
+               return teks;
+            }
+
             return data;
          }
       }
