@@ -541,6 +541,76 @@
                                         <td class="text-center">Tidak</td>
                                         <td>Jenis pembayaran: <code>1</code> = Tunai, <code>2</code> = Transfer. Kosong dianggap <code>1</code>.</td>
                                     </tr>
+                                    <tr class="info">
+                                        <td colspan="3">
+                                            <strong>Diskon keseluruhan &amp; PPN</strong> &mdash; sama dengan isian
+                                            di bagian bawah form pembelian manual. Berlaku untuk
+                                            <strong>satu pembelian</strong> (bukan per barang), jadi
+                                            <strong>cukup diisi di baris pertama</strong> tiap nomor faktur;
+                                            baris berikutnya boleh dikosongkan.
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>overall_discount_input</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>Besar diskon keseluruhan. Kosong dianggap <code>0</code>.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>overall_discount_type</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>
+                                            <code>percent</code> &rarr; dihitung sebagai <strong>persen</strong> dari subtotal.
+                                            <code>fixed</code> &rarr; dianggap <strong>rupiah</strong> langsung.
+                                            Kosong dianggap <code>percent</code>.
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>ppn_input</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>Besar PPN. Kosong dianggap <code>0</code>. Contoh: <code>11</code> untuk PPN 11%.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>ppn_type</code></td>
+                                        <td class="text-center">Tidak</td>
+                                        <td>
+                                            <code>percent</code> &rarr; persen dari nilai <strong>sesudah diskon</strong>.
+                                            <code>fixed</code> &rarr; rupiah langsung.
+                                            Kosong dianggap <code>percent</code>.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            </div>
+
+                            <p><strong>Urutan perhitungan</strong> (sama persis dengan input manual):</p>
+                            <div class="table-responsive">
+                            <table class="table table-bordered table-condensed">
+                                <tbody>
+                                    <tr>
+                                        <td>Subtotal</td>
+                                        <td>jumlah semua <code>qty &times; price</code> setelah diskon per barang</td>
+                                        <td class="text-right"><code>1.000.000</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Diskon keseluruhan</td>
+                                        <td><code>overall_discount_input</code> <code>5</code> tipe <code>percent</code></td>
+                                        <td class="text-right"><code>&minus; 50.000</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Nilai bersih</td>
+                                        <td>dasar perhitungan PPN</td>
+                                        <td class="text-right"><code>950.000</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td>PPN</td>
+                                        <td><code>ppn_input</code> <code>11</code> tipe <code>percent</code>, dihitung dari nilai bersih</td>
+                                        <td class="text-right"><code>+ 104.500</code></td>
+                                    </tr>
+                                    <tr class="success">
+                                        <td><strong>Grand total</strong></td>
+                                        <td>nilai bersih + PPN</td>
+                                        <td class="text-right"><strong><code>1.054.500</code></strong></td>
+                                    </tr>
                                 </tbody>
                             </table>
                             </div>

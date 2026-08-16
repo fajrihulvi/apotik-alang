@@ -212,6 +212,10 @@ public function product_search_by_manufacturer(){
     {
         $this->auth->check_admin_auth();
 
+        // Empat kolom terakhir adalah diskon keseluruhan dan PPN. Keduanya
+        // berlaku untuk SATU pembelian (bukan per barang), sama seperti
+        // isian di bagian bawah form pembelian manual. Cukup diisi di baris
+        // pertama tiap nomor faktur; baris berikutnya boleh dikosongkan.
         $header = array(
             'manufacturer_name',
             'purchase_date',
@@ -224,6 +228,10 @@ public function product_search_by_manufacturer(){
             'price',
             'discount',
             'payment_type',
+            'overall_discount_input',
+            'overall_discount_type',
+            'ppn_input',
+            'ppn_type',
         );
 
         // Dua baris contoh memakai data yang benar-benar ada di database
@@ -245,9 +253,12 @@ public function product_search_by_manufacturer(){
         // Dua baris di bawah memakai chalan_no yang sama, jadi keduanya
         // masuk sebagai satu pembelian dengan dua barang.
         $chalan = 'PO-'.date('Ymd').'-01';
+        // Diskon keseluruhan 5% dan PPN 11% hanya ditulis di baris pertama.
+        // Baris kedua sengaja dikosongkan untuk menunjukkan bahwa keduanya
+        // cukup diisi sekali per nomor faktur.
         $rows = array(
-            array($nama_distributor, date('Y-m-d'), $chalan, 'Contoh pembelian', $barang1, 'BATCH-001', date('Y-m-d', strtotime('+1 year')), 10, 5000, 0, 1),
-            array($nama_distributor, date('Y-m-d'), $chalan, 'Contoh pembelian', $barang2, 'BATCH-002', date('Y-m-d', strtotime('+2 year')), 5, 12000, 0, 1),
+            array($nama_distributor, date('Y-m-d'), $chalan, 'Contoh pembelian', $barang1, 'BATCH-001', date('Y-m-d', strtotime('+1 year')), 10, 5000, 0, 1, 5, 'percent', 11, 'percent'),
+            array($nama_distributor, date('Y-m-d'), $chalan, 'Contoh pembelian', $barang2, 'BATCH-002', date('Y-m-d', strtotime('+2 year')), 5, 12000, 0, 1, '', '', '', ''),
         );
 
         // Baris petunjuk di bagian bawah berkas. Diawali '#' supaya mudah
@@ -271,8 +282,37 @@ public function product_search_by_manufacturer(){
             array('# expiry_date       = tanggal kedaluwarsa, format YYYY-MM-DD'),
             array('# qty               = jumlah barang, angka lebih dari 0'),
             array('# price             = harga beli per satuan, tanpa pemisah ribuan'),
-            array('# discount          = diskon per barang dalam PERSEN, kosong dianggap 0'),
+            array('# discount          = diskon PER BARANG dalam PERSEN, kosong dianggap 0'),
             array('# payment_type      = 1 = Tunai, 2 = Transfer, kosong dianggap 1'),
+            array('#'),
+            array('# ---- DISKON KESELURUHAN & PPN (berlaku untuk SATU pembelian) ----'),
+            array('# Empat kolom berikut sama dengan isian di bagian bawah form pembelian'),
+            array('# manual. Berbeda dengan kolom "discount" yang berlaku per barang,'),
+            array('# keempatnya berlaku untuk seluruh isi satu nomor faktur.'),
+            array('# CUKUP DIISI DI BARIS PERTAMA tiap nomor faktur; baris berikutnya'),
+            array('# boleh dikosongkan (lihat baris contoh kedua di atas).'),
+            array('#'),
+            array('# overall_discount_input = besar diskon keseluruhan, kosong dianggap 0'),
+            array('# overall_discount_type  = percent -> dianggap PERSEN dari subtotal'),
+            array('#                          fixed   -> dianggap RUPIAH langsung'),
+            array('#                          kosong dianggap percent'),
+            array('# ppn_input              = besar PPN, kosong dianggap 0'),
+            array('# ppn_type               = percent -> PERSEN dari nilai SESUDAH diskon'),
+            array('#                          fixed   -> RUPIAH langsung'),
+            array('#                          kosong dianggap percent'),
+            array('#'),
+            array('# Urutan hitungannya:'),
+            array('#   subtotal      = jumlah semua (qty x price) setelah diskon per barang'),
+            array('#   nilai bersih  = subtotal - diskon keseluruhan'),
+            array('#   PPN           = dihitung dari nilai bersih (bukan dari subtotal)'),
+            array('#   grand total   = nilai bersih + PPN'),
+            array('#'),
+            array('# Contoh: subtotal 1.000.000, overall_discount_input 5 (percent),'),
+            array('#         ppn_input 11 (percent)'),
+            array('#   diskon      = 1.000.000 x 5%  =  50.000'),
+            array('#   nilai bersih=              950.000'),
+            array('#   PPN         =   950.000 x 11% = 104.500'),
+            array('#   grand total =            1.054.500'),
         );
 
         $filename = 'template_pembelian_'.date('Ymd').'.csv';
@@ -375,6 +415,12 @@ public function product_search_by_manufacturer(){
                 'price'             => isset($csv_line[8]) ? trim($csv_line[8]) : '',
                 'discount'          => isset($csv_line[9]) ? trim($csv_line[9]) : 0,
                 'payment_type'      => isset($csv_line[10]) ? trim($csv_line[10]) : 1,
+                // Diskon keseluruhan & PPN: berlaku per pembelian, bukan per
+                // barang. Diambil dari baris pertama tiap nomor faktur.
+                'overall_discount_input' => isset($csv_line[11]) ? trim($csv_line[11]) : '',
+                'overall_discount_type'  => isset($csv_line[12]) ? strtolower(trim($csv_line[12])) : '',
+                'ppn_input'              => isset($csv_line[13]) ? trim($csv_line[13]) : '',
+                'ppn_type'               => isset($csv_line[14]) ? strtolower(trim($csv_line[14])) : '',
             );
 
             // Distributor harus terdaftar.
@@ -417,6 +463,26 @@ public function product_search_by_manufacturer(){
             }
             if (!is_numeric($r['discount'])) {
                 $r['discount'] = 0;
+            }
+
+            // Diskon keseluruhan & PPN. Kolom kosong berarti "tidak diisi",
+            // bukan nol - supaya baris kedua dst. tidak menimpa nilai yang
+            // sudah ditulis di baris pertama nomor faktur yang sama.
+            foreach (array('overall_discount_input', 'ppn_input') as $kolom) {
+                if ($r[$kolom] !== '' && !is_numeric($r[$kolom])) {
+                    $errors[] = 'Baris '.$lineNo.': '.$kolom.' harus angka.';
+                    continue 2;
+                }
+                if ($r[$kolom] !== '' && (float) $r[$kolom] < 0) {
+                    $errors[] = 'Baris '.$lineNo.': '.$kolom.' tidak boleh negatif.';
+                    continue 2;
+                }
+            }
+            foreach (array('overall_discount_type', 'ppn_type') as $kolom) {
+                if ($r[$kolom] !== '' && $r[$kolom] !== 'percent' && $r[$kolom] !== 'fixed') {
+                    $errors[] = 'Baris '.$lineNo.': '.$kolom.' harus "percent" atau "fixed".';
+                    continue 2;
+                }
             }
 
             $tgl_beli = strtotime($r['purchase_date']);
@@ -462,7 +528,29 @@ public function product_search_by_manufacturer(){
         foreach ($baris as $r) {
             $key = $r['manufacturer_id'].'|'.$r['chalan_no'];
             if (!isset($group[$key])) {
-                $group[$key] = array('head' => $r, 'items' => array());
+                $group[$key] = array(
+                    'head'  => $r,
+                    'items' => array(),
+                    // Diisi dari baris mana pun dalam kelompok yang mencantumkan
+                    // nilainya - biasanya baris pertama. Baris yang dikosongkan
+                    // tidak menimpa nilai yang sudah ada.
+                    'overall_discount_input' => 0,
+                    'overall_discount_type'  => 'percent',
+                    'ppn_input'              => 0,
+                    'ppn_type'               => 'percent',
+                );
+            }
+            if ($r['overall_discount_input'] !== '') {
+                $group[$key]['overall_discount_input'] = (float) $r['overall_discount_input'];
+            }
+            if ($r['overall_discount_type'] !== '') {
+                $group[$key]['overall_discount_type'] = $r['overall_discount_type'];
+            }
+            if ($r['ppn_input'] !== '') {
+                $group[$key]['ppn_input'] = (float) $r['ppn_input'];
+            }
+            if ($r['ppn_type'] !== '') {
+                $group[$key]['ppn_type'] = $r['ppn_type'];
             }
             $group[$key]['items'][] = $r;
         }
@@ -507,22 +595,70 @@ public function product_search_by_manufacturer(){
                                     ->get()->num_rows();
             } while ($bentrok > 0);
 
-            $grand_total = 0;
+            // Subtotal = jumlah seluruh barang setelah diskon per barang.
+            $sub_total = 0;
             foreach ($g['items'] as $it) {
                 $sub = (float)$it['qty'] * (float)$it['price'];
-                $grand_total += $sub - ($sub * (float)$it['discount'] / 100);
+                $sub_total += $sub - ($sub * (float)$it['discount'] / 100);
             }
 
+            // Diskon keseluruhan lalu PPN, memakai aturan yang sama persis
+            // dengan Purchases::calculate_overall_discount() pada input
+            // manual, supaya hasil kedua cara selalu sama.
+            $od_type  = ($g['overall_discount_type'] === 'fixed' ? 'fixed' : 'percent');
+            $od_input = (float) $g['overall_discount_input'];
+            if ($od_input < 0) {
+                $od_input = 0;
+            }
+            if ($od_type === 'percent') {
+                if ($od_input > 100) {
+                    $od_input = 100;
+                }
+                $od_amount = $sub_total * $od_input / 100;
+            } else {
+                $od_amount = $od_input;
+            }
+            // Diskon tidak boleh melebihi subtotal.
+            if ($od_amount > $sub_total) {
+                $od_amount = $sub_total;
+            }
+
+            // Dasar pengenaan pajak: nilai bersih sesudah diskon.
+            $dpp = $sub_total - $od_amount;
+
+            $ppn_type  = ($g['ppn_type'] === 'fixed' ? 'fixed' : 'percent');
+            $ppn_input = (float) $g['ppn_input'];
+            if ($ppn_input < 0) {
+                $ppn_input = 0;
+            }
+            if ($ppn_type === 'percent') {
+                if ($ppn_input > 100) {
+                    $ppn_input = 100;
+                }
+                $ppn_amount = $dpp * $ppn_input / 100;
+            } else {
+                $ppn_amount = $ppn_input;
+            }
+
+            // PPN menambah, jadi grand total = nilai bersih + PPN.
+            $grand_total = $dpp + $ppn_amount;
+
             $this->db->insert('product_purchase', array(
-                'purchase_id'        => $purchase_id,
-                'chalan_no'          => $head['chalan_no'],
-                'manufacturer_id'    => $head['manufacturer_id'],
-                'grand_total_amount' => $grand_total,
-                'total_discount'     => 0,
-                'purchase_date'      => $head['purchase_date'],
-                'purchase_details'   => $head['details'],
-                'status'             => 1,
-                'payment_type'       => $head['payment_type'],
+                'purchase_id'             => $purchase_id,
+                'chalan_no'               => $head['chalan_no'],
+                'manufacturer_id'         => $head['manufacturer_id'],
+                'grand_total_amount'      => round($grand_total, 2),
+                'total_discount'          => 0,
+                'overall_discount_type'   => $od_type,
+                'overall_discount_input'  => $od_input,
+                'overall_discount_amount' => round($od_amount, 2),
+                'ppn_type'                => $ppn_type,
+                'ppn_input'               => $ppn_input,
+                'ppn_amount'              => round($ppn_amount, 2),
+                'purchase_date'           => $head['purchase_date'],
+                'purchase_details'        => $head['details'],
+                'status'                  => 1,
+                'payment_type'            => $head['payment_type'],
             ));
             $jml_pembelian++;
 
