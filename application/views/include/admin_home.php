@@ -172,6 +172,45 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
 
         <?php
         // ============================================================
+        // KARTU KPI KONDISI PERSEDIAAN
+        //
+        // Empat angka yang paling perlu ditindaklanjuti sehari-hari.
+        // Seluruh kartu bisa diklik dan langsung membuka halaman
+        // rinciannya masing-masing.
+        //
+        // Ditampilkan bila user berhak membaca data obat, sebab isinya
+        // adalah kondisi stok & kedaluwarsa obat.
+        // ============================================================
+        if (!empty($kpi_cards) && $this->permission1->method('manage_medicine','read')->access()) {
+        ?>
+        <div class="row kpi-card-row">
+            <?php foreach ($kpi_cards as $kpi) { ?>
+            <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                <a href="<?php echo $kpi['url']?>" class="kpi-card-link">
+                    <div class="small-box <?php echo $kpi['bg']?> whitecolor kpi-card">
+                        <div class="inner">
+                            <h4 class="text-center">
+                                <span class="coundownnumber"><?php echo number_format($kpi['value'], 0, ',', '.')?></span>
+                            </h4>
+
+                            <p class="text-center"><?php echo html_escape($kpi['label'])?></p>
+                            <p class="text-center kpi-card-note"><small><?php echo html_escape($kpi['note'])?></small></p>
+                        </div>
+                        <div class="icon">
+                            <i class="fa <?php echo $kpi['icon']?>"></i>
+                        </div>
+                        <span class="small-box-footer">
+                            Lihat Detail <i class="fa fa-arrow-circle-right"></i>
+                        </span>
+                    </div>
+                </a>
+            </div>
+            <?php } ?>
+        </div>
+        <?php } ?>
+
+        <?php
+        // ============================================================
         // RINGKASAN PERIODE: Hari Ini / Minggu Ini / Bulan Ini / Tahun Ini
         //
         // Tiap kartu menampilkan angka pokok penjualan periode itu dan

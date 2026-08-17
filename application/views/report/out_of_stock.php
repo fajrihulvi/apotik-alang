@@ -64,10 +64,20 @@
 		                    <div class="col-sm-4">
 		                        <div class="form-group" style="margin-bottom:0;">
 		                            <label for="filter_stock_state">Status</label>
+		                            <?php
+		                            // Pilihan awal bisa datang dari URL, mis.
+		                            // Creport/out_of_stock?state=habis - dipakai
+		                            // kartu KPI di dashboard.
+		                            $state_awal = $this->input->get('state', TRUE);
+		                            if (!in_array($state_awal, array('kritis','menipis','habis'), TRUE)) {
+		                                $state_awal = '';
+		                            }
+		                            ?>
 		                            <select id="filter_stock_state" class="form-control">
 		                                <option value="">Semua</option>
-		                                <option value="kritis">Kritis</option>
-		                                <option value="menipis">Menipis</option>
+		                                <option value="habis"<?php echo ($state_awal==='habis'?' selected':'')?>>Habis (stok 0)</option>
+		                                <option value="kritis"<?php echo ($state_awal==='kritis'?' selected':'')?>>Kritis</option>
+		                                <option value="menipis"<?php echo ($state_awal==='menipis'?' selected':'')?>>Menipis</option>
 		                            </select>
 		                        </div>
 		                    </div>

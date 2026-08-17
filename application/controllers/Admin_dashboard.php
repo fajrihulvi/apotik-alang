@@ -46,6 +46,44 @@ class Admin_dashboard extends CI_Controller {
 		$pie_total_expense   = $CI->Reports->pie_total_expenseamount();
 		$pie_total_salary    = $CI->Reports->pie_total_salaryamount();
 
+		// Kartu KPI kondisi persediaan. Empat angka ini yang paling sering
+		// perlu ditindaklanjuti, jadi ditaruh di bagian atas dashboard dan
+		// masing-masing menuju halaman rinciannya.
+		$kpi_cards = array(
+			array(
+				'label' => 'Total Stok Habis',
+				'value' => $CI->Reports->empty_stock_count(),
+				'icon'  => 'fa-times-circle',
+				'bg'    => 'bg-danger',
+				'url'   => base_url('Creport/out_of_stock').'?state=habis',
+				'note'  => 'Stok tersisa 0',
+			),
+			array(
+				'label' => 'Total Stok Kritis',
+				'value' => $CI->Reports->critical_stock_count(),
+				'icon'  => 'fa-exclamation-triangle',
+				'bg'    => 'bg-orange',
+				'url'   => base_url('Creport/out_of_stock').'?state=kritis',
+				'note'  => 'Stok < penjualan bulan lalu',
+			),
+			array(
+				'label' => 'Total Obat Mendekati Kedaluwarsa',
+				'value' => $CI->Reports->near_expiry_count(),
+				'icon'  => 'fa-clock-o',
+				'bg'    => 'bg-green',
+				'url'   => base_url('Creport/near_expiry'),
+				'note'  => 'Masih ada stok',
+			),
+			array(
+				'label' => 'Total Obat Kedaluwarsa',
+				'value' => $CI->Reports->out_of_date_count(),
+				'icon'  => 'fa-ban',
+				'bg'    => 'bg-bringal',
+				'url'   => base_url('Creport/out_of_date'),
+				'note'  => 'Sudah lewat tanggal',
+			),
+		);
+
 		// Ringkasan empat periode untuk kartu di bagian atas dashboard.
 		// Tiap kartu memakai rentang tanggal yang sama persis dengan
 		// halaman detailnya, sehingga angkanya selalu cocok saat diklik.
@@ -94,6 +132,7 @@ class Admin_dashboard extends CI_Controller {
              'pie_total_expense'  => $pie_total_expense,
              'pie_total_salary'   => $pie_total_salary,
              'dashboard_periods'  => $dashboard_periods,
+             'kpi_cards'          => $kpi_cards,
 	    	);
 
 		$content = $CI->parser->parse('include/admin_home',$data,true);

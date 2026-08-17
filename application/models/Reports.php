@@ -85,12 +85,16 @@ class reports extends CI_Model {
          // kolom Status bisa disaring dan diurutkan sebelum paginasi.
          $critical_sql = "({$sold_sql} > 0 AND {$stock_sql} < {$sold_sql})";
 
-         // Filter kolom Status dari dropdown di layar.
+         // Filter kolom Status dari dropdown di layar. Nilai 'habis' dipakai
+         // kartu KPI di dashboard untuk langsung membuka obat yang stoknya
+         // benar-benar nol.
          $filter_state = $this->input->post('filter_stock_state', true);
          if($filter_state === 'kritis'){
             $having = "({$having}) AND {$critical_sql}";
          }elseif($filter_state === 'menipis'){
             $having = "({$having}) AND NOT {$critical_sql}";
+         }elseif($filter_state === 'habis'){
+            $having = "{$stock_sql} <= 0";
          }
 
          $selectCommon = "{$stock_sql} as 'stock', {$sold_sql} as 'sold_last_month', {$critical_sql} as 'is_critical'";
@@ -355,6 +359,25 @@ class reports extends CI_Model {
          return $records = $this->db->get()->num_rows();
 
 
+    }
+
+    /**
+     * Banyaknya obat yang stoknya benar-benar HABIS (nol atau minus).
+     *
+     * Berbeda dengan out_of_stock_count() yang memuat seluruh isi halaman
+     * Stok Kritis (stok menipis + kritis), yang ini hanya menghitung obat
+     * yang sudah tidak ada barangnya sama sekali.
+     *
+     * @return int
+     */
+    public function empty_stock_count(){
+         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+
+         $this->db->select("a.product_id", FALSE);
+         $this->db->from('product_information a');
+         $this->db->having("{$stock_sql} <= 0", NULL, FALSE);
+         $this->db->group_by('a.product_id');
+         return $this->db->get()->num_rows();
     }
 
     /**

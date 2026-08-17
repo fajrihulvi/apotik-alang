@@ -1244,3 +1244,51 @@ td.stock-state-cell .label {
 td.stock-state-cell .label:hover {
     opacity: .82;
 }
+
+/* ==================================================================
+   KARTU KPI KONDISI PERSEDIAAN (dashboard)
+   Seluruh kartu bisa diklik menuju halaman rinciannya.
+   ================================================================== */
+
+.kpi-card-row {
+    margin-bottom: 5px;
+}
+
+/* Pembungkus <a> dibuat block supaya seluruh badan kartu - bukan cuma
+   tulisannya - ikut bisa diklik. */
+.kpi-card-link,
+.kpi-card-link:hover,
+.kpi-card-link:focus {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.kpi-card {
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.kpi-card-link:hover .kpi-card {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .2);
+}
+
+/* Keterangan singkat di bawah nama KPI, mis. "Stok tersisa 0". */
+.kpi-card-note {
+    margin-bottom: 0;
+    opacity: .85;
+}
+
+.kpi-card .small-box-footer {
+    display: block;
+    text-align: center;
+    padding: 4px 0;
+    background: rgba(0, 0, 0, .1);
+    color: #fff;
+    color: rgba(255, 255, 255, .9);
+}
+
+.kpi-card-link:hover .small-box-footer {
+    background: rgba(0, 0, 0, .18);
+    color: #fff;
+}
