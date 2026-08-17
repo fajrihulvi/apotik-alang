@@ -191,7 +191,7 @@
 
                         <!-- Stok (sub-dropdown, dipindahkan ke dalam Transaksi) -->
                         <?php
-                        if($this->permission1->module('stock_report')->access() || $this->permission1->module('stock_report_manufacturer_wise')->access() || $this->permission1->module('stock_report_product_wise')->access() || $this->permission1->module('stock_report_batch_wise')->access()){ ?>
+                        if($this->permission1->module('stock_report')->access() || $this->permission1->module('stock_report_manufacturer_wise')->access() || $this->permission1->module('stock_report_product_wise')->access() || $this->permission1->module('stock_report_batch_wise')->access() || $this->permission1->module('add_stock_opname')->access() || $this->permission1->module('opname_list')->access() || $this->permission1->module('opname_log')->access()){ ?>
                             <li class="treeview <?php if ($this->uri->segment('1') == ("Creport")) { echo "active";}else{ echo " ";}?>">
                                 <a href="#">
                                     <i class="ti-bar-chart"></i> <span><?php echo display('stock') ?></span>
@@ -207,6 +207,15 @@
                                         <li class="treeview <?php if ($this->uri->segment('2') == ("stock_report_batch_wise")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Creport/stock_report_batch_wise')?>"><?php echo display('stock_report_batch_wise') ?></a></li>
                                     <?php } ?>
                                     <li class="treeview <?php if ($this->uri->segment('2') == ("near_expiry")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Creport/near_expiry')?>"><?php echo display('near_expiry') ?></a></li>
+                                    <?php if($this->permission1->method('add_stock_opname','create')->access()){ ?>
+                                        <li class="treeview <?php if ($this->uri->segment('1') == ("Cstock_opname") && $this->uri->segment('2') == ("opname_form")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cstock_opname/opname_form')?>"><?php echo display('add_stock_opname') ?></a></li>
+                                    <?php } ?>
+                                    <?php if($this->permission1->method('opname_list','read')->access()){ ?>
+                                        <li class="treeview <?php if ($this->uri->segment('1') == ("Cstock_opname") && $this->uri->segment('2') != ("opname_form") && $this->uri->segment('2') != ("opname_log")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cstock_opname')?>"><?php echo display('opname_list') ?></a></li>
+                                    <?php } ?>
+                                    <?php if($this->permission1->method('opname_log','read')->access()){ ?>
+                                        <li class="treeview <?php if ($this->uri->segment('2') == ("opname_log")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cstock_opname/opname_log')?>"><?php echo display('opname_log') ?></a></li>
+                                    <?php } ?>
                                 </ul>
                             </li>
                         <?php } ?>
