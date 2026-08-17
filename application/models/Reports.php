@@ -55,56 +55,100 @@ class reports extends CI_Model {
          $columnSortOrder = $postData['order'][0]['dir']; // asc or desc
          $searchValue = $postData['search']['value']; // Search value
 
-         ## Search 
+         ## Search
          $searchQuery = "";
          if($searchValue != ''){
-            $searchQuery = " (a.product_name like '%".$searchValue."%' or b.manufacturer_name like '%".$searchValue."%') ";
+            $like = $this->db->escape_like_str($searchValue);
+            $searchQuery = " (a.product_name like '%".$like."%' ESCAPE '!' or b.manufacturer_name like '%".$like."%' ESCAPE '!') ";
          }
 
+         // Penjualan bulan LALU (H-1) dipakai sebagai pembanding kebutuhan.
+         // Obat yang stoknya sekarang lebih sedikit daripada jumlah yang
+         // terjual sepanjang bulan lalu dianggap KRITIS: kalau permintaan
+         // bulan ini serupa, stoknya tidak akan cukup.
+         $last_month_start = date('Y-m-01', strtotime('first day of last month'));
+         $last_month_end   = date('Y-m-t',  strtotime('last day of last month'));
+
+         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $sold_sql  = "(select ifnull(sum(d.quantity),0)
+                          from invoice_details d
+                          join invoice i on i.invoice_id = d.invoice_id
+                         where d.product_id = `a`.`product_id`
+                           and i.date between '{$last_month_start}' and '{$last_month_end}')";
+
+         // Daftar ini memuat dua hal sekaligus:
+         //   1. stok menipis secara umum (di bawah 10) - aturan lama;
+         //   2. stok kritis dibanding penjualan bulan lalu - aturan baru.
+         $having = "{$stock_sql} < 10 OR ({$sold_sql} > 0 AND {$stock_sql} < {$sold_sql})";
+
+         $selectCommon = "{$stock_sql} as 'stock', {$sold_sql} as 'sold_last_month'";
+
          ## Total number of records without filtering
-         $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("count(*) as allcount, {$selectCommon}", FALSE);
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information b','b.manufacturer_id=a.manufacturer_id','left');
-          if($searchValue != ''){
-         $this->db->where($searchQuery);
-     }
-         $this->db->having('stock < 10');
+         $this->db->having($having, NULL, FALSE);
          $this->db->group_by('a.product_id');
          $totalRecords = $this->db->get()->num_rows();
 
          ## Total number of record with filtering
-         $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("count(*) as allcount, {$selectCommon}", FALSE);
          $this->db->from('product_information a');
           $this->db->join('manufacturer_information b','b.manufacturer_id=a.manufacturer_id','left');
          if($searchValue != ''){
          $this->db->where($searchQuery);
      }
-         $this->db->having('stock < 10');
+         $this->db->having($having, NULL, FALSE);
          $this->db->group_by('a.product_id');
          $totalRecordwithFilter = $this->db->get()->num_rows();
 
          ## Fetch records
-         $this->db->select("b.manufacturer_name,a.product_name,a.generic_name,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.manufacturer_name,a.product_name,a.generic_name,a.strength, {$selectCommon}", FALSE);
          $this->db->from('product_information a');
           $this->db->join('manufacturer_information b','b.manufacturer_id=a.manufacturer_id','left');
          if($searchValue != ''){
          $this->db->where($searchQuery);
      }
-         $this->db->having('stock < 10');
+         $this->db->having($having, NULL, FALSE);
          $this->db->group_by('a.product_id');
-         $this->db->order_by($columnName, $columnSortOrder);
+         // Nama kolom datang dari sisi klien, jadi dipetakan lewat daftar
+         // putih supaya tidak bisa disisipi SQL.
+         $sortable = array(
+            'product_name'      => 'a.product_name',
+            'manufacturer_name' => 'b.manufacturer_name',
+            'generic_name'      => 'a.generic_name',
+            'stock'             => 'stock',
+            'sold_last_month'   => 'sold_last_month',
+         );
+         $orderBy  = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.product_name');
+         $orderDir = (strtolower($columnSortOrder) === 'desc' ? 'desc' : 'asc');
+         $this->db->order_by($orderBy, $orderDir);
          $this->db->limit($rowperpage, $start);
          $records = $this->db->get()->result();
          $data = array();
-         $sl =1;
+         $sl = $start + 1;
          foreach($records as $record ){
-            $data[] = array( 
+            $stock = (float) $record->stock;
+            $sold  = (float) $record->sold_last_month;
+
+            // Kritis bila stok sekarang tidak menutup penjualan bulan lalu.
+            $kritis = ($sold > 0 && $stock < $sold);
+
+            $status = $kritis
+               ? '<span class="label" style="background:#d9534f;color:#fff;" title="Stok sekarang lebih sedikit daripada penjualan bulan lalu">'
+                 .'<i class="fa fa-exclamation-triangle"></i> Kritis</span>'
+               : '<span class="label" style="background:#f0ad4e;color:#fff;" title="Stok menipis (di bawah 10)">'
+                 .'<i class="fa fa-clock-o"></i> Menipis</span>';
+
+            $data[] = array(
                 'sl'               =>  $sl,
                 'product_name'     =>  medicine_name($record->product_name,$record->strength),
                 'manufacturer_name'=>  $record->manufacturer_name,
                 'generic_name'     =>  $record->generic_name,
-                'stock'            =>  $record->stock,
-            ); 
+                'stock'            =>  $stock,
+                'sold_last_month'  =>  $sold,
+                'stock_state'      =>  $status,
+            );
             $sl++;
          }
 
@@ -275,15 +319,54 @@ class reports extends CI_Model {
     //Out of stock count
     public function out_of_stock_count(){
 
-    
-  $this->db->select("b.manufacturer_name,a.product_name,a.generic_name,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         // Dihitung dengan aturan yang sama persis seperti daftar Stok Kritis
+         // (getStockOutList), supaya angka di dashboard dan isi halaman tidak
+         // pernah berbeda: stok menipis (< 10) ATAU stok lebih sedikit
+         // daripada penjualan bulan lalu.
+         $last_month_start = date('Y-m-01', strtotime('first day of last month'));
+         $last_month_end   = date('Y-m-t',  strtotime('last day of last month'));
+
+         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $sold_sql  = "(select ifnull(sum(d.quantity),0)
+                          from invoice_details d
+                          join invoice i on i.invoice_id = d.invoice_id
+                         where d.product_id = `a`.`product_id`
+                           and i.date between '{$last_month_start}' and '{$last_month_end}')";
+
+  $this->db->select("b.manufacturer_name,a.product_name,a.generic_name,a.strength, {$stock_sql} as 'stock'", FALSE);
        $this->db->from('product_information a');
        $this->db->join('manufacturer_information b','b.manufacturer_id=a.manufacturer_id','left');
-         $this->db->having('stock < 10');
+         $this->db->having("{$stock_sql} < 10 OR ({$sold_sql} > 0 AND {$stock_sql} < {$sold_sql})", NULL, FALSE);
          $this->db->group_by('a.product_id');
          return $records = $this->db->get()->num_rows();
 
 
+    }
+
+    /**
+     * Banyaknya obat yang benar-benar KRITIS: stok sekarang lebih sedikit
+     * daripada jumlah terjual sepanjang bulan lalu.
+     *
+     * Dipakai untuk menampilkan ringkasan di halaman Stok Kritis.
+     *
+     * @return int
+     */
+    public function critical_stock_count(){
+         $last_month_start = date('Y-m-01', strtotime('first day of last month'));
+         $last_month_end   = date('Y-m-t',  strtotime('last day of last month'));
+
+         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $sold_sql  = "(select ifnull(sum(d.quantity),0)
+                          from invoice_details d
+                          join invoice i on i.invoice_id = d.invoice_id
+                         where d.product_id = `a`.`product_id`
+                           and i.date between '{$last_month_start}' and '{$last_month_end}')";
+
+         $this->db->select("a.product_id", FALSE);
+         $this->db->from('product_information a');
+         $this->db->having("{$sold_sql} > 0 AND {$stock_sql} < {$sold_sql}", NULL, FALSE);
+         $this->db->group_by('a.product_id');
+         return $this->db->get()->num_rows();
     }
     // out of date count
     public function out_of_date_count(){

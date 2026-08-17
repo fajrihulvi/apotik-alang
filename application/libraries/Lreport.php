@@ -46,12 +46,35 @@ class Lreport {
 
 		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
 		$data = array(
-				'title' 	  => display('out_of_stock'),
+				'title' 	  => 'Stok Kritis',
 				'totalnumber' => $CI->Reports->out_of_stock_count(),
+				// Jumlah yang benar-benar kritis (stok < penjualan bulan lalu),
+				// dipakai untuk keterangan di atas tabel.
+				'criticalnumber' => $CI->Reports->critical_stock_count(),
+				// Periode pembanding ditampilkan supaya jelas angka "Terjual"
+				// di tabel itu bulan apa.
+				'last_month_label' => $this->indonesian_month_label(strtotime('first day of last month')),
 			);
 
 		$reportList = $CI->parser->parse('report/out_of_stock',$data,true);
 		return $reportList;
+	}
+
+	/**
+	 * Nama bulan dalam bahasa Indonesia, mis. "Juli 2026".
+	 *
+	 * date('F') selalu menghasilkan bahasa Inggris, sedangkan halaman ini
+	 * berbahasa Indonesia.
+	 *
+	 * @param int $timestamp
+	 * @return string
+	 */
+	private function indonesian_month_label($timestamp)
+	{
+		$bulan = array('Januari','Februari','Maret','April','Mei','Juni',
+					   'Juli','Agustus','September','Oktober','November','Desember');
+
+		return $bulan[(int) date('n', $timestamp) - 1].' '.date('Y', $timestamp);
 	}
 // Date expire Medicine list
 	public function out_of_date(){

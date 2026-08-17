@@ -1882,7 +1882,10 @@ $(document).ready(function() {
 
              "aaSorting": [[ 2, "asc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,1,3] },
+                // Kolom Status (6) berisi label berwarna, jadi tidak ada
+                // gunanya diurutkan. Stok (4) dan Terjual (5) sengaja bisa
+                // diurutkan supaya obat paling mendesak mudah dicari.
+                { "bSortable": false, "aTargets": [0,1,3,6] },
 
             ],
        'processing': true,
@@ -1895,13 +1898,13 @@ $(document).ready(function() {
               extend: "copy", className: "btn-sm prints"
           }
           , {
-              extend: "csv", title: "Out Of stock", className: "btn-sm prints"
+              extend: "csv", title: "Stok Kritis", className: "btn-sm prints"
           }
           , {
-              extend: "excel", title: "Out Of stock", className: "btn-sm prints"
+              extend: "excel", title: "Stok Kritis", className: "btn-sm prints"
           }
           , {
-              extend: "pdf", title: "Out Of stock", className: "btn-sm prints"
+              extend: "pdf", title: "Stok Kritis", className: "btn-sm prints"
           }
           , {
               extend: "print", className: "btn-sm prints"
@@ -1920,9 +1923,12 @@ $(document).ready(function() {
              { data: 'product_name' },
              { data: 'manufacturer_name' },
              { data: 'generic_name'},
-             { data: 'stock'},
-            
-            
+             { data: 'stock', class:"text-right"},
+             // Pembanding: jumlah terjual sepanjang bulan lalu.
+             { data: 'sold_last_month', class:"text-right"},
+             { data: 'stock_state', class:"text-center"},
+
+
           ],
 
 
