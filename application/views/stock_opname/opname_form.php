@@ -239,34 +239,47 @@
 	}
 
 	// --- Autocomplete Nama Obat (jQuery UI) ---
-	$('#cariProduk').autocomplete({
-		minLength: 1,
-		delay: 200,
-		source: function(request, response){
-			$.getJSON(baseUrl + 'Cstock_opname/search_product', {
-				keyword: request.term,
-				manufacturer_id: $('#filterDistributor').val()
-			}, function(rows){
-				if (!rows || rows.length === 0) {
-					response([{ label: '<?php echo html_escape(display('no_data_available') ?: 'No data') ?>', value: '', kosong: true }]);
-					return;
-				}
-				response($.map(rows, function(r){
-					var label = (r.product_name || '') + ' ' + (r.strength || '');
-					label += '  —  ' + (r.manufacturer_name || '') + '  —  ' + '<?php echo html_escape(display('stock')) ?>: ' + angka(r.stock);
-					return { label: label.trim(), value: r.product_name, data: r };
-				}));
-			});
-		},
-		focus: function(e, ui){ return false; },   // jangan tulis ke input saat hover
-		select: function(e, ui){
-			if (ui.item && !ui.item.kosong) {
-				tambahProduk(ui.item.data);
-			}
-			$('#cariProduk').val('');
-			return false;
+	// PENTING: jquery-ui.min.js dimuat di FOOTER template, setelah view ini
+	// di-render. Jadi $.fn.autocomplete belum tentu ada saat skrip ini jalan.
+	// initAutocomplete() dipanggil setelah window load; kalau plugin masih
+	// belum siap, ia menunggu sebentar lalu mencoba lagi.
+	function initAutocomplete(percobaan){
+		percobaan = percobaan || 0;
+		if (!$.fn || !$.fn.autocomplete) {
+			if (percobaan < 40) { setTimeout(function(){ initAutocomplete(percobaan + 1); }, 100); }
+			return;
 		}
-	});
+
+		$('#cariProduk').autocomplete({
+			minLength: 1,
+			delay: 200,
+			source: function(request, response){
+				$.getJSON(baseUrl + 'Cstock_opname/search_product', {
+					keyword: request.term,
+					manufacturer_id: $('#filterDistributor').val()
+				}, function(rows){
+					if (!rows || rows.length === 0) {
+						response([{ label: '<?php echo html_escape(display('no_data_available') ?: 'No data') ?>', value: '', kosong: true }]);
+						return;
+					}
+					response($.map(rows, function(r){
+						var label = (r.product_name || '') + ' ' + (r.strength || '');
+						label += '  —  ' + (r.manufacturer_name || '') + '  —  ' + '<?php echo html_escape(display('stock')) ?>: ' + angka(r.stock);
+						return { label: label.trim(), value: r.product_name, data: r };
+					}));
+				});
+			},
+			focus: function(e, ui){ return false; },   // jangan tulis ke input saat hover
+			select: function(e, ui){
+				if (ui.item && !ui.item.kosong) {
+					tambahProduk(ui.item.data);
+				}
+				$('#cariProduk').val('');
+				return false;
+			}
+		});
+	}
+	$(window).on('load', function(){ initAutocomplete(); });
 
 	$('#btnMuat').on('click', muatSemua);
 
