@@ -1292,3 +1292,42 @@ td.stock-state-cell .label:hover {
     background: rgba(0, 0, 0, .18);
     color: #fff;
 }
+
+/* ==================================================================
+   TABEL KINERJA DI BAWAH DASHBOARD (L7D / L3W / L3M / Top 10)
+   Baris = jenis angka, kolom = periode.
+   ================================================================== */
+
+.perf-table {
+    margin-bottom: 0;
+    font-size: 13px;
+}
+
+.perf-table > thead > tr > th {
+    background: #eaf3ea;
+    vertical-align: middle !important;
+    border-color: #d4e3d4 !important;
+    white-space: nowrap;
+}
+
+/* Baris kedua kepala tabel berisi tanggal/periode - dibuat lebih kecil
+   supaya nama periodenya tetap yang paling menonjol. */
+.perf-table > thead > tr > th.perf-subhead {
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Kolom nama KPI dipatok lebarnya supaya ketiga tabel sejajar. */
+.perf-table .perf-metric-col {
+    width: 210px;
+    min-width: 180px;
+    background: #f7f7f7;
+    font-weight: 600;
+    vertical-align: middle !important;
+}
+
+.perf-table > tbody > tr > td {
+    white-space: nowrap;
+    vertical-align: middle;
+}

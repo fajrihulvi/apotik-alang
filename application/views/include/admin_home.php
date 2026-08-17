@@ -210,6 +210,19 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
         <?php } ?>
 
         <?php
+        // Format rupiah tanpa desimal: nominal apotek selalu bulat, dan
+        // angka panjang membuat kartu jadi sulit dibaca. Didefinisikan di
+        // luar blok mana pun karena dipakai kartu ringkasan DAN tabel
+        // kinerja di bagian bawah halaman.
+        if (!function_exists('dashboard_money')) {
+            function dashboard_money($amount, $currency, $position) {
+                $value = number_format((float) $amount, 0, ',', '.');
+                return ($position == 0 ? $currency.' '.$value : $value.' '.$currency);
+            }
+        }
+        ?>
+
+        <?php
         // ============================================================
         // RINGKASAN PERIODE: Hari Ini / Minggu Ini / Bulan Ini / Tahun Ini
         //
@@ -221,15 +234,6 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
         // aturan yang sama dengan panel "Laporan Hari Ini" di bawah.
         // ============================================================
         if (!empty($dashboard_periods) && $this->permission1->method('todays_report','read')->access()) {
-
-            // Format rupiah tanpa desimal: nominal apotek selalu bulat,
-            // dan angka panjang membuat kartu jadi sulit dibaca.
-            if (!function_exists('dashboard_money')) {
-                function dashboard_money($amount, $currency, $position) {
-                    $value = number_format((float) $amount, 0, ',', '.');
-                    return ($position == 0 ? $currency.' '.$value : $value.' '.$currency);
-                }
-            }
 
             $period_style = array(
                 'today' => array('bg' => 'bg-primary',   'icon' => 'fa-calendar-o'),
@@ -318,6 +322,133 @@ $searchdate =(!empty($postdate)?$postdate:date('F Y'));
         </div>
         <?php } ?>
 
+
+        <?php
+        // ============================================================
+        // TABEL KINERJA
+        //
+        // Tiga tabel perbandingan (7 hari, 4 minggu, 4 bulan) plus
+        // Top 10 obat terlaris. Bentuknya menyalin laporan yang biasa
+        // dipakai: baris = jenis angka, kolom = periode.
+        //
+        // Seluruh periodenya dihitung dari hari ini, jadi ikut bergeser
+        // sendiri tanpa perlu diubah manual.
+        // ============================================================
+        if (!empty($perf_harian) && $this->permission1->method('todays_report','read')->access()) {
+
+            // Satu fungsi untuk mencetak ketiga tabel, karena isinya sama
+            // persis dan hanya berbeda daftar kolomnya.
+            if (!function_exists('dashboard_perf_table')) {
+                function dashboard_perf_table($judul, $kolom, $currency, $position) {
+                    $baris = array(
+                        'Jumlah Obat Terjual'   => 'total_qty',
+                        'Jumlah Sell Price'     => 'total_sell',
+                        'Jumlah Purchase Price' => 'total_cost',
+                        'Gross Margin'          => 'gross_margin',
+                        'Jumlah Pelanggan'      => 'total_invoice',
+                    );
+                    ?>
+                    <div class="panel panel-bd lobidisable">
+                        <div class="panel-heading">
+                            <div class="panel-title">
+                                <h4><?php echo html_escape($judul)?></h4>
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover perf-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="perf-metric-col" rowspan="2">KPI Metrics</th>
+                                            <?php foreach ($kolom as $k) { ?>
+                                            <th class="text-center"><?php echo html_escape($k['label'])?></th>
+                                            <?php } ?>
+                                        </tr>
+                                        <tr>
+                                            <?php foreach ($kolom as $k) { ?>
+                                            <th class="text-center perf-subhead"><?php echo html_escape($k['sublabel'])?></th>
+                                            <?php } ?>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($baris as $label => $kunci) { ?>
+                                        <tr>
+                                            <th class="perf-metric-col"><?php echo $label?></th>
+                                            <?php foreach ($kolom as $k) {
+                                                // Tiga baris nominal ditampilkan sebagai rupiah,
+                                                // dua lainnya sebagai cacah biasa.
+                                                $uang = in_array($kunci, array('total_sell','total_cost','gross_margin'));
+                                                $nilai = $k[$kunci];
+                                            ?>
+                                            <td class="text-right <?php echo ($kunci==='gross_margin' && $nilai < 0 ? 'text-danger' : '')?>">
+                                                <?php echo $uang
+                                                    ? dashboard_money($nilai, $currency, $position)
+                                                    : number_format($nilai, 0, ',', '.'); ?>
+                                            </td>
+                                            <?php } ?>
+                                        </tr>
+                                    <?php } ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <?php
+                }
+            }
+        ?>
+        <div class="row">
+            <div class="col-xs-12">
+                <?php dashboard_perf_table('Daily Performance (L7D)',   $perf_harian,   $currency, $position); ?>
+                <?php dashboard_perf_table('Weekly Performance (L3W)',  $perf_mingguan, $currency, $position); ?>
+                <?php dashboard_perf_table('Monthly Performance (L3M)', $perf_bulanan,  $currency, $position); ?>
+
+                <div class="panel panel-bd lobidisable">
+                    <div class="panel-heading">
+                        <div class="panel-title">
+                            <h4><i class="fa fa-trophy"></i> Top 10 (Obat Paling Laku)</h4>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <?php if (!empty($top_compare)) { ?>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover perf-table">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center" rowspan="2" style="width:50px;">No</th>
+                                        <th rowspan="2">Nama Barang</th>
+                                        <th class="text-center">L1M</th>
+                                        <th class="text-center">MTD</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="text-center perf-subhead"><?php echo html_escape($top_compare_head['base'])?></th>
+                                        <th class="text-center perf-subhead"><?php echo html_escape($top_compare_head['cmp'])?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <?php $no = 1; foreach ($top_compare as $t) { ?>
+                                    <tr>
+                                        <td class="text-center"><?php echo $no++?></td>
+                                        <td>
+                                            <a href="<?php echo base_url('Cproduct/product_details/'.$t['product_id'])?>">
+                                                <?php echo html_escape($t['product_name'])?>
+                                            </a>
+                                        </td>
+                                        <td class="text-right"><?php echo number_format($t['base_qty'], 0, ',', '.')?></td>
+                                        <td class="text-right"><?php echo number_format($t['cmp_qty'], 0, ',', '.')?></td>
+                                    </tr>
+                                <?php } ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <?php } else { ?>
+                        <p class="text-muted">Belum ada penjualan pada periode ini.</p>
+                        <?php } ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php } ?>
 
     </section> <!-- /.content -->
 

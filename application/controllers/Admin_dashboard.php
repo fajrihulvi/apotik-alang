@@ -100,6 +100,74 @@ class Admin_dashboard extends CI_Controller {
 			);
 		}
 
+		// Tabel kinerja di bagian bawah dashboard: 7 hari terakhir,
+		// 4 minggu terakhir, dan 4 bulan terakhir. Seluruh periodenya
+		// dihitung dari hari ini, jadi ikut bergeser sendiri tiap hari.
+		$hari_singkat  = array('Min','Sen','Sel','Rab','Kam','Jum','Sab');
+		$bulan_singkat = array('Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des');
+
+		// --- L7D: 7 hari terakhir, hari ini di kolom pertama ---
+		$kolom_harian = array();
+		for ($i = 0; $i < 7; $i++) {
+			$t = strtotime("-{$i} day");
+			$tgl = date('Y-m-d', $t);
+			$kolom_harian[] = array(
+				'label'    => $hari_singkat[(int) date('w', $t)],
+				'sublabel' => $tgl,
+				'from'     => $tgl,
+				'to'       => $tgl,
+			);
+		}
+
+		// --- L3W: minggu berjalan + 3 minggu sebelumnya (Senin-Minggu) ---
+		$kolom_mingguan = array();
+		foreach (array(3 => 'L3W', 2 => 'L2W', 1 => 'L1W', 0 => 'Minggu Ini') as $mundur => $label) {
+			$awal  = strtotime("monday this week -{$mundur} week");
+			$akhir = strtotime("sunday this week -{$mundur} week");
+			$kolom_mingguan[] = array(
+				'label'    => $label,
+				'sublabel' => date('d', $awal).' '.$bulan_singkat[(int) date('n', $awal) - 1]
+				              .' - '.date('d', $akhir).' '.$bulan_singkat[(int) date('n', $akhir) - 1]." '".date('y', $akhir),
+				'from'     => date('Y-m-d', $awal),
+				'to'       => date('Y-m-d', $akhir),
+			);
+		}
+
+		// --- L3M: 3 bulan penuh sebelumnya + bulan berjalan (MTD) ---
+		$kolom_bulanan = array();
+		foreach (array(3 => 'L3M', 2 => 'L2M', 1 => 'L1M') as $mundur => $label) {
+			$awal = strtotime("first day of -{$mundur} month");
+			$kolom_bulanan[] = array(
+				'label'    => $label,
+				'sublabel' => $bulan_singkat[(int) date('n', $awal) - 1]."'".date('y', $awal),
+				'from'     => date('Y-m-01', $awal),
+				'to'       => date('Y-m-t', $awal),
+			);
+		}
+		// MTD = sejak tanggal 1 sampai HARI INI, bukan sampai akhir bulan,
+		// supaya bisa dibandingkan setara dengan bulan yang sudah lewat.
+		$kolom_bulanan[] = array(
+			'label'    => 'MTD',
+			'sublabel' => '01 - '.date('d').' '.$bulan_singkat[(int) date('n') - 1],
+			'from'     => date('Y-m-01'),
+			'to'       => date('Y-m-d'),
+		);
+
+		$perf_harian   = $CI->Reports->dashboard_period_columns($kolom_harian);
+		$perf_mingguan = $CI->Reports->dashboard_period_columns($kolom_mingguan);
+		$perf_bulanan  = $CI->Reports->dashboard_period_columns($kolom_bulanan);
+
+		// Top 10 bulan lalu, disandingkan dengan capaian bulan berjalan.
+		$bulan_lalu_awal = date('Y-m-01', strtotime('first day of last month'));
+		$bulan_lalu_akhir= date('Y-m-t',  strtotime('last day of last month'));
+		$top_compare = $CI->Reports->dashboard_top_products_compare(
+			$bulan_lalu_awal, $bulan_lalu_akhir, date('Y-m-01'), date('Y-m-d'), 10
+		);
+		$top_compare_head = array(
+			'base' => $bulan_singkat[(int) date('n', strtotime($bulan_lalu_awal)) - 1]."'".date('y', strtotime($bulan_lalu_awal)),
+			'cmp'  => '01 - '.date('d').' '.$bulan_singkat[(int) date('n') - 1],
+		);
+
         $chart_label = $chart_data = '';
 		if (!empty($best_sales_product))
 		    for ($i = 0; $i < 50; $i++) {
@@ -133,6 +201,11 @@ class Admin_dashboard extends CI_Controller {
              'pie_total_salary'   => $pie_total_salary,
              'dashboard_periods'  => $dashboard_periods,
              'kpi_cards'          => $kpi_cards,
+             'perf_harian'        => $perf_harian,
+             'perf_mingguan'      => $perf_mingguan,
+             'perf_bulanan'       => $perf_bulanan,
+             'top_compare'        => $top_compare,
+             'top_compare_head'   => $top_compare_head,
 	    	);
 
 		$content = $CI->parser->parse('include/admin_home',$data,true);

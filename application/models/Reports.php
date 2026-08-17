@@ -2552,6 +2552,85 @@ private function profit_summary_range($from_date, $to_date){
         return $products;
     }
 
+    # =================================================================
+    # TABEL KINERJA (L7D / L3W / L3M) DI BAWAH DASHBOARD
+    #
+    # Semua angkanya memakai dashboard_summary(), yaitu perhitungan yang
+    # sama dengan kartu ringkasan di atasnya - jadi tidak mungkin beda.
+    # =================================================================
+
+    /**
+     * Ringkasan beberapa periode sekaligus, sudah berurutan siap tampil
+     * sebagai kolom tabel.
+     *
+     * $periods berisi daftar array dengan kunci 'label', 'sublabel',
+     * 'from', dan 'to'.
+     *
+     * @param array $periods
+     * @return array
+     */
+    public function dashboard_period_columns($periods)
+    {
+        $columns = array();
+        foreach ($periods as $p) {
+            $summary = $this->dashboard_summary($p['from'], $p['to']);
+            $summary['label']    = $p['label'];
+            $summary['sublabel'] = $p['sublabel'];
+            $summary['from']     = $p['from'];
+            $summary['to']       = $p['to'];
+            $columns[] = $summary;
+        }
+        return $columns;
+    }
+
+    /**
+     * 10 barang terlaris pada periode acuan, beserta jumlah terjualnya
+     * pada periode pembanding.
+     *
+     * Dipakai tabel "Top 10 (Obat Paling Laku)" yang menyandingkan
+     * penjualan bulan lalu dengan bulan berjalan.
+     *
+     * @param string $base_from  awal periode acuan (Y-m-d)
+     * @param string $base_to    akhir periode acuan
+     * @param string $cmp_from   awal periode pembanding
+     * @param string $cmp_to     akhir periode pembanding
+     * @param int    $limit
+     * @return array
+     */
+    public function dashboard_top_products_compare($base_from, $base_to, $cmp_from, $cmp_to, $limit = 10)
+    {
+        $sql = "SELECT
+                    d.product_id,
+                    p.product_name,
+                    COALESCE(SUM(d.quantity), 0) AS base_qty,
+                    COALESCE((SELECT SUM(d2.quantity)
+                                FROM invoice_details d2
+                                JOIN invoice i2 ON i2.invoice_id = d2.invoice_id
+                               WHERE d2.product_id = d.product_id
+                                 AND i2.date BETWEEN ? AND ?), 0) AS cmp_qty
+                  FROM invoice i
+                  JOIN invoice_details d ON d.invoice_id = i.invoice_id
+             LEFT JOIN product_information p ON p.product_id = d.product_id
+                 WHERE i.date BETWEEN ? AND ?
+              GROUP BY d.product_id
+              ORDER BY base_qty DESC
+                 LIMIT ".(int) $limit;
+
+        $rows = $this->db->query($sql, array($cmp_from, $cmp_to, $base_from, $base_to))->result_array();
+
+        $products = array();
+        foreach ($rows as $row) {
+            $products[] = array(
+                'product_id'   => $row['product_id'],
+                'product_name' => (!empty($row['product_name']) ? $row['product_name'] : '('.display('product_name').' -)'),
+                'base_qty'     => (float) $row['base_qty'],
+                'cmp_qty'      => (float) $row['cmp_qty'],
+            );
+        }
+
+        return $products;
+    }
+
     /**
      * Seluruh barang yang terjual pada satu periode, satu halaman
      * sekaligus. Ini versi lengkap dari dashboard_top_products() yang
