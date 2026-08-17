@@ -114,7 +114,8 @@
 										<tr>
 											<th><?php echo display('sales_date') ?></th>
 											<th><?php echo display('product_name') ?></th>
-											<th><?php echo display('product_model') ?></th>
+											<th><?php echo display('quantity') ?></th>
+											<th><?php echo display('unit') ?></th>
 											<th><?php echo display('customer_name') ?></th>
 											<th><?php echo display('rate') ?></th>
 											<th><?php echo display('total_ammount') ?></th>
@@ -134,7 +135,8 @@
 										<tr>
 											<td><?php echo $rep['sales_date'] ?></td>
 											<td><?php echo $rep['product_name'] ?></td>
-											<td><?php echo $rep['product_model'] ?></td>
+											<td style="text-align: right;"><?php echo $rep['quantity'] ?></td>
+											<td><?php echo $rep['unit'] ?></td>
 											<td><?php echo $rep['customer_name'] ?></td>
 											<td style="text-align: right;"><?php echo (($position==0)?"$currency":"$currency");echo $rep['rate'] ?></td>
 											<td style="text-align: right;"><?php echo (($position==0)?"$currency":"$currency");echo $rep['total_price'] ?></td>
@@ -147,7 +149,7 @@
 									?>
 									</tbody>
 									<tfoot>
-									<td colspan="5" align="right" style="text-align:right;font-size:14px !Important">&nbsp; <b><?php echo display('total_ammount') ?></b></td>
+									<td colspan="6" align="right" style="text-align:right;font-size:14px !Important">&nbsp; <b><?php echo display('total_ammount') ?></b></td>
 											<td style="text-align: right;"><b><?php echo (($position==0)?"$currency":"$currency");echo $sub_totalp; ?></b></td>
 									</tfoot>
 			                    </table>

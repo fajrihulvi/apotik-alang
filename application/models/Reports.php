@@ -1152,7 +1152,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
     //RETRIEVE DATE WISE SINGE PRODUCT REPORT
     public function retrieve_product_sales_report($perpage,$page)
     {
-        $this->db->select("a.*,b.product_name,b.product_model,c.date,c.total_amount,d.customer_name,c.payment_type,pt.payment_type_name");
+        $this->db->select("a.*,b.product_name,b.product_model,b.unit,c.date,c.total_amount,d.customer_name,c.payment_type,pt.payment_type_name");
         $this->db->from('invoice_details a');
         $this->db->join('product_information b','b.product_id = a.product_id');
         $this->db->join('invoice c','c.invoice_id = a.invoice_id');
@@ -1182,7 +1182,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
     public function retrieve_product_search_sales_report( $start_date,$end_date )
     {
         $dateRange = "c.date BETWEEN '$start_date%' AND '$end_date%'";
-        $this->db->select("a.*,b.product_name,b.product_model,c.date,d.customer_name,c.payment_type,pt.payment_type_name");
+        $this->db->select("a.*,b.product_name,b.product_model,b.unit,c.date,d.customer_name,c.payment_type,pt.payment_type_name");
         $this->db->from('invoice_details a');
         $this->db->join('product_information b','b.product_id = a.product_id');
         $this->db->join('invoice c','c.invoice_id = a.invoice_id');
