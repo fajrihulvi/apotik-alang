@@ -133,40 +133,32 @@
                         </span>
                     </a>
                     <ul class="treeview-menu">
+                        <!-- Penjualan (sub-dropdown): Transaksi Baru, Kelola Transaksi, Transaksi POS, GUI POS -->
                         <?php
-                          if($this->permission1->method('new_invoice','create')->access()) { ?>
-                            <li  class="treeview <?php if ($this->uri->segment('1') == ("Cinvoice") && $this->uri->segment('2') == ("")){
-                        echo "active";
-                    } else {
-                        echo " ";
-                    }?>"><a href="<?php echo base_url('Cinvoice') ?>"><?php echo display('new_invoice') ?></a></li>
+                        if($this->permission1->module('new_invoice')->access() || $this->permission1->module('manage_invoice')->access() || $this->permission1->module('pos_invoice')->access() || $this->permission1->module('gui_pos')->access()){ ?>
+                            <li class="treeview <?php if ($this->uri->segment('1') == ("Cinvoice")) { echo "active";}else{ echo " ";}?>">
+                                <a href="#">
+                                    <i class="fa fa-shopping-basket"></i> <span><?php echo display('sales') ?></span>
+                                    <span class="pull-right-container">
+                                        <i class="fa fa-angle-left pull-right"></i>
+                                    </span>
+                                </a>
+                                <ul class="treeview-menu">
+                                    <?php if($this->permission1->method('new_invoice','create')->access()) { ?>
+                                        <li class="treeview <?php if ($this->uri->segment('1') == ("Cinvoice") && $this->uri->segment('2') == ("")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cinvoice') ?>"><?php echo display('new_invoice') ?></a></li>
+                                    <?php } ?>
+                                    <?php if($this->permission1->method('manage_invoice','read')->access() || $this->permission1->method('manage_invoice','update')->access() || $this->permission1->method('manage_invoice','delete')->access()) { ?>
+                                        <li class="treeview <?php if ($this->uri->segment('2') == ("manage_invoice")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cinvoice/manage_invoice')?>"><?php echo display('manage_invoice') ?></a></li>
+                                    <?php } ?>
+                                    <?php if($this->permission1->method('pos_invoice','create')->access()) { ?>
+                                        <li class="treeview <?php if ($this->uri->segment('2') == ("pos_invoice")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cinvoice/pos_invoice')?>"><?php echo display('pos_invoice') ?></a></li>
+                                    <?php } ?>
+                                    <?php if($this->permission1->method('gui_pos','create')->access()) { ?>
+                                        <li class="treeview <?php if ($this->uri->segment('2') == ("gui_pos")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cinvoice/gui_pos')?>"><?php echo display('gui_pos') ?></a></li>
+                                    <?php } ?>
+                                </ul>
+                            </li>
                         <?php } ?>
-
-                        <?php
-                          if($this->permission1->method('manage_invoice','read')->access() || $this->permission1->method('manage_invoice','update')->access() || $this->permission1->method('manage_invoice','delete')->access()) { ?>
-                            <li class="treeview <?php if ($this->uri->segment('2') == ("manage_invoice")){
-                        echo "active";
-                    } else {
-                        echo " ";
-                    }?>"><a href="<?php echo base_url('Cinvoice/manage_invoice')?>"><?php echo display('manage_invoice') ?></a></li>
-                        <?php } ?>
-
-                        <?php
-                        if($this->permission1->method('pos_invoice','create')->access()) { ?>
-                            <li  class="treeview <?php if ($this->uri->segment('2') == ("pos_invoice")){
-                        echo "active";
-                    } else {
-                        echo " ";
-                    }?>"><a href="<?php echo base_url('Cinvoice/pos_invoice')?>"><?php echo display('pos_invoice') ?></a></li>
-                        <?php } ?>
-                        <?php
-                        if($this->permission1->method('gui_pos','create')->access()) { ?>
-                         <li  class="treeview <?php if ($this->uri->segment('2') == ("gui_pos")){
-                        echo "active";
-                    } else {
-                        echo " ";
-                    }?>"><a href="<?php echo base_url('Cinvoice/gui_pos')?>"><?php echo display('gui_pos') ?></a></li>
-                          <?php } ?>
 
                         <!-- Pembelian (sub-dropdown, dipindahkan ke dalam Transaksi) -->
                         <?php
