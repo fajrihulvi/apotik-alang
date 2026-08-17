@@ -1877,15 +1877,15 @@ $(document).ready(function() {
    var CSRF_TOKEN = $('[name="csrf_test_name"]').val();
    var base_url = $("#base_url").val();
    var total_outofstock = $("#total_out_of_stock").val();
-    $('#outof_stock').DataTable({ 
+    var stockoutdatatable = $('#outof_stock').DataTable({
              responsive: false,
 
              "aaSorting": [[ 2, "asc" ]],
              "columnDefs": [
-                // Kolom Status (6) berisi label berwarna, jadi tidak ada
-                // gunanya diurutkan. Stok (4) dan Terjual (5) sengaja bisa
-                // diurutkan supaya obat paling mendesak mudah dicari.
-                { "bSortable": false, "aTargets": [0,1,3,6] },
+                // Stok (4), Terjual (5), dan Status (6) bisa diurutkan supaya
+                // obat paling mendesak mudah dicari. Mengurutkan Status secara
+                // menurun menaruh yang Kritis di atas.
+                { "bSortable": false, "aTargets": [0,1,3] },
 
             ],
        'processing': true,
@@ -1914,8 +1914,9 @@ $(document).ready(function() {
             'serverMethod': 'post',
             'ajax': {
                'url':base_url + 'Creport/CheckStockOutList',
-                data:{
-                csrf_test_name : CSRF_TOKEN,
+                data: function (d) {
+                  d.csrf_test_name = CSRF_TOKEN;
+                  d.filter_stock_state = $('#filter_stock_state').val() || '';
                }
             },
           'columns': [
@@ -1926,7 +1927,7 @@ $(document).ready(function() {
              { data: 'stock', class:"text-right"},
              // Pembanding: jumlah terjual sepanjang bulan lalu.
              { data: 'sold_last_month', class:"text-right"},
-             { data: 'stock_state', class:"text-center"},
+             { data: 'stock_state', class:"text-center stock-state-cell"},
 
 
           ],
@@ -1935,6 +1936,26 @@ $(document).ready(function() {
 
 
     });
+
+   // Memilih status langsung memuat ulang tabel - cukup satu klik, tanpa
+   // tombol Cari terpisah.
+   $('#filter_stock_state').change(function(){
+      stockoutdatatable.ajax.reload();
+   });
+
+   // Label Kritis/Menipis di dalam tabel juga bisa diklik untuk menyaring,
+   // sehingga pengguna tidak perlu mencari dropdown-nya lebih dulu.
+   $('#outof_stock tbody').on('click', 'td.stock-state-cell .label', function(){
+      var teks = $.trim($(this).text()).toLowerCase();
+      var nilai = (teks.indexOf('kritis') !== -1 ? 'kritis' : 'menipis');
+
+      // Klik pada status yang sedang aktif berarti membatalkan saringan.
+      if ($('#filter_stock_state').val() === nilai) {
+         nilai = '';
+      }
+      $('#filter_stock_state').val(nilai);
+      stockoutdatatable.ajax.reload();
+   });
 
 
 

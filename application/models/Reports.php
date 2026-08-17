@@ -81,7 +81,19 @@ class reports extends CI_Model {
          //   2. stok kritis dibanding penjualan bulan lalu - aturan baru.
          $having = "{$stock_sql} < 10 OR ({$sold_sql} > 0 AND {$stock_sql} < {$sold_sql})";
 
-         $selectCommon = "{$stock_sql} as 'stock', {$sold_sql} as 'sold_last_month'";
+         // Penanda kritis: 1 = Kritis, 0 = Menipis. Dihitung di SQL supaya
+         // kolom Status bisa disaring dan diurutkan sebelum paginasi.
+         $critical_sql = "({$sold_sql} > 0 AND {$stock_sql} < {$sold_sql})";
+
+         // Filter kolom Status dari dropdown di layar.
+         $filter_state = $this->input->post('filter_stock_state', true);
+         if($filter_state === 'kritis'){
+            $having = "({$having}) AND {$critical_sql}";
+         }elseif($filter_state === 'menipis'){
+            $having = "({$having}) AND NOT {$critical_sql}";
+         }
+
+         $selectCommon = "{$stock_sql} as 'stock', {$sold_sql} as 'sold_last_month', {$critical_sql} as 'is_critical'";
 
          ## Total number of records without filtering
          $this->db->select("count(*) as allcount, {$selectCommon}", FALSE);
@@ -119,6 +131,8 @@ class reports extends CI_Model {
             'generic_name'      => 'a.generic_name',
             'stock'             => 'stock',
             'sold_last_month'   => 'sold_last_month',
+            // Diurutkan menurun berarti Kritis (1) tampil lebih dulu.
+            'stock_state'       => 'is_critical',
          );
          $orderBy  = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.product_name');
          $orderDir = (strtolower($columnSortOrder) === 'desc' ? 'desc' : 'asc');

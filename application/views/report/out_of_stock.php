@@ -54,6 +54,25 @@
 		                    </p>
 		                </div>
 
+		                <?php
+		                // Filter kolom Status. Tabel ini diproses di server,
+		                // jadi penyaringan dikerjakan lewat query - bukan
+		                // menyembunyikan baris di layar - supaya jumlah
+		                // halaman dan totalnya ikut benar.
+		                ?>
+		                <div class="row" style="margin-bottom:12px;">
+		                    <div class="col-sm-4">
+		                        <div class="form-group" style="margin-bottom:0;">
+		                            <label for="filter_stock_state">Status</label>
+		                            <select id="filter_stock_state" class="form-control">
+		                                <option value="">Semua</option>
+		                                <option value="kritis">Kritis</option>
+		                                <option value="menipis">Menipis</option>
+		                            </select>
+		                        </div>
+		                    </div>
+		                </div>
+
 		                <div class="table-responsive">
 		                    <table class="table table-striped table-bordered" cellspacing="0" width="100%" id="outof_stock">
 		                        <thead>

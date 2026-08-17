@@ -1231,3 +1231,16 @@ td.sales-price-cell input.sales-price-input {
     margin: 0;
     display: inline-block;
 }
+
+/* ==================================================================
+   FILTER STATUS PADA HALAMAN STOK KRITIS
+   Label Kritis/Menipis di tabel bisa diklik untuk menyaring.
+   ================================================================== */
+
+td.stock-state-cell .label {
+    cursor: pointer;
+}
+
+td.stock-state-cell .label:hover {
+    opacity: .82;
+}
