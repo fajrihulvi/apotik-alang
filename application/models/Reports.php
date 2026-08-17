@@ -8,7 +8,7 @@ class reports extends CI_Model {
     //Count report
     public function count_stock_report()
     {
-        $this->db->select("a.product_name,a.product_id,a.cartoon_quantity,a.price,a.product_model,sum(b.quantity) as 'totalSalesQnty',(select sum(product_purchase_details.quantity) from product_purchase_details where product_id= `a`.`product_id`) as 'totalBuyQnty'");
+        $this->db->select("a.product_name,a.product_id,a.cartoon_quantity,a.price,a.product_model,sum(b.quantity) as 'totalSalesQnty',(select vsc.qty_purchase from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'totalBuyQnty'");
         $this->db->from('product_information a');
         $this->db->join('invoice_details b','b.product_id = a.product_id');
         $this->db->where(array('a.status'=>1,'b.status'=>1));
@@ -20,8 +20,13 @@ class reports extends CI_Model {
         //Out of stock
     public function out_of_stock(){
 
-      $this->db->select("a.unit,a.product_name,a.product_id,a.price,a.product_model,(select sum(quantity) from invoice_details where product_id= `a`.`product_id`) as 'totalSalesQnty',(select sum(quantity) from product_purchase_details where product_id= `a`.`product_id`) as 'totalBuyQnty'");
+      // Stok diambil dari view terpusat view_stock_current. Sebelumnya kolom
+      // totalSalesQnty/totalBuyQnty memakai sum() tanpa ifnull, sehingga produk
+      // yang belum pernah terjual menghasilkan NULL dan pengurangannya di PHP
+      // ikut menjadi NULL. View selalu mengembalikan 0, bukan NULL.
+      $this->db->select("a.unit,a.product_name,a.product_id,a.price,a.product_model,vsc.qty_sales as 'totalSalesQnty',vsc.qty_purchase as 'totalBuyQnty'");
         $this->db->from('product_information a');
+        $this->db->join('view_stock_current vsc','vsc.product_id = a.product_id','left');
         $this->db->where(array('a.status' => 1));
         $this->db->group_by('a.product_id');
         $query = $this->db->get();
@@ -69,7 +74,7 @@ class reports extends CI_Model {
          $last_month_start = date('Y-m-01', strtotime('first day of last month'));
          $last_month_end   = date('Y-m-t',  strtotime('last day of last month'));
 
-         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $stock_sql = "(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`)";
          $sold_sql  = "(select ifnull(sum(d.quantity),0)
                           from invoice_details d
                           join invoice i on i.invoice_id = d.invoice_id
@@ -183,31 +188,26 @@ class reports extends CI_Model {
 
         public function stock_csv_file()
     {
+        // Stok diambil sekali lewat JOIN ke view terpusat. Sebelumnya setiap
+        // produk memicu 2 query di dalam loop (~2.390 query untuk 1.195 produk).
         $this->db->select("a.product_id,
                 a.product_name,
                 a.product_model,
                  a.price,
-                a.manufacturer_price
+                a.manufacturer_price,
+                vsc.qty_purchase as totalPurchaseQnty,
+                vsc.qty_sales    as totalSalesQnty,
+                vsc.stock        as stok_quantity_cartoon
                 ");
         $this->db->from('product_information a');
+        $this->db->join('view_stock_current vsc','vsc.product_id = a.product_id','left');
         $query = $this->db->get();
         $stok_report = $query->result_array();
-        
-         $i = 1;
-        foreach($stok_report as $k=>$v){$i++;
-                $stockin = $this->db->select('sum(quantity) as totalSalesQnty')->from('invoice_details')->where('product_id',$stok_report[$k]['product_id'])->get()->row();
-                $stockout = $this->db->select('sum(quantity) as totalPurchaseQnty')->from('product_purchase_details')->where('product_id',$stok_report[$k]['product_id'])->get()->row();
-                
-             $stok_report[$k]['totalPurchaseQnty'] = $stockout->totalPurchaseQnty;  
-              $stok_report[$k]['totalSalesQnty'] = $stockin->totalSalesQnty;
-             $stok_report[$k]['stok_quantity_cartoon'] = ($stockout->totalPurchaseQnty-$stockin->totalSalesQnty);
-              $stok_report[$k]['purchase_total']=$stok_report[$k]['stok_quantity_cartoon']*$stok_report[$k]['manufacturer_price'];
-               
+
+        foreach($stok_report as $k=>$v){
+             $stok_report[$k]['purchase_total']=$stok_report[$k]['stok_quantity_cartoon']*$stok_report[$k]['manufacturer_price'];
+
                   $stok_report[$k]['total_sale_price']=$stok_report[$k]['stok_quantity_cartoon']*$stok_report[$k]['price'];
-                
-             
-
-
             }
             return $stok_report;
         
@@ -263,7 +263,7 @@ class reports extends CI_Model {
          };
 
          ## Total number of records without filtering
-         $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("count(*) as allcount,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $joinDistributor();
@@ -274,7 +274,7 @@ class reports extends CI_Model {
          $totalRecords = $this->db->get()->num_rows();
 
          ## Total number of record with filtering
-         $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("count(*) as allcount,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $joinDistributor();
@@ -288,7 +288,7 @@ class reports extends CI_Model {
          $totalRecordwithFilter = $this->db->get()->num_rows();
 
          ## Fetch records
-         $this->db->select("b.*,a.product_name,a.strength,m.manufacturer_name,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.*,a.product_name,a.strength,m.manufacturer_name,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $joinDistributor();
@@ -344,7 +344,7 @@ class reports extends CI_Model {
          $last_month_start = date('Y-m-01', strtotime('first day of last month'));
          $last_month_end   = date('Y-m-t',  strtotime('last day of last month'));
 
-         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $stock_sql = "(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`)";
          $sold_sql  = "(select ifnull(sum(d.quantity),0)
                           from invoice_details d
                           join invoice i on i.invoice_id = d.invoice_id
@@ -371,7 +371,7 @@ class reports extends CI_Model {
      * @return int
      */
     public function empty_stock_count(){
-         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $stock_sql = "(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`)";
 
          $this->db->select("a.product_id", FALSE);
          $this->db->from('product_information a');
@@ -392,7 +392,7 @@ class reports extends CI_Model {
          $last_month_start = date('Y-m-01', strtotime('first day of last month'));
          $last_month_end   = date('Y-m-t',  strtotime('last day of last month'));
 
-         $stock_sql = "((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`))";
+         $stock_sql = "(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`)";
          $sold_sql  = "(select ifnull(sum(d.quantity),0)
                           from invoice_details d
                           join invoice i on i.invoice_id = d.invoice_id
@@ -409,7 +409,7 @@ class reports extends CI_Model {
     public function out_of_date_count(){
 
           $date=date('Y-m-d');
-         $this->db->select("b.*,a.product_name,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.*,a.product_name,a.strength,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $this->db->where('b.expeire_date <=', $date);
@@ -446,7 +446,7 @@ class reports extends CI_Model {
          $today  = date('Y-m-d');
          $months = $this->expiry_alert_months();
          $limitDate = date('Y-m-d', strtotime("+".$months." months"));
-         $this->db->select("b.*,a.product_name,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.*,a.product_name,a.strength,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $this->db->where('b.expeire_date >', $today);
@@ -489,7 +489,7 @@ class reports extends CI_Model {
          };
 
          ## Total tanpa filtering
-         $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("count(*) as allcount,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $joinDistributor();
@@ -501,7 +501,7 @@ class reports extends CI_Model {
          $totalRecords = $this->db->get()->num_rows();
 
          ## Total dengan filtering
-         $this->db->select("count(*) as allcount,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("count(*) as allcount,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $joinDistributor();
@@ -514,7 +514,7 @@ class reports extends CI_Model {
          $totalRecordwithFilter = $this->db->get()->num_rows();
 
          ## Fetch records
-         $this->db->select("b.*,a.product_name,a.strength,m.manufacturer_name,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'stock'");
+         $this->db->select("b.*,a.product_name,a.strength,m.manufacturer_name,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'stock'");
          $this->db->from('product_information a');
          $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
          $joinDistributor();
@@ -572,7 +572,7 @@ class reports extends CI_Model {
     public function stock_report($limit,$page)
     {
     
-        $this->db->select("a.product_name,a.product_id,a.cartoon_quantity,a.price,a.product_model,sum(b.quantity) as 'totalSalesQnty',(select sum(product_purchase_details.quantity) from product_purchase_details where product_id= `a`.`product_id`) as 'totalBuyQnty'");
+        $this->db->select("a.product_name,a.product_id,a.cartoon_quantity,a.price,a.product_model,sum(b.quantity) as 'totalSalesQnty',(select vsc.qty_purchase from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'totalBuyQnty'");
         $this->db->from('product_information a');
         $this->db->join('invoice_details b','b.product_id = a.product_id');
         $this->db->where(array('a.status'=>1,'b.status'=>1));
@@ -1369,12 +1369,18 @@ public function stock_report_batch_bydate($perpage,$page){
          $totalRecordwithFilter = $this->db->get()->num_rows();
 
          ## Fetch records
+         // Stok per batch diambil sekali lewat JOIN ke view_stock_batch_current.
+         // Sebelumnya tiap baris memicu 2 query tambahan di dalam loop.
          $this->db->select("a.*,
                 m.product_name,
                 m.strength,
+                vsb.qty_purchase as inqty,
+                vsb.qty_sales    as outqty,
+                vsb.stock        as batch_stock
                 ");
          $this->db->from('product_purchase_details a');
          $this->db->join('product_information m','m.product_id = a.product_id','left');
+         $this->db->join('view_stock_batch_current vsb','vsb.product_id = a.product_id AND vsb.batch_id = a.batch_id','left');
          $applyFilter();
          $this->db->group_by('a.batch_id');
          $this->db->group_by('a.product_id');
@@ -1385,22 +1391,20 @@ public function stock_report_batch_bydate($perpage,$page){
          $sl =1;
          $base_url = base_url();
          foreach($records as $record ){
-          $stockout = $this->db->select('sum(quantity) as totalSalesQnty')->from('invoice_details')->where('product_id',$record->product_id)->where('batch_id',$record->batch_id)->get()->row();
-         $stockin = $this->db->select('sum(quantity) as totalPurchaseQnty')->from('product_purchase_details')->where('product_id',$record->product_id)->where('batch_id',$record->batch_id)->get()->row();
           $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
-            
-               
-            $data[] = array( 
+
+
+            $data[] = array(
                 'sl'               =>   $sl,
                 'product_name'     =>  $medicine_name,
                 'strength'         =>  $record->strength,
                 'batch_id'         =>  $record->batch_id,
                 'expeire_date'     =>  $record->expeire_date,
-                'inqty'            =>  (!empty($stockin->totalPurchaseQnty)?$stockin->totalPurchaseQnty:0),
-                'outqty'           =>  (!empty($stockout->totalSalesQnty)?$stockout->totalSalesQnty:0),
-                'stock'            =>  (!empty($stockin->totalPurchaseQnty)?$stockin->totalPurchaseQnty:0)-(!empty($stockout->totalSalesQnty)?$stockout->totalSalesQnty:0),
-                
-            ); 
+                'inqty'            =>  (!empty($record->inqty)?$record->inqty:0),
+                'outqty'           =>  (!empty($record->outqty)?$record->outqty:0),
+                'stock'            =>  (!empty($record->batch_stock)?$record->batch_stock:0),
+
+            );
             $sl++;
          }
 

@@ -8,7 +8,7 @@ class Searchs extends CI_Model {
 	#============Medicine search============#
 	public function medicine_search($keyword)
 	{
-		 $this->db->select("b.*,c.manufacturer_name,a.product_name,a.product_model,a.generic_name,a.product_location,a.box_size,a.strength,((select ifnull(sum(quantity),0) from product_purchase_details where product_id= `a`.`product_id`)-(select ifnull(sum(quantity),0) from invoice_details where product_id= `a`.`product_id`)) as 'total_stock'");
+		 $this->db->select("b.*,c.manufacturer_name,a.product_name,a.product_model,a.generic_name,a.product_location,a.box_size,a.strength,(select vsc.stock from view_stock_current vsc where vsc.product_id = `a`.`product_id`) as 'total_stock'");
         $this->db->from('product_information a');
         $this->db->join('product_purchase_details b','b.product_id=a.product_id','left');
         $this->db->join('manufacturer_information c','c.manufacturer_id=a.manufacturer_id','left');
