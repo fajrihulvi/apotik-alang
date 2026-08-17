@@ -10,6 +10,15 @@ class Cstock_opname extends CI_Controller {
 		$this->load->library('occational');
 		$this->load->model('Stock_opname');
 		$this->auth->check_admin_auth();
+
+		// Samakan zona waktu dengan setelan aplikasi (mis. Asia/Jakarta),
+		// supaya jam & tanggal opname sesuai waktu setempat, bukan zona
+		// bawaan server. Pola ini mengikuti Cattendance.
+		$this->load->model('Web_settings');
+		$ws = $this->Web_settings->retrieve_setting_editdata();
+		if (!empty($ws[0]['timezone'])) {
+			date_default_timezone_set($ws[0]['timezone']);
+		}
 	}
 
 	// Daftar sesi opname

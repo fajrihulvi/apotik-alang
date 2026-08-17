@@ -62,7 +62,8 @@
 							<div class="col-sm-5">
 								<div class="form-group">
 									<label><?php echo display('product_name') ?></label>
-									<input type="text" id="cariProduk" class="form-control" placeholder="<?php echo display('search') ?>...">
+									<input type="text" id="cariProduk" class="form-control" autocomplete="off" placeholder="<?php echo display('search') ?> <?php echo display('product_name') ?>...">
+									<small class="text-muted"><?php echo display('product_name') ?> &rarr; <?php echo display('add_stock_opname') ?></small>
 								</div>
 							</div>
 							<div class="col-sm-4">
@@ -79,7 +80,7 @@
 							<div class="col-sm-3">
 								<div class="form-group">
 									<label>&nbsp;</label><br>
-									<button type="button" id="btnMuat" class="btn btn-primary"><?php echo display('search') ?></button>
+									<button type="button" id="btnMuat" class="btn btn-primary"><i class="fa fa-list"></i> <?php echo display('all') ?></button>
 								</div>
 							</div>
 						</div>
@@ -108,8 +109,8 @@
 								</thead>
 								<tbody id="isiTabel">
 									<tr id="barisKosong">
-										<td colspan="7" class="text-center">
-											<?php echo display('search') ?> <?php echo display('product_name') ?> / <?php echo display('manufacturer_name') ?>
+										<td colspan="7" class="text-center text-muted">
+											<?php echo display('search') ?> <?php echo display('product_name') ?> &mdash; <?php echo display('manufacturer_name') ?>
 										</td>
 									</tr>
 								</tbody>
@@ -150,11 +151,13 @@
 		<?php } ?>;
 
 	function angka(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+	function esc(v){ return $('<div>').text(v == null ? '' : v).html(); }
 
-	// Hitung ulang selisih satu baris + ringkasan bawah
+	// Hitung ulang selisih tiap baris + ringkasan bawah
 	function hitung(){
-		var totalSelisih = 0, jumlahItem = 0;
+		var totalSelisih = 0, jumlahItem = 0, adaBaris = false;
 		$('#isiTabel tr[data-produk]').each(function(){
+			adaBaris = true;
 			var $b     = $(this);
 			var sistem = angka($b.data('sistem'));
 			var fisikR = $b.find('.qty-fisik').val();
@@ -178,48 +181,124 @@
 		});
 		$('#totalSelisih').text(totalSelisih > 0 ? '+' + totalSelisih : totalSelisih);
 		$('#ringkasan').text(jumlahItem + ' item');
+		if (!adaBaris && $('#isiTabel #barisKosong').length === 0) {
+			$('#isiTabel').html('<tr id="barisKosong"><td colspan="7" class="text-center text-muted">-</td></tr>');
+		}
 	}
 
-	// Muat produk ke tabel
-	function muatProduk(){
+	// Bangun satu baris produk (dipakai autocomplete & muat-semua)
+	function baris(r){
+		return '<tr data-produk="' + esc(r.product_id) + '" data-sistem="' + angka(r.stock) + '">'
+			 +   '<td>' + esc((r.product_name || '') + ' ' + (r.strength || ''))
+			 +     '<input type="hidden" name="product_id[]" value="' + esc(r.product_id) + '">'
+			 +   '</td>'
+			 +   '<td class="text-center">' + esc(r.unit) + '</td>'
+			 +   '<td class="text-right">' + angka(r.stock) + '</td>'
+			 +   '<td><input type="number" step="any" min="0" class="form-control input-sm text-right qty-fisik" name="qty_physical[]"></td>'
+			 +   '<td class="text-right sel-nilai">-</td>'
+			 +   '<td><select class="form-control input-sm pilih-alasan" name="reason_code[]">' + reasonOptions + '</select></td>'
+			 +   '<td>'
+			 +     '<div class="input-group">'
+			 +       '<input type="text" class="form-control input-sm" name="reason_note[]">'
+			 +       '<span class="input-group-btn"><button type="button" class="btn btn-danger btn-sm hapus-baris" title="&times;">&times;</button></span>'
+			 +     '</div>'
+			 +   '</td>'
+			 + '</tr>';
+	}
+
+	// Tambah satu produk (dari autocomplete). Cegah duplikat.
+	function tambahProduk(r){
+		if (!r || !r.product_id) { return; }
+		if ($('#isiTabel tr[data-produk="' + $.escapeSelector(String(r.product_id)) + '"]').length) {
+			// sudah ada -> sorot sebentar
+			$('#isiTabel tr[data-produk="' + $.escapeSelector(String(r.product_id)) + '"]')
+				.find('.qty-fisik').focus();
+			return;
+		}
+		$('#isiTabel #barisKosong').remove();
+		$('#isiTabel').append(baris(r));
+		hitung();
+	}
+
+	// Muat SEMUA produk (opsional, tombol di kanan)
+	function muatSemua(){
 		$.getJSON(baseUrl + 'Cstock_opname/search_product', {
-			keyword: $('#cariProduk').val(),
+			keyword: '',
 			manufacturer_id: $('#filterDistributor').val()
 		}, function(rows){
+			if (!rows || rows.length === 0) { return; }
+			$('#isiTabel #barisKosong').remove();
 			var html = '';
-			if (!rows || rows.length === 0) {
-				html = '<tr id="barisKosong"><td colspan="7" class="text-center">-</td></tr>';
-			} else {
-				$.each(rows, function(i, r){
-					var nama = $('<div>').text((r.product_name || '') + ' ' + (r.strength || '')).html();
-					var unit = $('<div>').text(r.unit || '').html();
-					html += '<tr data-produk="' + $('<div>').text(r.product_id).html() + '" data-sistem="' + r.stock + '">'
-						 +   '<td>' + nama
-						 +     '<input type="hidden" name="product_id[]" value="' + $('<div>').text(r.product_id).html() + '">'
-						 +   '</td>'
-						 +   '<td class="text-center">' + unit + '</td>'
-						 +   '<td class="text-right">' + r.stock + '</td>'
-						 +   '<td><input type="number" step="any" min="0" class="form-control input-sm text-right qty-fisik" name="qty_physical[]"></td>'
-						 +   '<td class="text-right sel-nilai">-</td>'
-						 +   '<td><select class="form-control input-sm pilih-alasan" name="reason_code[]">' + reasonOptions + '</select></td>'
-						 +   '<td><input type="text" class="form-control input-sm" name="reason_note[]"></td>'
-						 + '</tr>';
-				});
-			}
-			$('#isiTabel').html(html);
+			$.each(rows, function(i, r){
+				if ($('#isiTabel tr[data-produk="' + $.escapeSelector(String(r.product_id)) + '"]').length) { return; }
+				html += baris(r);
+			});
+			$('#isiTabel').append(html);
 			hitung();
 		});
 	}
 
-	$('#btnMuat').on('click', muatProduk);
-	$('#cariProduk').on('keypress', function(e){
-		if (e.which === 13) { e.preventDefault(); muatProduk(); }
+	// --- Autocomplete Nama Obat (jQuery UI) ---
+	$('#cariProduk').autocomplete({
+		minLength: 1,
+		delay: 200,
+		source: function(request, response){
+			$.getJSON(baseUrl + 'Cstock_opname/search_product', {
+				keyword: request.term,
+				manufacturer_id: $('#filterDistributor').val()
+			}, function(rows){
+				if (!rows || rows.length === 0) {
+					response([{ label: '<?php echo html_escape(display('no_data_available') ?: 'No data') ?>', value: '', kosong: true }]);
+					return;
+				}
+				response($.map(rows, function(r){
+					var label = (r.product_name || '') + ' ' + (r.strength || '');
+					label += '  —  ' + (r.manufacturer_name || '') + '  —  ' + '<?php echo html_escape(display('stock')) ?>: ' + angka(r.stock);
+					return { label: label.trim(), value: r.product_name, data: r };
+				}));
+			});
+		},
+		focus: function(e, ui){ return false; },   // jangan tulis ke input saat hover
+		select: function(e, ui){
+			if (ui.item && !ui.item.kosong) {
+				tambahProduk(ui.item.data);
+			}
+			$('#cariProduk').val('');
+			return false;
+		}
 	});
+
+	$('#btnMuat').on('click', muatSemua);
+
+	// Enter di kotak cari jangan submit form
+	$('#cariProduk').on('keydown', function(e){
+		if (e.which === 13) { e.preventDefault(); }
+	});
+
+	// Hitung ulang saat stok fisik diketik; hapus baris
 	$('#isiTabel').on('input change', '.qty-fisik', hitung);
+	$('#isiTabel').on('click', '.hapus-baris', function(){
+		$(this).closest('tr').remove();
+		hitung();
+	});
+
+	// Cegah simpan bila belum ada baris sama sekali
+	function adaBarisProduk(){ return $('#isiTabel tr[data-produk]').length > 0; }
+
+	$('#opnameForm').on('submit', function(e){
+		if (!adaBarisProduk()) {
+			e.preventDefault();
+			alert('<?php echo html_escape(display('search') ?: 'Pilih') ?> <?php echo html_escape(display('product_name')) ?>');
+		}
+	});
 
 	// Posting: ubah action lalu submit
 	$('#btnPosting').on('click', function(){
 		var form = document.getElementById('opnameForm');
+		if (!adaBarisProduk()) {
+			alert('<?php echo html_escape(display('search') ?: 'Pilih') ?> <?php echo html_escape(display('product_name')) ?>');
+			return;
+		}
 		if (!form.checkValidity()) { form.reportValidity(); return; }
 		form.action = baseUrl + 'Cstock_opname/save_and_post';
 		form.submit();
