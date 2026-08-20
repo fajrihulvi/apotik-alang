@@ -298,190 +298,256 @@ class Cproduct extends CI_Controller {
 		exit;
 	}
 	//CSV Upload File
-   function uploadCsv()
-    {
-    	 $filename = $_FILES['upload_csv_file']['name'];  
-        $ext = end(explode('.', $filename));
-        $ext = substr(strrchr($filename, '.'), 1);
-        if($ext == 'csv'){
-    	$count=0;
-        $fp = fopen($_FILES['upload_csv_file']['tmp_name'],'r') or die("can't open file");
+	//
+	// Catatan perbaikan:
+	// - `end(explode(...))` dihapus: end() menerima parameter by reference,
+	//   sehingga hasil fungsi langsung memicu notice "Only variables should be
+	//   passed by reference". Ekstensi cukup diambil dengan strrchr().
+	// - Baris judul (header) CSV kini dilewati secara eksplisit, bukan lewat
+	//   trik `if ($count > 0)`. Trik lama hanya membungkus sebagian insert;
+	//   insert ke acc_coa tetap jalan untuk baris judul sehingga terbentuk COA
+	//   sampah 'Manufacturer Name-0' dan menabrak PRIMARY KEY pada upload kedua.
+	// - Distributor/kategori baru kini dibuat lewat helper yang mengingat hasil
+	//   pencarian dalam satu proses upload, supaya satu nama tidak dibuat
+	//   berulang kali dan HeadCode COA tidak bentrok.
+	function uploadCsv()
+	{
+		if (empty($_FILES['upload_csv_file']['name'])) {
+			$this->session->set_userdata(array('error_message' => 'Please Import Only Csv File'));
+			redirect(base_url('Cproduct/add_product_csv'));
+			return;
+		}
 
-        if (($handle = fopen($_FILES['upload_csv_file']['tmp_name'], 'r')) !== FALSE)
-    	{
-  
-	     while($csv_line = fgetcsv($fp,1024)){
-	            // Baris kosong (Excel biasa menyisakan satu di akhir file) dibaca
-	            // sebagai array([0] => null). Baris seperti ini harus dilewati:
-	            // kalau tidak, $insert_csv masih berisi data baris SEBELUMNYA dan
-	            // obat terakhir jadi terimport dua kali.
-	            $baris_kosong = (count($csv_line) <= 1 && trim((string)$csv_line[0]) === '');
-	            if($baris_kosong){
-	              continue;
-	            }
-	            // Nama obat wajib ada; tanpa itu barisnya tidak bisa dipakai.
-	            if(!isset($csv_line[1]) || trim((string)$csv_line[1]) === ''){
-	              $count++;
-	              continue;
-	            }
+		$filename = $_FILES['upload_csv_file']['name'];
+		$ext = strtolower(substr(strrchr($filename, '.'), 1));
 
-	            $product_id = $this->generator(20);
-	            $insert_csv = array();
-	            $insert_csv['manufacturer_id'] = (!empty($csv_line[0])?$csv_line[0]:null);
-	            $insert_csv['product_name'] = (!empty($csv_line[1])?$csv_line[1]:null);
-	            $insert_csv['generic_name'] = (!empty($csv_line[2])?$csv_line[2]:null);
-	            $insert_csv['strength'] = (!empty($csv_line[3])?$csv_line[3]:null);
-	            $insert_csv['category_id'] = (!empty($csv_line[4])?$csv_line[4]:null);
-	            $insert_csv['manufacturer_price'] = (!empty($csv_line[5])?$csv_line[5]:null);
-	            $insert_csv['sale_price'] = (!empty($csv_line[6])?$csv_line[6]:null);
+		if ($ext != 'csv') {
+			$this->session->set_userdata(array('error_message' => 'Please Import Only Csv File'));
+			redirect(base_url('Cproduct/add_product_csv'));
+			return;
+		}
 
-	             $check_manufacturer = $this->db->select('*')->from('manufacturer_information')->where('manufacturer_name',$insert_csv['manufacturer_id'])->get()->row();
-	            if(!empty($check_manufacturer)){
-	            	$manufacturer_id = $check_manufacturer->manufacturer_id;
-	            }else{
-	            	 $manufacinfo=array(
-		            'manufacturer_name' => $insert_csv['manufacturer_id'],
-		            'address'           => '',
-		            'mobile'            => '',
-		            'details'           => '',
-		            'status'            => 1
-		            );
-	            	   if ($count > 0) {
-	        $this->db->insert('manufacturer_information',$manufacinfo);
-	    }
-	        $manufacturer_id = $this->db->insert_id();
-	        $coa = $this->Manufacturers->headcode();
-        if($coa->HeadCode!=NULL){
-            $headcode=$coa->HeadCode+1;
-        }
-        else{
-            $headcode="502020000001";
-        }
-        $c_acc=$insert_csv['manufacturer_id'].'-'.$manufacturer_id;
-        $createby=$this->session->userdata('user_id');
-        $createdate=date('Y-m-d H:i:s');
+		$fp = fopen($_FILES['upload_csv_file']['tmp_name'], 'r');
+		if ($fp === FALSE) {
+			$this->session->set_userdata(array('error_message' => 'Gagal membaca berkas CSV'));
+			redirect(base_url('Cproduct/add_product_csv'));
+			return;
+		}
 
-       
-         $manufacturer_coa = [
-            'HeadCode'         => $headcode,
-            'HeadName'         => $c_acc,
-            'PHeadName'        => 'Account Payable',
-            'HeadLevel'        => '3',
-            'IsActive'         => '1',
-            'IsTransaction'    => '1',
-            'IsGL'             => '0',
-            'HeadType'         => 'L',
-            'IsBudget'         => '0',
-            'manufacturer_id'  => $manufacturer_id,
-            'IsDepreciation'   => '0',
-            'DepreciationRate' => '0',
-            'CreateBy'         => $createby,
-            'CreateDate'       => $createdate,
-        ];
+		// Cache dalam satu proses upload supaya nama yang sama tidak diproses
+		// berulang (ratusan baris CSV sering memakai distributor yang sama).
+		$cache_manufacturer = array();
+		$cache_category     = array();
+		$baris_ke           = 0;
+		$jumlah_import      = 0;
 
-        
-        $this->db->insert('acc_coa',$manufacturer_coa);
-	            }
+		while (($csv_line = fgetcsv($fp, 4096)) !== FALSE) {
+			$baris_ke++;
 
-	    $check_category = $this->db->select('*')->from('product_category')->where('category_name',$insert_csv['category_id'])->get()->row();
-	    if(!empty($check_category)){
-	    	$category_id = $check_category->category_id;
-	    }else{
-	    		$categorydata=array(
-			'category_name' 		=> $insert_csv['category_id'],
-			'status' 				=> 1
+			// Baris kosong (Excel biasa menyisakan satu di akhir file).
+			if (!is_array($csv_line) || (count($csv_line) <= 1 && trim((string)(isset($csv_line[0]) ? $csv_line[0] : '')) === '')) {
+				continue;
+			}
+
+			// Baris catatan pada template diawali tanda pagar.
+			if (substr(trim((string)$csv_line[0]), 0, 1) === '#') {
+				continue;
+			}
+
+			// Lewati baris judul kolom, di mana pun posisinya.
+			if (strtolower(trim((string)$csv_line[0])) === 'manufacturer name'
+				&& isset($csv_line[1]) && strtolower(trim((string)$csv_line[1])) === 'medicine name') {
+				continue;
+			}
+
+			// Nama obat wajib ada; tanpa itu barisnya tidak bisa dipakai.
+			$product_name = isset($csv_line[1]) ? trim((string)$csv_line[1]) : '';
+			if ($product_name === '') {
+				continue;
+			}
+
+			$nilai = function ($index) use ($csv_line) {
+				if (!isset($csv_line[$index])) {
+					return '';
+				}
+				$isi = trim((string)$csv_line[$index]);
+				// Tanda '-' pada ekspor sistem lama berarti "kosong".
+				return ($isi === '-') ? '' : $isi;
+			};
+
+			$manufacturer_name  = $nilai(0);
+			$generic_name       = $nilai(2);
+			$strength           = $nilai(3);
+			$category_name      = $nilai(4);
+			$manufacturer_price = $nilai(5);
+			$sale_price         = $nilai(6);
+
+			$manufacturer_id = $this->csv_manufacturer_id($manufacturer_name, $cache_manufacturer);
+			$category_id     = $this->csv_category_id($category_name, $cache_category);
+
+			// Kolom category_id, strength, generic_name dan manufacturer_id pada
+			// product_information semuanya NOT NULL, jadi nilai kosong disimpan
+			// sebagai string kosong (bukan NULL, dan bukan angka 0 yang akan
+			// tampak seperti ID kategori/distributor palsu). Ini juga mengikuti
+			// pola data lama: produk tanpa kategori memakai category_id = ''.
+			$category_id     = ($category_id !== null ? $category_id : '');
+			$manufacturer_id = ($manufacturer_id !== null ? $manufacturer_id : 0);
+
+			$result = $this->db->select('product_id, product_name')
+							   ->from('product_information')
+							   ->where('product_name', $product_name)
+							   ->where('strength', $strength)
+							   ->where('category_id', $category_id)
+							   ->get()->row();
+
+			$data = array(
+				'category_id'        => $category_id,
+				'product_name'       => $product_name,
+				'generic_name'       => $generic_name,
+				'strength'           => $strength,
+				'manufacturer_id'    => $manufacturer_id,
+				'manufacturer_price' => ($manufacturer_price !== '' ? $manufacturer_price : 0),
+				'box_size'           => '',
+				'product_location'   => '',
+				'price'              => ($sale_price !== '' ? $sale_price : 0),
+				'unit'               => '',
+				'tax'                => '',
+				'product_model'      => '',
+				'image'              => base_url('my-assets/image/product.png'),
+				'status'             => 1,
 			);
-	    		  if ($count > 0) {
-		$this->db->insert('product_category',$categorydata);
-	}
 
-	    $category_id =  $this->db->insert_id();
+			if (empty($result)) {
+				$data['product_id']      = $this->generator(20);
+				$data['product_details'] = 'Csv Product';
+				$this->db->insert('product_information', $data);
+			} else {
+				// Produk sudah ada: perbarui data, harga jual ikut diperbarui
+				// (versi lama memaksa price = 0 sehingga harga jual hilang).
+				$data['product_details'] = 'Csv Uploaded Product';
+				$this->db->where('product_id', $result->product_id);
+				$this->db->update('product_information', $data);
+			}
 
-	    }
+			$jumlah_import++;
+		}
 
+		fclose($fp);
 
-	     $data = array(
-	                'product_id' 	    => $product_id,
-	                'category_id' 	    => $category_id,
-	                'product_name' 	    => $insert_csv['product_name'],
-	                'generic_name' 	    => $insert_csv['generic_name'],
-	                'strength'          => $insert_csv['strength'],
-	                'manufacturer_id'   => $manufacturer_id,
-	                'manufacturer_price'=> $insert_csv['manufacturer_price'],
-	                'box_size' 	        => '',
-	                'product_location'  => '',
-	                'price' 		    => (!empty($insert_csv['sale_price'])?$insert_csv['sale_price']:0),
-	                'unit' 			   => '',
-	                'tax' 			   => '',
-	                'product_model'    => '',
-	                'product_details'  =>'Csv Product',
-	                'image' 		   => base_url('my-assets/image/product.png'),
-	                'status' 		   => 1
-	            );
-
-
-	     
-	            if ($count > 0) {
-
-	            	   	     	 $result = $this->db->select('*')
-			        					->from('product_information')
-			        					->where('product_name',$data['product_name'])
-			        					->where('strength',$data['strength'])
-			        					->where('category_id',$category_id)
-			        					->get()
-			        					->row();
-			        if (empty($result)){
-			        	$this->db->insert('product_information',$data);
-			        	$product_id = $product_id;
-			        	 }else {
-			        $product_id = $result->product_id;	 	
-					  $udata = array(
-					    'product_id' 	=> $result->product_id,
-                        'category_id' 	=> $category_id,
-                        'product_name' 	=> $result->product_name,
-                        'generic_name'  => $insert_csv['generic_name'],
-                        'strength'      => $insert_csv['strength'],
-                        'manufacturer_id'   => $manufacturer_id,
-	                    'manufacturer_price'=> $insert_csv['manufacturer_price'],
-                        'box_size' 	    => '',
-                        'product_location' => '',
-                        'price' 		 => 0,
-                        'unit' 			 => '',
-                        'tax' 			 => '',
-                        'product_model'  => '',
-                        'product_details'=> 'Csv Uploaded Product',
-                        'image' 		=> base_url('my-assets/image/product.png'),
-                        'status' 		=> 1
-	                 );
-			       $this->db->where('product_id',$result->product_id);
-			       $this->db->update('product_information',$udata);
-			            
-			        }
-	
-	            }  
-	            $count++; 
-	        }
-	        
-        }
-        $this->db->select('*');
-		$this->db->from('product_information');
-		$this->db->where('status',1);
-		$query = $this->db->get();
+		// Segarkan cache autocomplete produk.
+		$json_product = array();
+		$query = $this->db->select('*')->from('product_information')->where('status', 1)->get();
 		foreach ($query->result() as $row) {
-			$json_product[] = array('label'=>medicine_name($row->product_name,$row->product_model,"-"),'value'=>$row->product_id);
+			$json_product[] = array(
+				'label' => medicine_name($row->product_name, $row->product_model, "-"),
+				'value' => $row->product_id,
+			);
 		}
 		$cache_file = './my-assets/js/admin_js/json/product.json';
-		$productList = json_encode($json_product);
-		file_put_contents($cache_file,$productList);
-        fclose($fp) or die("can't close file");
-    	$this->session->set_userdata(array('message'=>display('successfully_added')));
+		file_put_contents($cache_file, json_encode($json_product));
+
+		$this->session->set_userdata(array('message' => display('successfully_added').' ('.$jumlah_import.' baris)'));
 		redirect(base_url('Cproduct/manage_product'));
-		 }else{
-        $this->session->set_userdata(array('error_message'=>'Please Import Only Csv File'));
-        redirect(base_url('Cproduct/add_product_csv'));
-    }
-    
-    }
+	}
+
+	// Ambil manufacturer_id dari nama; buat baru bila belum ada, lengkap
+	// dengan akun COA-nya. HeadCode dihitung dari MAX numerik supaya tidak
+	// bentrok dengan PRIMARY KEY acc_coa.
+	private function csv_manufacturer_id($manufacturer_name, &$cache)
+	{
+		if ($manufacturer_name === '') {
+			return null;
+		}
+
+		$kunci = strtolower($manufacturer_name);
+		if (isset($cache[$kunci])) {
+			return $cache[$kunci];
+		}
+
+		$check = $this->db->select('manufacturer_id')
+						  ->from('manufacturer_information')
+						  ->where('manufacturer_name', $manufacturer_name)
+						  ->get()->row();
+
+		if (!empty($check)) {
+			$cache[$kunci] = $check->manufacturer_id;
+			return $check->manufacturer_id;
+		}
+
+		$this->db->insert('manufacturer_information', array(
+			'manufacturer_name' => $manufacturer_name,
+			'address'           => '',
+			'mobile'            => '',
+			'details'           => '',
+			'status'            => 1,
+		));
+		$manufacturer_id = $this->db->insert_id();
+
+		if (empty($manufacturer_id)) {
+			$cache[$kunci] = null;
+			return null;
+		}
+
+		// MAX(HeadCode)+0 supaya dibandingkan sebagai angka, bukan teks.
+		$coa = $this->db->query("SELECT MAX(HeadCode+0) AS HeadCode FROM acc_coa WHERE HeadLevel='3' AND HeadCode LIKE '50200%'")->row();
+		$headcode = (!empty($coa) && $coa->HeadCode != NULL) ? ((int)$coa->HeadCode + 1) : 502020000001;
+
+		// Jaga-jaga bila kode hasil hitungan sudah terpakai.
+		while ($this->db->select('HeadCode')->from('acc_coa')->where('HeadCode', $headcode)->get()->num_rows() > 0) {
+			$headcode++;
+		}
+
+		$this->db->insert('acc_coa', array(
+			'HeadCode'         => $headcode,
+			'HeadName'         => $manufacturer_name.'-'.$manufacturer_id,
+			'PHeadName'        => 'Account Payable',
+			'HeadLevel'        => '3',
+			'IsActive'         => '1',
+			'IsTransaction'    => '1',
+			'IsGL'             => '0',
+			'HeadType'         => 'L',
+			'IsBudget'         => '0',
+			'manufacturer_id'  => $manufacturer_id,
+			'IsDepreciation'   => '0',
+			'DepreciationRate' => '0',
+			'CreateBy'         => $this->session->userdata('user_id'),
+			'CreateDate'       => date('Y-m-d H:i:s'),
+		));
+
+		$cache[$kunci] = $manufacturer_id;
+		return $manufacturer_id;
+	}
+
+	// Ambil category_id dari nama; buat baru bila belum ada.
+	private function csv_category_id($category_name, &$cache)
+	{
+		if ($category_name === '') {
+			return null;
+		}
+
+		$kunci = strtolower($category_name);
+		if (isset($cache[$kunci])) {
+			return $cache[$kunci];
+		}
+
+		$check = $this->db->select('category_id')
+						  ->from('product_category')
+						  ->where('category_name', $category_name)
+						  ->get()->row();
+
+		if (!empty($check)) {
+			$cache[$kunci] = $check->category_id;
+			return $check->category_id;
+		}
+
+		$this->db->insert('product_category', array(
+			'category_name' => $category_name,
+			'status'        => 1,
+		));
+		$category_id = $this->db->insert_id();
+		$cache[$kunci] = $category_id;
+		return $category_id;
+	}
 
     //Add manufacturer by ajax
 	public function add_manufacturer(){
