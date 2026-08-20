@@ -193,7 +193,7 @@
                         </div>
                     </div>
                     <div class="panel-body">
-                       <a href="<?php echo base_url('assets/data/csv/product_csv_sample.csv') ?>" class="btn btn-primary pull-right"><i class="fa fa-download"></i> Download Sample File</a>
+                       <a href="<?php echo base_url('Cproduct/download_product_csv_template') ?>" class="btn btn-primary pull-right"><i class="fa fa-download"></i> Download Sample File</a>
                             <span class="text-warning">The first line in downloaded csv file should remain as it is. Please do not change the order of columns.</span><br>The correct column order is <span class="text-info">(Manufacturer Name,Medicine Name, Generic Name,Strength,Category Name,Manufacturer Price)</span> &amp; you must follow this.<br>Please make sure the csv file is UTF-8 encoded and not saved with byte order mark (BOM).<p>The images should be uploaded in <strong>uploads</strong> folder.</p>
                     </div>
                 </div>

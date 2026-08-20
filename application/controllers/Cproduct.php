@@ -231,6 +231,72 @@ class Cproduct extends CI_Controller {
 		$content = $CI->parser->parse('product/add_product_csv',$data,true);
 		$this->template->full_admin_html_view($content);
 	}
+
+	// Unduh template CSV contoh untuk impor obat.
+	//
+	// Sebelumnya tautannya menunjuk langsung ke berkas statis
+	// assets/data/csv/product_csv_sample.csv. Karena server tidak mengirim
+	// header Content-Disposition untuk berkas .csv, browser membukanya
+	// sebagai teks di tab baru, bukan mengunduhnya. Method ini membangun
+	// berkas dan memaksa unduhan, sama seperti template CSV pembelian.
+	//
+	// Urutan kolom mengikuti persis pembacaan uploadCsv() (7 kolom).
+	public function download_product_csv_template()
+	{
+		$this->auth->check_admin_auth();
+
+		$header = array(
+			'Manufacturer Name',
+			'Medicine Name',
+			'Generic Name',
+			'Strength',
+			'Category Name',
+			'Manufacturer Price',
+			'Sale Price',
+		);
+
+		// Pakai data nyata bila ada, supaya template langsung bisa dicoba.
+		$manufacturer = $this->db->select('manufacturer_name')
+								 ->from('manufacturer_information')
+								 ->where('status', 1)
+								 ->limit(1)->get()->row();
+		$nama_distributor = (!empty($manufacturer) ? $manufacturer->manufacturer_name : 'NAMA DISTRIBUTOR');
+
+		$rows = array(
+			array($nama_distributor, 'Napa', 'Paracetamol', '500 mg', 'tablet', 200, 250),
+			array($nama_distributor, 'Amoxsan', 'Amoxicillin', '500 mg', 'kapsul', 1500, 2000),
+		);
+
+		$catatan = array(
+			array('# PETUNJUK - hapus seluruh baris yang diawali # sebelum mengunggah'),
+			array('# Baris pertama (judul kolom) JANGAN diubah urutannya.'),
+			array('# Manufacturer Name  = nama distributor. Bila belum terdaftar, akan dibuat otomatis.'),
+			array('# Medicine Name      = nama obat, WAJIB diisi.'),
+			array('# Generic Name       = nama generik/kandungan, boleh dikosongkan.'),
+			array('# Strength           = kekuatan/dosis, mis. 500 mg.'),
+			array('# Category Name      = nama kategori obat.'),
+			array('# Manufacturer Price = harga beli per satuan, tanpa pemisah ribuan.'),
+			array('# Sale Price         = harga jual per satuan, tanpa pemisah ribuan.'),
+		);
+
+		$filename = 'product_csv_sample.csv';
+		header('Content-Type: text/csv; charset=UTF-8');
+		header('Content-Disposition: attachment; filename="'.$filename.'"');
+		header('Pragma: no-cache');
+		header('Expires: 0');
+
+		$out = fopen('php://output', 'w');
+		fputcsv($out, $header);
+		foreach ($rows as $row) {
+			fputcsv($out, $row);
+		}
+		fputcsv($out, array(''));
+		foreach ($catatan as $row) {
+			fputcsv($out, $row);
+		}
+		fclose($out);
+		exit;
+	}
 	//CSV Upload File
    function uploadCsv()
     {
