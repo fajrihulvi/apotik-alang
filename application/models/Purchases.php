@@ -192,13 +192,30 @@ class Purchases extends CI_Model {
          $totalRecordwithFilter = $records[0]->allcount;
 
          ## Fetch records
+         // Harga beli efektif per 1 item: include PPN, sesudah diskon
+         // (diskon per-item sudah ada di total_amount; diskon nota & PPN
+         // dibagi proporsional lewat rasio grand_total/subtotal nota).
+         // Guard bila quantity/subtotal/grand_total tidak valid.
+         $harga_beli_efektif = "(CASE
+                WHEN d.quantity > 0 AND a.grand_total_amount > 0 AND nsum.subtotal > 0
+                     THEN (d.total_amount / d.quantity) * (a.grand_total_amount / nsum.subtotal)
+                WHEN d.quantity > 0
+                     THEN (d.total_amount / d.quantity)
+                ELSE d.rate
+             END)";
          $this->db->select('a.purchase_id, a.chalan_no, a.purchase_date, a.grand_total_amount,
                             a.payment_type, a.due_date, a.payment_status, a.paid_date,
                             b.manufacturer_name,
                             d.id as detail_id, d.batch_id, d.expeire_date,
                             d.quantity, d.rate, d.discount, d.total_amount,
-                            p.product_name');
+                            '.$harga_beli_efektif.' AS harga_beli_efektif,
+                            p.product_name', FALSE);
          $baseFrom();
+         // Subtotal per nota (hanya baris pembelian, retur dikecualikan),
+         // untuk membagi diskon nota & PPN secara proporsional.
+         $this->db->join('(SELECT purchase_id, SUM(total_amount) AS subtotal
+                           FROM product_purchase_details WHERE quantity > 0
+                           GROUP BY purchase_id) nsum', 'nsum.purchase_id = a.purchase_id', 'left');
          $applyFilter(true);
          $this->db->order_by($orderBy, $columnSortOrder);
          // Barang dalam satu nota tetap berurutan seperti saat diinput.
@@ -304,6 +321,7 @@ class Purchases extends CI_Model {
                 'product_qty'      =>(float)$record->quantity,
                 'product_rate'     =>(float)$record->rate,
                 'product_discount' =>(float)$record->discount,
+                'harga_beli_efektif'=>(float)$record->harga_beli_efektif,
                 'product_total'    =>(float)$record->total_amount,
                 'total_amount'     =>(float)$record->grand_total_amount,
                 'due_date'         =>($record->due_date != '' ? $record->due_date : '-'),

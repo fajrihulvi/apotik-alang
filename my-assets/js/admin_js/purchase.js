@@ -617,8 +617,11 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
    //
    // Kolom 13 (Jatuh Tempo) dan 14 (Status Pembayaran) ikut diunduh supaya
    // daftar tagihan bisa ditindaklanjuti di luar aplikasi.
-   var purNumericCols = [8, 9, 10, 11, 12];
-   var purExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ];
+   // Kolom baru "Harga Beli (incl PPN)" disisipkan di indeks 11, sehingga
+   // kolom-kolom sesudahnya bergeser +1. Numerik kini: qty(8), rate(9),
+   // diskon(10), harga beli incl ppn(11), total harga(12), total nota(13).
+   var purNumericCols = [8, 9, 10, 11, 12, 13];
+   var purExportCols = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ];
 
    // Tampilan angka di layar tetap diformat ribuan; nilai mentahnya dipakai
    // untuk pengurutan dan unduhan.
@@ -661,13 +664,13 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
 
              "aaSorting": [[4, "desc" ]],
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0, 15, 16] },
+                { "bSortable": false, "aTargets": [0, 16, 17] },
                 // Kolom Aksi, Status & Status Pembayaran jangan disembunyikan
                 // mode responsive saat tabel melebar (responsivePriority makin
                 // kecil = makin diprioritaskan untuk tetap tampil).
-                { "responsivePriority": 1, "targets": 16 },
-                { "responsivePriority": 2, "targets": 15 },
-                { "responsivePriority": 3, "targets": 14 },
+                { "responsivePriority": 1, "targets": 17 },
+                { "responsivePriority": 2, "targets": 16 },
+                { "responsivePriority": 3, "targets": 15 },
                 { "responsivePriority": 4, "targets": 0 },
 
             ],
@@ -721,6 +724,7 @@ $(".datepicker").datepicker({ dateFormat:'yy-mm-dd' });
              { data: 'product_qty', class:"text-right", render: purRenderNumber(0)},
              { data: 'product_rate', class:"text-right", render: purRenderNumber(2)},
              { data: 'product_discount', class:"text-right", render: purRenderNumber(0, '%')},
+             { data: 'harga_beli_efektif', class:"text-right", render: purRenderNumber(2)},
              { data: 'product_total', class:"text-right", render: purRenderNumber(2)},
              { data: 'total_amount',class:"total_sale text-right", render: purRenderNumber(2)},
              { data: 'due_date', class:"text-center"},

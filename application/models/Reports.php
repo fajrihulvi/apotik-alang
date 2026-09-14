@@ -752,13 +752,33 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          $orderColumn = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.product_name');
          $orderDir    = (strtolower($columnSortOrder) === 'desc' ? 'DESC' : 'ASC');
 
-         // Harga beli mengikuti HARGA BELI TERAKHIR barang (rate pembelian
-         // terbaru), bukan lagi manufacturer_price statis. Baris retur
-         // (quantity < 0) dikecualikan supaya tidak salah ambil. Bila barang
-         // belum pernah dibeli, jatuh ke manufacturer_price sebagai cadangan.
-         $last_purchase_expr = "(SELECT pdx.rate FROM product_purchase_details pdx
-                                 WHERE pdx.product_id = a.product_id AND pdx.quantity > 0
-                                 ORDER BY pdx.id DESC LIMIT 1)";
+         // Harga beli = HARGA BELI EFEKTIF per 1 item dari pembelian TERAKHIR:
+         // sudah include PPN dan sesudah diskon (diskon per-item + diskon
+         // nota + PPN dibagi proporsional). Rumus per baris pembelian:
+         //   (total_amount / quantity) * (grand_total_nota / subtotal_nota)
+         // - total_amount sudah nilai setelah diskon per-item.
+         // - rasio grand_total/subtotal membagi diskon keseluruhan & PPN.
+         // Guard: bila quantity/subtotal/grand_total tidak valid, pakai
+         //   total_amount/quantity saja. Baris retur (quantity<0) dikecualikan.
+         // Bila barang belum pernah dibeli, jatuh ke manufacturer_price.
+         $last_purchase_expr = "(
+             SELECT
+                CASE
+                  WHEN pdx.quantity > 0 AND ppx.grand_total_amount > 0 AND nota.subtotal > 0
+                       THEN (pdx.total_amount / pdx.quantity) * (ppx.grand_total_amount / nota.subtotal)
+                  WHEN pdx.quantity > 0
+                       THEN (pdx.total_amount / pdx.quantity)
+                  ELSE pdx.rate
+                END
+             FROM product_purchase_details pdx
+             JOIN product_purchase ppx ON ppx.purchase_id = pdx.purchase_id
+             JOIN (
+                SELECT purchase_id, SUM(total_amount) AS subtotal
+                FROM product_purchase_details WHERE quantity > 0 GROUP BY purchase_id
+             ) nota ON nota.purchase_id = pdx.purchase_id
+             WHERE pdx.product_id = a.product_id AND pdx.quantity > 0
+             ORDER BY pdx.id DESC LIMIT 1
+         )";
 
          ## Fetch records
          $this->db->select("a.*,

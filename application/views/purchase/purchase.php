@@ -150,6 +150,7 @@
 										<th>Kuantitas</th>
 										<th>Tarif Distributor</th>
 										<th>Diskon</th>
+										<th>Harga Beli (incl PPN)</th>
 										<th>Total Harga</th>
 										<th><?php echo display('total_ammount') ?></th>
 										<th><?php echo display('due_date') ?></th>
