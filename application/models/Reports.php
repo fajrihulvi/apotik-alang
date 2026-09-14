@@ -752,6 +752,14 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          $orderColumn = (isset($sortable[$columnName]) ? $sortable[$columnName] : 'a.product_name');
          $orderDir    = (strtolower($columnSortOrder) === 'desc' ? 'DESC' : 'ASC');
 
+         // Harga beli mengikuti HARGA BELI TERAKHIR barang (rate pembelian
+         // terbaru), bukan lagi manufacturer_price statis. Baris retur
+         // (quantity < 0) dikecualikan supaya tidak salah ambil. Bila barang
+         // belum pernah dibeli, jatuh ke manufacturer_price sebagai cadangan.
+         $last_purchase_expr = "(SELECT pdx.rate FROM product_purchase_details pdx
+                                 WHERE pdx.product_id = a.product_id AND pdx.quantity > 0
+                                 ORDER BY pdx.id DESC LIMIT 1)";
+
          ## Fetch records
          $this->db->select("a.*,
                 a.product_name,
@@ -759,7 +767,8 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
                 a.product_model,
                 a.manufacturer_price,
                 m.manufacturer_name,
-                {$stock_expression} AS stok_quantity
+                {$stock_expression} AS stok_quantity,
+                COALESCE({$last_purchase_expr}, a.manufacturer_price) AS last_purchase_price
                 ", FALSE);
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information m','m.manufacturer_id = a.manufacturer_id','left');
@@ -777,7 +786,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
                 'sl'            =>   $sl,
                 'product_name'  =>  $medicine_name,
                 'sales_price'   =>  $record->price,
-                'purchase_p'    =>  $record->manufacturer_price,
+                'purchase_p'    =>  $record->last_purchase_price,
                 'stok_quantity' =>  $record->stok_quantity,
                 'manufacturer_name'=> $record->manufacturer_name,
                 // Dipakai kolom Harga Jual yang bisa diubah langsung di tabel

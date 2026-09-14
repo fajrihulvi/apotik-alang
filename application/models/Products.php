@@ -626,4 +626,70 @@ public function getProductList($postData=null){
         $query = $this->db->get();
         return $query->num_rows();
     }
+
+    // Harga jual barang saat ini (untuk membandingkan sebelum update).
+    public function get_current_price($product_id)
+    {
+        $row = $this->db->select('price')
+                        ->from('product_information')
+                        ->where('product_id', $product_id)
+                        ->get()->row();
+        return $row ? $row->price : null;
+    }
+
+    // Catat satu perubahan harga jual ke price_change_log.
+    public function log_price_change($product_id, $old_price, $new_price, $reason)
+    {
+        $now = date('Y-m-d H:i:s');
+        $this->db->insert('price_change_log', array(
+            'product_id'   => $product_id,
+            'old_price'    => $old_price,
+            'new_price'    => $new_price,
+            'reason'       => $reason,
+            'changed_date' => date('Y-m-d', strtotime($now)),
+            'changed_time' => date('H:i:s', strtotime($now)),
+            'changed_at'   => $now,
+            'changed_by'   => $this->session->userdata('user_id'),
+        ));
+        return $this->db->insert_id();
+    }
+
+    // Daftar log perubahan harga, dengan filter opsional.
+    public function get_price_change_log($filter = array())
+    {
+        $this->db->select("
+            l.changed_date                                             AS tanggal,
+            l.changed_time                                             AS jam,
+            l.product_id                                               AS product_id,
+            p.product_name                                             AS nama_produk,
+            p.strength                                                 AS kekuatan,
+            l.old_price                                                AS harga_lama,
+            l.new_price                                                AS harga_baru,
+            l.reason                                                   AS alasan,
+            CONCAT(IFNULL(u.first_name,''),' ',IFNULL(u.last_name,'')) AS nama_user
+        ");
+        $this->db->from('price_change_log l');
+        $this->db->join('product_information p', 'p.product_id = l.product_id', 'left');
+        $this->db->join('users u', 'u.user_id = l.changed_by', 'left');
+
+        if (!empty($filter['from_date'])) { $this->db->where('l.changed_date >=', $filter['from_date']); }
+        if (!empty($filter['to_date']))   { $this->db->where('l.changed_date <=', $filter['to_date']); }
+        if (!empty($filter['user_id']))   { $this->db->where('l.changed_by', $filter['user_id']); }
+        if (!empty($filter['product_id'])){ $this->db->where('l.product_id', $filter['product_id']); }
+
+        $this->db->order_by('l.changed_at', 'desc');
+        $this->db->order_by('l.id', 'desc');
+        return $this->db->get()->result_array();
+    }
+
+    // User yang pernah mengubah harga (untuk dropdown filter log).
+    public function price_log_user_list()
+    {
+        $this->db->distinct();
+        $this->db->select("l.changed_by as user_id,
+            CONCAT(IFNULL(u.first_name,''),' ',IFNULL(u.last_name,'')) as nama_user");
+        $this->db->from('price_change_log l');
+        $this->db->join('users u', 'u.user_id = l.changed_by', 'left');
+        return $this->db->get()->result_array();
+    }
 }

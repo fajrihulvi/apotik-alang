@@ -189,8 +189,22 @@
                                     <label for="sellprice" class="col-sm-4 col-form-label"><?php echo display('sell_price') ?> <i class="text-danger">*</i> </label>
                                     <div class="col-sm-8">
                                          <input class="form-control text-right" name="price" type="text" required="required" onkeyup="Checkprice()" placeholder="0.00" tabindex="9" min="0" value="{price}" id="price">
+                                         <!-- Harga jual awal, untuk deteksi perubahan di sisi klien & server -->
+                                         <input type="hidden" id="price_awal" value="{price}">
                                     </div>
-                                </div> 
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Alasan perubahan harga: tampil hanya bila harga jual diubah -->
+                        <div class="row" id="baris_alasan_harga" style="display:none;">
+                            <div class="col-sm-6">
+                                <div class="form-group row">
+                                    <label for="price_change_reason" class="col-sm-4 col-form-label"><?php echo display('price_change_reason') ?> <i class="text-danger">*</i></label>
+                                    <div class="col-sm-8">
+                                        <input class="form-control" name="price_change_reason" type="text" id="price_change_reason" placeholder="<?php echo display('price_change_reason') ?>...">
+                                        <small class="text-muted">Wajib diisi karena harga jual berubah.</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
@@ -374,4 +388,34 @@
         </div>
 
     </div>
+
+<script type="text/javascript">
+// Tampilkan kolom "Alasan Perubahan Harga" hanya bila harga jual diubah,
+// dan jadikan wajib diisi saat itu. Bandingkan dengan harga awal.
+(function(){
+    function normalisasi(v){
+        // Buang pemisah ribuan/spasi, samakan koma jadi titik.
+        return parseFloat(String(v == null ? '' : v).replace(/[^0-9.,-]/g,'').replace(/,/g,'.')) || 0;
+    }
+    var $harga   = document.getElementById('price');
+    var $awal    = document.getElementById('price_awal');
+    var $baris   = document.getElementById('baris_alasan_harga');
+    var $alasan  = document.getElementById('price_change_reason');
+    if (!$harga || !$awal || !$baris || !$alasan) { return; }
+
+    function cek(){
+        var berubah = normalisasi($harga.value) !== normalisasi($awal.value);
+        $baris.style.display = berubah ? '' : 'none';
+        if (berubah) {
+            $alasan.setAttribute('required','required');
+        } else {
+            $alasan.removeAttribute('required');
+            $alasan.value = '';
+        }
+    }
+    $harga.addEventListener('keyup', cek);
+    $harga.addEventListener('change', cek);
+    cek();
+})();
+</script>
 

@@ -192,8 +192,23 @@ class Cproduct extends CI_Controller {
 			$data['tax'] 				= $tax;
 			$data['image'] 				= (!empty($image_url) ? $image_url : $this->input->post('old_image',true));
 	
+		// Harga jual lama diambil SEBELUM update, untuk dibandingkan.
+		$old_price = $CI->Products->get_current_price($product_id);
+
+		// Alasan wajib diisi HANYA bila harga jual benar-benar berubah.
+		$reason = $this->input->post('price_change_reason', true);
+		$harga_berubah = ($old_price !== null && (float)$old_price != (float)$price);
+		if ($harga_berubah && trim((string)$reason) === '') {
+			$this->session->set_userdata(array('error_message'=>display('price_change_reason').' wajib diisi karena harga jual berubah.'));
+			redirect(base_url('Cproduct/product_update_form/'.$product_id));
+		}
+
 		$result = $CI->Products->update_product($data,$product_id);
 		if ($result == true) {
+			// Catat perubahan harga jual bila nilainya berubah.
+			if ($harga_berubah) {
+				$CI->Products->log_price_change($product_id, $old_price, $price, $reason);
+			}
 			$this->session->set_userdata(array('message'=>display('successfully_updated')));
 			redirect(base_url('Cproduct/manage_product'));
 		}else{
@@ -203,8 +218,8 @@ class Cproduct extends CI_Controller {
 	}
 	//Manage Product
 	public function manage_product()
-	{	
-	
+	{
+
 		$CI =& get_instance();
 		$this->auth->check_admin_auth();
 		$CI->load->library('lproduct');
@@ -212,7 +227,39 @@ class Cproduct extends CI_Controller {
         $content =$this->lproduct->product_list();
 
 		$this->template->full_admin_html_view($content);
-	
+
+	}
+
+	// Log Perubahan Harga Jual
+	public function price_change_log()
+	{
+		$this->auth->check_admin_auth();
+		if (!$this->permission1->method('price_change_log','read')->access()) {
+			$this->session->set_userdata(array('error_message'=>display('you_are_not_access_this_part')));
+			redirect('Admin_dashboard');
+		}
+		$this->load->model('Products');
+		$this->load->library('occational');
+
+		$filter = array(
+			'from_date' => $this->input->get('from_date', true),
+			'to_date'   => $this->input->get('to_date', true),
+			'user_id'   => $this->input->get('user_id', true),
+		);
+
+		$rows = $this->Products->get_price_change_log($filter);
+		foreach ($rows as $k => $v) {
+			$rows[$k]['tanggal_tampil'] = $this->occational->dateConvert($v['tanggal']);
+		}
+
+		$data = array(
+			'title'     => display('price_change_log'),
+			'log'       => $rows,
+			'filter'    => $filter,
+			'user_list' => $this->Products->price_log_user_list(),
+		);
+		$content = $this->load->view('product/price_change_log', $data, true);
+		$this->template->full_admin_html_view($content);
 	}
 
 	public function CheckProductList(){

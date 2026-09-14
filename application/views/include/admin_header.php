@@ -420,6 +420,12 @@
                                 <li class="treeview <?php if ($this->uri->segment('2') == ("manage_product")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cproduct/manage_product')?>"><?php echo display('manage_product') ?></a></li>
                             <?php } ?>
 
+                            <!-- Log Perubahan Harga -->
+                            <?php
+                            if($this->permission1->method('price_change_log','read')->access()) { ?>
+                                <li class="treeview <?php if ($this->uri->segment('2') == ("price_change_log")) { echo "active";}else{ echo " ";}?>"><a href="<?php echo base_url('Cproduct/price_change_log')?>"><?php echo display('price_change_log') ?></a></li>
+                            <?php } ?>
+
                         </ul>
                     </li>
                     <?php } ?>
