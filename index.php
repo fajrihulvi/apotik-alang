@@ -1,4 +1,23 @@
 <?php
+/*
+ * ---------------------------------------------------------------
+ * KOMPATIBILITAS PHP 8.1+ untuk CodeIgniter 3
+ * ---------------------------------------------------------------
+ * CI 3.1.11 memicu banyak peringatan "deprecated" di PHP 8.1+
+ * (dynamic property, return type SessionHandler). Peringatan ini
+ * tidak berbahaya, tapi bila ditampilkan akan mengirim output
+ * SEBELUM header -> memicu "headers already sent" dan merusak
+ * session/redirect. Baris di bawah membungkam peringatan itu
+ * SEDINI mungkin, tidak tergantung nilai ENVIRONMENT maupun
+ * konfigurasi PHP hosting (.user.ini) yang kadang memaksa
+ * display_errors menyala.
+ *
+ * E_ERROR / E_PARSE tetap muncul, jadi kesalahan sungguhan tetap
+ * ketahuan.
+ */
+@ini_set('display_errors', '0');
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED & ~E_NOTICE & ~E_WARNING);
+
 /**
  * CodeIgniter
  *
