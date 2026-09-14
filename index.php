@@ -53,7 +53,29 @@
  *
  * NOTE: If you change these, also change the error_reporting() code below
  */
-	define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
+	/*
+	 * Penentuan environment:
+	 *   1. Bila $_SERVER['CI_ENV'] di-set (mis. lewat .htaccess SetEnv atau
+	 *      panel hosting), nilai itu yang dipakai.
+	 *   2. Bila tidak, ditentukan dari nama host. localhost / 127.0.0.1 /
+	 *      *.test / *.local dianggap 'development'; selain itu 'production'.
+	 *
+	 * Alasan: sebagian hosting (PHP-FPM/CGI) TIDAK meneruskan SetEnv dari
+	 * Apache ke $_SERVER, sehingga CI_ENV saja tidak cukup andal. Deteksi
+	 * host membuat lokal tetap 'development' dan hosting otomatis
+	 * 'production' tanpa perlu mengubah file ini tiap deploy.
+	 */
+	if (isset($_SERVER['CI_ENV'])) {
+		define('ENVIRONMENT', $_SERVER['CI_ENV']);
+	} else {
+		$ci_host = isset($_SERVER['HTTP_HOST']) ? strtolower($_SERVER['HTTP_HOST']) : '';
+		$ci_is_local = ($ci_host === '' )
+			|| (strpos($ci_host, 'localhost') !== false)
+			|| (strpos($ci_host, '127.0.0.1') !== false)
+			|| (substr($ci_host, -5) === '.test')
+			|| (substr($ci_host, -6) === '.local');
+		define('ENVIRONMENT', $ci_is_local ? 'development' : 'production');
+	}
 
 /*
  *---------------------------------------------------------------
