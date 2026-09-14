@@ -126,7 +126,7 @@
 										</td>
 										<td  class="text-right">{quantity}</td>
 										<td>{final_expire_date}</td>
-										<td  class="text-right"><?php echo (($position==0)?"$currency {rate}":"{rate} $currency") ?></td>
+										<td  class="text-right"><?php echo (($position==0)?"$currency {harga_beli_efektif}":"{harga_beli_efektif} $currency") ?></td>
 										<td class="text-right"> <?php echo (($position==0)?"$currency {total_amount}":"{total_amount} $currency") ?></td>
 									</tr>
 								{/purchaseData}

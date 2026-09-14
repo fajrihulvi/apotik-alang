@@ -1227,17 +1227,29 @@ public function update_purchase()
 	//Retrieve purchase_details_data
 	public function purchase_details_data($purchase_id)
 	{
-	$this->db->select('a.*,b.*,c.*,e.purchase_details,d.product_id,d.product_name,d.strength,d.product_model');
+	// Harga beli efektif per 1 item: include PPN, sesudah diskon (diskon
+	// item sudah di total_amount; diskon nota & PPN dibagi proporsional).
+	$harga_beli_efektif = "(CASE
+	        WHEN c.quantity > 0 AND a.grand_total_amount > 0 AND nsum.subtotal > 0
+	             THEN (c.total_amount / c.quantity) * (a.grand_total_amount / nsum.subtotal)
+	        WHEN c.quantity > 0
+	             THEN (c.total_amount / c.quantity)
+	        ELSE c.rate
+	     END)";
+	$this->db->select('a.*,b.*,c.*,e.purchase_details,d.product_id,d.product_name,d.strength,d.product_model,'.$harga_beli_efektif.' as harga_beli_efektif', FALSE);
 		$this->db->from('product_purchase a');
 		$this->db->join('manufacturer_information b','b.manufacturer_id = a.manufacturer_id');
 		$this->db->join('product_purchase_details c','c.purchase_id = a.purchase_id');
 		$this->db->join('product_information d','d.product_id = c.product_id');
 		$this->db->join('product_purchase e','e.purchase_id = c.purchase_id');
+		$this->db->join('(SELECT purchase_id, SUM(total_amount) AS subtotal
+		                  FROM product_purchase_details WHERE quantity > 0
+		                  GROUP BY purchase_id) nsum','nsum.purchase_id = a.purchase_id','left');
 		$this->db->where('a.purchase_id',$purchase_id);
 		$this->db->group_by('d.product_id');
 		$query = $this->db->get();
 		if ($query->num_rows() > 0) {
-			return $query->result_array();	
+			return $query->result_array();
 		}
 		return false;
 	}

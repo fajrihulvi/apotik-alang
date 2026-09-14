@@ -253,6 +253,10 @@ class Lpurchase {
 			   		(isset($purchase_detail[$k]['strength']) ? $purchase_detail[$k]['strength'] : ''),
 			   		'-'
 			   	);
+			   // Harga beli efektif (incl PPN, after diskon) diformat 2 desimal.
+			   if (isset($purchase_detail[$k]['harga_beli_efektif'])) {
+			      $purchase_detail[$k]['harga_beli_efektif'] = number_format((float)$purchase_detail[$k]['harga_beli_efektif'], 2, '.', ',');
+			   }
 			}
 
 		}

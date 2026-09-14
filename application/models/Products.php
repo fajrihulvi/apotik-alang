@@ -363,16 +363,33 @@ public function getProductList($postData=null){
 	// Product Purchase Report
 	public function product_purchase_info($product_id)
 	{
-		$this->db->select('a.*,b.*,sum(b.quantity) as quantity,sum(b.total_amount) as total_amount,c.manufacturer_name');
+		// Harga beli efektif per 1 item untuk barang ini di tiap nota:
+		// include PPN, sesudah diskon (diskon item sudah di total_amount;
+		// diskon nota & PPN dibagi proporsional lewat rasio
+		// grand_total/subtotal nota). Guard bila qty/subtotal/grand_total
+		// tidak valid -> pakai total_amount/qty; retur (qty<0) dikecualikan.
+		$harga_beli_efektif = "(CASE
+		        WHEN SUM(b.quantity) > 0 AND a.grand_total_amount > 0 AND nsum.subtotal > 0
+		             THEN (SUM(b.total_amount) / SUM(b.quantity)) * (a.grand_total_amount / nsum.subtotal)
+		        WHEN SUM(b.quantity) > 0
+		             THEN (SUM(b.total_amount) / SUM(b.quantity))
+		        ELSE b.rate
+		     END)";
+		$this->db->select('a.*,b.*,sum(b.quantity) as quantity,sum(b.total_amount) as total_amount,c.manufacturer_name,'.$harga_beli_efektif.' as harga_beli_efektif', FALSE);
 		$this->db->from('product_purchase a');
 		$this->db->join('product_purchase_details b','b.purchase_id = a.purchase_id');
 		$this->db->join('manufacturer_information c','c.manufacturer_id = a.manufacturer_id');
+		// Subtotal seluruh barang dalam nota (retur dikecualikan), untuk
+		// membagi diskon nota & PPN secara proporsional.
+		$this->db->join('(SELECT purchase_id, SUM(total_amount) AS subtotal
+		                  FROM product_purchase_details WHERE quantity > 0
+		                  GROUP BY purchase_id) nsum','nsum.purchase_id = a.purchase_id','left');
 		$this->db->where('b.product_id',$product_id);
 		$this->db->order_by('a.purchase_id','asc');
 		$this->db->group_by('a.purchase_id');
 		$query = $this->db->get();
 		if ($query->num_rows() > 0) {
-			return $query->result_array();	
+			return $query->result_array();
 		}
 		return false;
 	}

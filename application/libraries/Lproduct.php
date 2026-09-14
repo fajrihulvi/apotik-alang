@@ -185,6 +185,8 @@ class Lproduct {
 				$expire = (isset($purchaseData[$k]['expeire_date']) ? trim($purchaseData[$k]['expeire_date']) : '');
 				$expireValid = (substr_count($expire,'-') == 2 && $expire != '0000-00-00');
 				$purchaseData[$k]['final_expire_date'] = ($expireValid ? $CI->occational->dateConvert($expire) : '-');
+				// Harga beli efektif (incl PPN, after diskon) diformat 2 desimal.
+				$purchaseData[$k]['harga_beli_efektif'] = number_format((float)$purchaseData[$k]['harga_beli_efektif'], 2, '.', ',');
 				$totalPrcsAmnt = ($totalPrcsAmnt + $purchaseData[$k]['total_amount']);
 				$totalPurchase = ($totalPurchase + $purchaseData[$k]['quantity']);
 			}
