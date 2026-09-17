@@ -2,16 +2,15 @@
 <!-- Customer js php -->
 <script src="<?php echo base_url() ?>my-assets/js/admin_js/return.js" type="text/javascript"></script>
 
-<!-- Edit Invoice Start -->
+<!-- Pemusnahan Barang Start -->
 <div class="content-wrapper">
     <section class="content-header">
         <div class="header-icon">
-            <i class="pe-7s-note2"></i>
+            <i class="pe-7s-trash"></i>
         </div>
         <div class="header-title">
-            <h1><?php echo display('return_manufacturer')?></h1>
-            <small><?php echo display('return_manufacturer')?></small>
-
+            <h1>Pemusnahan Barang</h1>
+            <small>Barang rusak / kadaluarsa yang dimusnahkan</small>
         </div>
     </section>
 
@@ -38,19 +37,18 @@
             $this->session->unset_userdata('error_message');
             }
         ?>
-        <!-- purchase report -->
         <?php
-        if($this->permission1->method('manufacturer_return_list','read')->access()){
+        if($this->permission1->method('wastage_return_list','read')->access()){
          ?>
             <div class="row">
                 <div class="col-sm-12">
                     <div class="panel panel-bd lobidrag">
                         <div class="panel-heading">
                             <div class="panel-title">
-                                <h4><?php echo display('return_manufacturer') ?></h4>
+                                <h4>Pemusnahan Barang</h4>
                             </div>
                         </div>
-                        <?php echo form_open('Cretrun_m/return_manufacturers', array('class' => 'form-vertical', 'id' => 'purchase_return')) ?>
+                        <?php echo form_open('Cretrun_m/wastage_entry', array('class' => 'form-vertical', 'id' => 'purchase_return')) ?>
                         <div class="panel-body">
 
                             <div class="row">
@@ -94,7 +92,7 @@
                                                     class="text-danger"></i></th>
                                         <th class="text-center"><?php echo display('per_qty') ?></th>
                                         <th class="text-center"><?php echo display('stock') ?></th>
-                                        <th class="text-center"><?php echo display('ret_quantity') ?> <i
+                                        <th class="text-center">Jumlah Dimusnahkan <i
                                                     class="text-danger">*</i></th>
                                         <th class="text-center"><?php echo display('purchase_price') ?> <i
                                                     class="text-danger"></i></th>
@@ -108,7 +106,7 @@
                                         <?php } ?>
 
                                         <th class="text-center"><?php echo display('total') ?></th>
-                                        <th class="text-center"><?php echo display('check_return') ?> <i
+                                        <th class="text-center">Musnahkan <i
                                                     class="text-danger">*</i></th>
                                     </tr>
                                     </thead>
@@ -191,7 +189,6 @@
                                             </td>
                                             <td>
 
-
                                                 <!-- Discount calculate start-->
                                                 <input type="hidden" id="total_discount_<?php echo $sl; ?>" class=""
                                                        value=""/>
@@ -200,12 +197,10 @@
                                                        class="total_discount" value=""/>
                                                 <!-- Discount calculate end -->
 
-
                                                 <input type="checkbox" name='rtn[]'
                                                        onclick="manufacturer_checkbox(<?php echo $sl; ?>)"
                                                        id="check_id_<?php echo $sl; ?>" value="<?php echo $sl; ?>"
                                                        class="form-control">
-
 
                                             </td>
                                         </tr>
@@ -220,15 +215,13 @@
                                     <tr>
                                         <td colspan="5" rowspan="2">
                                             <center><label class="text-center" for="details"
-                                                           class="  col-form-label"><?php echo display('reason') ?></label>
+                                                           class="  col-form-label">Alasan Pemusnahan</label>
                                             </center>
                                             <textarea class="form-control" name="details" id="details"
-                                                      placeholder="<?php echo display('reason') ?>"></textarea>
-                                            <!-- Selalu retur ke distributor (usablity = 2). Pilihan wastage
-                                                 dipindah ke menu "Pemusnahan Barang" tersendiri agar tidak
-                                                 membingungkan. -->
-                                            <input type="hidden" name="radio" value="2">
-
+                                                      placeholder="Alasan pemusnahan (mis. rusak, kadaluarsa)"></textarea>
+                                            <!-- Selalu wastage (usablity = 3). Tidak ada pilihan radio agar
+                                                 tidak tercampur dengan retur ke distributor. -->
+                                            <input type="hidden" name="radio" value="3">
                                         </td>
                                         <td class="text-right" colspan="1">
                                             <b><?php echo display('to_deduction') ?>:</b></td>
@@ -261,8 +254,8 @@
                                 <label for="example-text-input" class=" col-form-label"></label>
                                 <div class="col-sm-12 text-right">
 
-                                    <input type="submit" id="add_invoice" class="btn btn-success btn-large"
-                                           name="pretid" value="<?php echo display('return') ?>" tabindex="9"/>
+                                    <input type="submit" id="add_invoice" class="btn btn-danger btn-large"
+                                           name="pretid" value="Musnahkan" tabindex="9"/>
 
                                 </div>
                             </div>
@@ -276,6 +269,3 @@
         ?>
     </section>
 </div>
-
-
-

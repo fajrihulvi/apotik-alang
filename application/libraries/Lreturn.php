@@ -76,6 +76,40 @@ public function return_form()
 		return $chapterList;
 	}
 
+	// Data untuk form PEMUSNAHAN BARANG (wastage). Sumbernya sama dengan
+	// retur distributor (dicari lewat purchase_id), hanya tampilannya
+	// yang khusus pemusnahan dan mengirim radio=3.
+	public function wastage_return_data($purchase_id)
+	{
+		$CI =& get_instance();
+		$CI->load->model('Returnse');
+		$CI->load->model('Web_settings');
+		$purchase_detail = $CI->Returnse->manufacturer_return($purchase_id);
+
+		$i=0;
+		if(!empty($purchase_detail)){
+			foreach($purchase_detail as $k=>$v){
+				$i++;
+				$purchase_detail[$k]['sl']=$i;
+			}
+		}
+
+		$currency_details = $CI->Web_settings->retrieve_setting_editdata();
+		$data=array(
+			'title'				=>	'Pemusnahan Barang',
+			'purchase_id'		=>	$purchase_detail[0]['purchase_id'],
+			'manufacturer_id'		=>	$purchase_detail[0]['manufacturer_id'],
+			'manufacturer_name'		=>	$purchase_detail[0]['manufacturer_name'],
+			'date'				=>	$purchase_detail[0]['purchase_date'],
+			'total_amount'		=>	$purchase_detail[0]['total_amount'],
+			'total_discount'	=>	$purchase_detail[0]['total_discount'],
+			'purchase_all_data'	=>	$purchase_detail,
+			'discount_type'  	=>	$currency_details[0]['discount_type'],
+			);
+		$chapterList = $CI->parser->parse('return/wastage_return_form',$data,true);
+		return $chapterList;
+	}
+
 	// start return list
 	public function return_list($links,$perpage,$page)
 	{

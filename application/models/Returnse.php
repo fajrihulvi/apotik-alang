@@ -157,7 +157,6 @@ public function return_invoice_entry()
         }
 		$quantity = $this->input->post('product_quantity',true);
 		$available_quantity = $this->input->post('available_quantity',true);
-		$cartoon = $this->input->post('cartoon',true);
 		$rate = $this->input->post('product_rate',true);
 		$p_id = $this->input->post('product_id',true);
 		$total_amount = $this->input->post('total_price',true);
@@ -170,8 +169,7 @@ public function return_invoice_entry()
 		 
 		if (is_array($p_id))
 		 for ($i=0; $i < count($p_id); $i++) 
-		{ 
-				$cartoon_quantity = $cartoon[$i];
+		{
 				$product_quantity = $quantity[$i];
 				$product_rate     = $rate[$i];
 				$product_id       = $p_id[$i];

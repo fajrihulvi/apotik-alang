@@ -106,6 +106,29 @@
                 </div>
             </div>
         </div>
+
+        <!-- Pemusnahan Barang (Wastage) - dipisah dari retur distributor -->
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="panel panel-default">
+                      <div class="panel-body">
+                        <?php echo form_open('Cretrun_m/wastage_form',array('class' => 'form-inline'))?>
+                            <div class="col-sm-12">
+                              <center> <h4>Pemusnahan Barang</h4></center>
+                            </div>
+                            <label for="purchase_id_wastage" class="col-sm-4"><?php echo display('purchase_id') ?>:</label>
+
+                              <div class="form-group">
+                                 <input type="text" name="purchase_id" class="purchase_id form-control" placeholder='<?php echo display('purchase_id') ?>' id="purchase_id_wastage" required="required" />
+
+                            </div>
+
+                            <button type="submit" class="btn btn-danger"><?php echo display('search') ?></button>
+                       <?php echo form_close()?>
+                    </div>
+                </div>
+            </div>
+        </div>
         <?php
         }
         else{

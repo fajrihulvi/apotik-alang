@@ -71,13 +71,46 @@ class Cretrun_m extends CI_Controller {
     }
     // manufacturer inserted  data
     public function manufacturer_inserted_data($ret_id)
-    {   
+    {
         $CI =& get_instance();
         $CI->auth->check_admin_auth();
         $CI->load->library('lreturn');
-        $content = $CI->lreturn->manufacturer_html_data($ret_id);        
+        $content = $CI->lreturn->manufacturer_html_data($ret_id);
         $this->template->full_admin_html_view($content);
     }
+
+    // ===== PEMUSNAHAN BARANG (WASTAGE) =====
+    // Form pemusnahan barang, terpisah dari retur distributor supaya user
+    // tidak bingung. Barang dicari berdasarkan purchase_id (nota pembelian).
+    public function wastage_form()
+    {
+        $CI =& get_instance();
+        $CI->auth->check_admin_auth();
+        $CI->load->library('lreturn');
+        $CI->load->model('Returnse');
+        $purchase_id = trim($this->input->post('purchase_id',true));
+        $check_id = $CI->Returnse->check_purchase_id($purchase_id);
+        if($check_id == 0){
+            $this->session->set_userdata(array('error_message'=> 'Please Input Valid Purchase Id'));
+            redirect('Cretrun_m');
+        }
+        $content = $CI->lreturn->wastage_return_data($purchase_id);
+        $this->template->full_admin_html_view($content);
+    }
+
+    // Simpan pemusnahan barang. Memakai model yang sama dengan retur
+    // distributor; form-nya sudah mengirim radio = 3 (wastage), sehingga
+    // TIDAK membuat jurnal ke distributor, hanya mengurangi stok.
+    public function wastage_entry()
+    {
+        $CI =& get_instance();
+        $CI->auth->check_admin_auth();
+        $CI->load->model('Returnse');
+        $ret_id = $CI->Returnse->return_manufacturer_entry();
+        $this->session->set_userdata(array('message'=>display('successfully_added')));
+        $this->manufacturer_inserted_data($ret_id);
+    }
+
     // return list start
     public function return_list()
     {   
