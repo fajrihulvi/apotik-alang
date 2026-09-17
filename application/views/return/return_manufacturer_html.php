@@ -67,7 +67,7 @@
                                     if (isset($Web_settings[0]['invoice_logo'])) {
                                         echo html_escape($Web_settings[0]['invoice_logo']);
                                     }
-                                    ?>" class="img-bottom-m" alt="" >
+                                    ?>" class="img-bottom-m" alt="" style="width:150px; height:150px; object-fit:contain;" >
                                     <br>
                                     <span class="label label-success-outline m-r-15 p-10" ><?php echo display('billing_from') ?></span>
                                     <address class="margin-top10">
