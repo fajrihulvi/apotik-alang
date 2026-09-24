@@ -48,16 +48,25 @@
 		    <div class="col-sm-12">
 		        <div class="panel panel-default">
 		            <div class="panel-body">
-		                <div class="col-sm-5">
+		                <div class="col-sm-4">
 		                    <div class="form-group">
 		                        <label for="filter_product"><?php echo display('medicine_name') ?></label>
 		                        <select id="filter_product" class="form-control" multiple="multiple" data-placeholder="<?php echo display('medicine_name') ?>"></select>
 		                    </div>
 		                </div>
-		                <div class="col-sm-5">
+		                <div class="col-sm-4">
 		                    <div class="form-group">
 		                        <label for="filter_purchase">Faktur Pembelian</label>
 		                        <select id="filter_purchase" class="form-control" multiple="multiple" data-placeholder="Faktur Pembelian"></select>
+		                    </div>
+		                </div>
+		                <div class="col-sm-4">
+		                    <div class="form-group">
+		                        <label for="filter_order_status">Status Pemesanan</label>
+		                        <select id="filter_order_status" class="form-control">
+		                            <option value="">Semua</option>
+		                            <option value="jangan_dipesan">Jangan Dipesan</option>
+		                        </select>
 		                    </div>
 		                </div>
 		                <div class="col-sm-12">
@@ -98,6 +107,7 @@
 											<th class="text-center"><?php echo display('stock') ?></th>
 											<th class="text-center"><?php echo display('sell_price') ?></th>
 											<th class="text-center">Harga Beli</th>
+											<th class="text-center">Status Pemesanan</th>
 											<th class="text-center"><?php echo display('manufacturer_name') ?></th>
 										</tr>
 									</thead>
@@ -106,6 +116,7 @@
 											<tr>
                 <th colspan="2" class="text-right"><?php echo display('total')?>:</th>
                 <th id="stockqty"></th>
+                <th></th>
                 <th></th>
                 <th></th>
                 <th></th>

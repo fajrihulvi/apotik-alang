@@ -1042,7 +1042,7 @@ $(document).ready(function() {
              // Kolom Stok (indeks 2) sengaja dibiarkan bisa diurutkan, supaya
              // stok bisa diurutkan dari terbanyak ke tersedikit atau sebaliknya.
              "columnDefs": [
-                { "bSortable": false, "aTargets": [0,3,4,5] },
+                { "bSortable": false, "aTargets": [0,3,4,5,6] },
 
             ],
            'processing': true,
@@ -1075,6 +1075,7 @@ $(document).ready(function() {
                   d.csrf_test_name = CSRF_TOKEN;
                   d.filter_product  = $('#filter_product').val() || [];
                   d.filter_purchase = $('#filter_purchase').val() || [];
+                  d.filter_order_status = $('#filter_order_status').val() || '';
                }
             },
           'columns': [
@@ -1093,6 +1094,7 @@ $(document).ready(function() {
                }
              },
              { data: 'purchase_p' ,class:"text-right",render: $.fn.dataTable.render.number( ',', '.', 2, currency ) },
+             { data: 'order_status', class:"text-center" },
              { data: 'manufacturer_name' },
 
           ],
@@ -1253,6 +1255,7 @@ if ($('#filter_product').length && $('#checkListStockList').length) {
 
    $('#btn-stock-filter-reset').click(function(){
       $('#filter_product, #filter_purchase').val(null).trigger('change');
+      $('#filter_order_status').val('');
       stockdatatable.ajax.reload();
    });
 }
@@ -1882,10 +1885,10 @@ $(document).ready(function() {
 
              "aaSorting": [[ 2, "asc" ]],
              "columnDefs": [
-                // Stok (4), Terjual (5), dan Status (6) bisa diurutkan supaya
-                // obat paling mendesak mudah dicari. Mengurutkan Status secara
-                // menurun menaruh yang Kritis di atas.
-                { "bSortable": false, "aTargets": [0,1,3] },
+                // Stok (4), Terjual (5), dan Status (7) bisa diurutkan supaya
+                // obat paling mendesak mudah dicari. Kolom Status Pemesanan (6)
+                // hanya label, jadi tidak bisa diurutkan.
+                { "bSortable": false, "aTargets": [0,1,3,6] },
 
             ],
        'processing': true,
@@ -1917,6 +1920,7 @@ $(document).ready(function() {
                 data: function (d) {
                   d.csrf_test_name = CSRF_TOKEN;
                   d.filter_stock_state = $('#filter_stock_state').val() || '';
+                  d.filter_order_status = $('#filter_order_status').val() || '';
                }
             },
           'columns': [
@@ -1927,6 +1931,7 @@ $(document).ready(function() {
              { data: 'stock', class:"text-right"},
              // Pembanding: jumlah terjual sepanjang bulan lalu.
              { data: 'sold_last_month', class:"text-right"},
+             { data: 'order_status', class:"text-center"},
              { data: 'stock_state', class:"text-center stock-state-cell"},
 
 
@@ -1940,6 +1945,11 @@ $(document).ready(function() {
    // Memilih status langsung memuat ulang tabel - cukup satu klik, tanpa
    // tombol Cari terpisah.
    $('#filter_stock_state').change(function(){
+      stockoutdatatable.ajax.reload();
+   });
+
+   // Filter Status Pemesanan (Jangan Dipesan) juga memuat ulang tabel.
+   $('#filter_order_status').change(function(){
       stockoutdatatable.ajax.reload();
    });
 

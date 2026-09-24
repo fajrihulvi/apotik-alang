@@ -81,6 +81,15 @@
 		                            </select>
 		                        </div>
 		                    </div>
+		                    <div class="col-sm-4">
+		                        <div class="form-group" style="margin-bottom:0;">
+		                            <label for="filter_order_status">Status Pemesanan</label>
+		                            <select id="filter_order_status" class="form-control">
+		                                <option value="">Semua</option>
+		                                <option value="jangan_dipesan">Jangan Dipesan</option>
+		                            </select>
+		                        </div>
+		                    </div>
 		                </div>
 
 		                <div class="table-responsive">
@@ -95,6 +104,7 @@
 
 										<th class="text-center"><?php echo display('stock') ?></th>
 										<th class="text-center">Terjual <?php echo html_escape($last_month_label)?></th>
+										<th class="text-center">Status Pemesanan</th>
 										<th class="text-center">Status</th>
 									</tr>
 								</thead>

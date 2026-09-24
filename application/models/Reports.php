@@ -102,7 +102,18 @@ class reports extends CI_Model {
             $having = "{$stock_sql} <= 0";
          }
 
-         $selectCommon = "{$stock_sql} as 'stock', {$sold_sql} as 'sold_last_month', {$critical_sql} as 'is_critical'";
+         // Penanda "JANGAN DIPESAN": obat yang pernah masuk pemusnahan
+         // (product_return.usablity = 3) sebaiknya tidak dipesan lagi.
+         $wastage_sql = "EXISTS (SELECT 1 FROM product_return pr
+                         WHERE pr.product_id = a.product_id AND pr.usablity = 3)";
+
+         // Filter Status Pemesanan: hanya tampilkan yang jangan-dipesan.
+         $filter_order_status = $this->input->post('filter_order_status', true);
+         if($filter_order_status === 'jangan_dipesan'){
+            $having = "({$having}) AND {$wastage_sql}";
+         }
+
+         $selectCommon = "{$stock_sql} as 'stock', {$sold_sql} as 'sold_last_month', {$critical_sql} as 'is_critical', {$wastage_sql} as 'jangan_dipesan'";
 
          ## Total number of records without filtering
          $this->db->select("count(*) as allcount, {$selectCommon}", FALSE);
@@ -163,6 +174,13 @@ class reports extends CI_Model {
                : '<span class="label" style="background:#f0ad4e;color:#fff;" title="Stok menipis (di bawah 10)">'
                  .'<i class="fa fa-clock-o"></i> Menipis</span>';
 
+            // Status pemesanan: obat yang pernah dimusnahkan diberi tanda
+            // merah "JANGAN DIPESAN"; selain itu tampil "-".
+            $order_status = ((int)$record->jangan_dipesan === 1)
+               ? '<span class="label" style="background:#d9534f;color:#fff;" title="Pernah masuk pemusnahan barang">'
+                 .'<i class="fa fa-ban"></i> JANGAN DIPESAN</span>'
+               : '<span class="text-muted">-</span>';
+
             $data[] = array(
                 'sl'               =>  $sl,
                 'product_name'     =>  medicine_name($record->product_name,$record->strength),
@@ -170,6 +188,7 @@ class reports extends CI_Model {
                 'generic_name'     =>  $record->generic_name,
                 'stock'            =>  $stock,
                 'sold_last_month'  =>  $sold,
+                'order_status'     =>  $order_status,
                 'stock_state'      =>  $status,
             );
             $sl++;
@@ -680,6 +699,15 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          $filter_product  = $dropEmpty($filter_product);
          $filter_purchase = $dropEmpty($filter_purchase);
 
+         // Filter "Status Pemesanan": 'jangan_dipesan' hanya menampilkan obat
+         // yang pernah masuk pemusnahan (product_return.usablity = 3).
+         $filter_order_status = $this->input->post('filter_order_status', true);
+
+         // Ekspresi penanda: obat yang pernah dimusnahkan sebaiknya TIDAK
+         // dipesan lagi. Dipakai untuk kolom Status Pemesanan & filternya.
+         $wastage_exists = "EXISTS (SELECT 1 FROM product_return pr
+                            WHERE pr.product_id = a.product_id AND pr.usablity = 3)";
+
          // Faktur pembelian tidak ada di tabel product_information, jadi
          // disaring lewat daftar barang yang pernah dibeli pada faktur itu.
          //
@@ -703,7 +731,7 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          }
 
          // Bagian WHERE dipakai ulang oleh query hitung dan query ambil data.
-         $applyFilter = function() use ($searchValue, $searchQuery, $filter_product, $produk_dari_faktur){
+         $applyFilter = function() use ($searchValue, $searchQuery, $filter_product, $produk_dari_faktur, $filter_order_status, $wastage_exists){
             if($searchValue != ''){
                $this->db->where($searchQuery);
             }
@@ -712,6 +740,9 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
             }
             if($produk_dari_faktur !== null){
                $this->db->where_in('a.product_id', $produk_dari_faktur);
+            }
+            if($filter_order_status === 'jangan_dipesan'){
+               $this->db->where($wastage_exists, NULL, FALSE);
             }
          };
 
@@ -788,7 +819,8 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
                 a.manufacturer_price,
                 m.manufacturer_name,
                 {$stock_expression} AS stok_quantity,
-                COALESCE({$last_purchase_expr}, a.manufacturer_price) AS last_purchase_price
+                COALESCE({$last_purchase_expr}, a.manufacturer_price) AS last_purchase_price,
+                {$wastage_exists} AS jangan_dipesan
                 ", FALSE);
          $this->db->from('product_information a');
          $this->db->join('manufacturer_information m','m.manufacturer_id = a.manufacturer_id','left');
@@ -802,12 +834,20 @@ public function stock_report_bydate($product_id,$date,$limit,$page)
          foreach($records as $record ){
              $medicine_name = '<a href="'.$base_url.'Cproduct/product_details/'.$record->product_id.'" class="" data-toggle="tooltip" data-placement="left" >'.medicine_name($record->product_name,$record->strength).'</a>';
 
+            // Status pemesanan: obat yang pernah dimusnahkan diberi tanda
+            // merah "JANGAN DIPESAN"; selain itu tampil "-".
+            $order_status = ((int)$record->jangan_dipesan === 1)
+               ? '<span class="label" style="background:#d9534f;color:#fff;" title="Pernah masuk pemusnahan barang">'
+                 .'<i class="fa fa-ban"></i> JANGAN DIPESAN</span>'
+               : '<span class="text-muted">-</span>';
+
             $data[] = array(
                 'sl'            =>   $sl,
                 'product_name'  =>  $medicine_name,
                 'sales_price'   =>  $record->price,
                 'purchase_p'    =>  $record->last_purchase_price,
                 'stok_quantity' =>  $record->stok_quantity,
+                'order_status'  =>  $order_status,
                 'manufacturer_name'=> $record->manufacturer_name,
                 // Dipakai kolom Harga Jual yang bisa diubah langsung di tabel
                 // (klik dua kali). Tidak ditampilkan sebagai kolom sendiri.
