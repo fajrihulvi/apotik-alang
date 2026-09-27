@@ -129,7 +129,7 @@
 	                                        $subqty += $purdetails['quantity'];
 	                                         ?></td>
 
-	                                        <td align="center"><?php echo (($position==0)?$currency.' '.$purdetails['rate']:$purdetails['rate'].' '. $currency) ?></td>
+	                                        <td align="center"><?php $rate_show = number_format((float)$purdetails['rate'], 2, '.', ','); echo (($position==0)?$currency.' '.$rate_show:$rate_show.' '. $currency) ?></td>
 	                                        <?php
 	                                        // Status harga dibanding pembelian sebelumnya
 	                                        // untuk obat + distributor yang sama.
