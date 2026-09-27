@@ -105,6 +105,7 @@
 	                                        <th class="text-center"><?php echo display('product_name') ?></th>
 	                                        <th class="text-center"><?php echo display('quantity') ?></th>
 	                                        <th class="text-center"><?php echo display('purchase_price') ?></th>
+	                                        <th class="text-center">Harga Sebelumnya</th>
 	                                        <th class="text-center">Status</th>
 	                                        <th class="text-center"><?php echo display('ammount') ?></th>
 	                                    </tr>
@@ -129,11 +130,23 @@
 	                                         ?></td>
 
 	                                        <td align="center"><?php echo (($position==0)?$currency.' '.$purdetails['rate']:$purdetails['rate'].' '. $currency) ?></td>
-	                                        <td align="center"><?php
+	                                        <?php
 	                                        // Status harga dibanding pembelian sebelumnya
 	                                        // untuk obat + distributor yang sama.
 	                                        $ps = (isset($price_status[$purdetails['product_id']])
 	                                                ? $price_status[$purdetails['product_id']] : null);
+	                                        ?>
+	                                        <td align="center"><?php
+	                                        // Harga Sebelumnya: harga beli terakhir untuk obat +
+	                                        // distributor yang sama sebelum nota ini. "-" bila tidak ada.
+	                                        if (!empty($ps) && $ps['prev_rate'] !== null) {
+	                                            $prev_val = number_format($ps['prev_rate'], 2, '.', ',');
+	                                            echo (($position==0)?$currency.' '.$prev_val:$prev_val.' '.$currency);
+	                                        } else {
+	                                            echo '<span class="text-muted">-</span>';
+	                                        }
+	                                        ?></td>
+	                                        <td align="center"><?php
 	                                        if (empty($ps) || $ps['status'] == 'baru') {
 	                                            echo '<span class="label" style="background:#777;color:#fff;">'
 	                                               . '<i class="fa fa-star-o"></i> Baru</span>';
@@ -166,6 +179,7 @@
 	                                	<td align="center" colspan="1"><b><?php echo display('sub_total')?>:</b></td>
 	                                	<td></td>
 	                                	<td align="center" ><b><?php echo $subqty;?></b></td>
+	                                	<td></td>
 	                                	<td></td>
 	                                	<td></td>
 	                                	<td class="text-right" align="center" ><b><?php echo (($position==0)?$currency.' '. $sub_total:$sub_total.' '.$currency) ?></b></td>
