@@ -718,8 +718,32 @@ class Purchases extends CI_Model {
 		return array('success' => TRUE, 'message' => 'Pembayaran ditandai lunas pada '.$paid_date.'.');
 	}
 
+	/**
+	 * Tolak nomor batch yang mengandung spasi.
+	 *
+	 * Batch berspasi (mis. "T 07077") merusak dropdown batch di penjualan.
+	 * purchase.js sudah mencegahnya di browser; pemeriksaan ini pengaman
+	 * di server bila pemeriksaan browser terlewati. Bila ada yang salah,
+	 * pesan disimpan ke session lalu kembali ke halaman form.
+	 */
+	private function reject_batch_with_space()
+	{
+		$batch = $this->input->post('batch_id', true);
+		if (!is_array($batch)) {
+			return;
+		}
+		foreach ($batch as $i => $b) {
+			if (preg_match('/\s/', (string) $b)) {
+				$this->session->set_userdata(array('error_message' =>
+					'Nomor batch "'.html_escape($b).'" (baris '.($i + 1).') tidak boleh menggunakan spasi.'));
+				redirect($_SERVER['HTTP_REFERER']);
+			}
+		}
+	}
+
 	public function purchase_entry()
 	{
+		$this->reject_batch_with_space();
 		$purchase_id = date('YmdHis');
 		$p_id = $this->input->post('product_id',true);
 		$chaln_no=$this->input->post('chalan_no',true);
@@ -1006,6 +1030,7 @@ $this->form_validation->set_rules('product_quantity[]', 'Quantity', 'required');
 	//Update Categories
 public function update_purchase()
 	{
+	$this->reject_batch_with_space();
 	$purchase_id  = $this->input->post('purchase_id',true);
      $bank_id = $this->input->post('bank_id',true);
         if(!empty($bank_id)){

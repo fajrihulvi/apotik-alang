@@ -70,6 +70,44 @@ $(document).ready(function() {
                     : $('#paytype').val();
     due_date_toggle(initial);
     paid_field_toggle();
+
+    // ---- Nomor batch tidak boleh mengandung spasi ----
+    // Batch berspasi (mis. "T 07077") membuat dropdown batch di penjualan
+    // tidak bisa dipilih. Berlaku untuk baris awal maupun baris yang
+    // ditambahkan lewat tombol tambah (karena memakai delegasi event).
+    var BATCH_INPUT = 'input[name="batch_id[]"]';
+    var BATCH_MSG   = 'Nomor batch tidak boleh menggunakan spasi.';
+
+    // Tombol spasi ditolak saat diketik.
+    $(document).on('keydown', BATCH_INPUT, function(e) {
+        if (e.key === ' ' || e.keyCode === 32) {
+            e.preventDefault();
+            alert(BATCH_MSG);
+        }
+    });
+
+    // Teks yang ditempel / autofill: spasi dibuang otomatis.
+    $(document).on('input', BATCH_INPUT, function() {
+        var val = $(this).val();
+        if (/\s/.test(val)) {
+            $(this).val(val.replace(/\s+/g, ''));
+            alert(BATCH_MSG + ' Spasi sudah dihapus otomatis.');
+        }
+    });
+
+    // Pemeriksaan terakhir sebelum form Tambah / Ubah pembelian dikirim.
+    $(document).on('submit', '#validate, #purchase_update', function(e) {
+        var $bad = $(this).find(BATCH_INPUT).filter(function() {
+            return /\s/.test($(this).val());
+        });
+        if ($bad.length) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            alert(BATCH_MSG);
+            $bad.first().focus();
+            return false;
+        }
+    });
 });
 
 function product_pur_or_list(sl) {

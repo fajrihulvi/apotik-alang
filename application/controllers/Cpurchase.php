@@ -195,8 +195,9 @@ public function product_search_by_manufacturer(){
 	        echo "<select name=\"batch_id[]\"   class=\"batch_id_1 form-control\" id=\"batch_id_1\">";
 	        	echo "<option value=\"0\">".display('select_one')."</option>";
 	        	foreach ($content as $product) {
-	    			echo "<option value=".$product['batch_id'].">";
-	    			echo $product['batch_id'];
+	    			$bid = html_escape($product['batch_id']);
+	    			echo "<option value=\"".$bid."\">";
+	    			echo $bid;
 	    			echo "</option>"; 
 	        	}	
 	        echo "</select>";
@@ -451,6 +452,10 @@ public function product_search_by_manufacturer(){
             }
             if ($r['batch_id'] === '') {
                 $errors[] = 'Baris '.$lineNo.': batch_id wajib diisi.';
+                continue;
+            }
+            if (preg_match('/\s/', $r['batch_id'])) {
+                $errors[] = 'Baris '.$lineNo.': batch_id "'.$r['batch_id'].'" tidak boleh menggunakan spasi.';
                 continue;
             }
             if (!is_numeric($r['qty']) || (float)$r['qty'] <= 0) {

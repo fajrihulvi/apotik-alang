@@ -206,7 +206,7 @@ class Cinvoice extends CI_Controller {
 		    }else{
 		    	// Select option created for product
 		        $html .="<select name=\"batch_id[]\"   class=\"batch_id_".$product_details->product_id." form-control\" id=\"batch_id_".$product_details->product_id."\" required=\"required\" onchange=\"product_stock('".$product_details->product_id."')\">";
-		        	$html .= "<option>".display('select_one')."</option>";
+		        	$html .= "<option value=\"\">".display('select_one')."</option>";
 		        	foreach ($batch as $product) {
 		$this->db->select('a.expeire_date,SUM(a.quantity) as total_purchase');
 		$this->db->from('product_purchase_details a');
@@ -222,7 +222,8 @@ class Cinvoice extends CI_Controller {
 		$total_sale_batch = $this->db->get()->row();
 		$batch_stock = ($total_purchase_batch->total_purchase - $total_sale_batch->total_sale);
          if($batch_stock > 0){
-         $html .="<option value=".$product['batch_id'].">".$product['batch_id']."</option>";
+         $bid = html_escape($product['batch_id']);
+         $html .="<option value=\"".$bid."\">".$bid."</option>";
      }
      }	
 		        $html .="</select>";
@@ -701,7 +702,7 @@ class Cinvoice extends CI_Controller {
 		    }else{
 		    	// Select option created for product
 		        $html .="<select name=\"batch_id[]\"   class=\"batch_id_".$product_details->product_id." form-control\" id=\"batch_id_".$product_details->product_id."\" required=\"\" onchange=\"product_stock('".$product_details->product_id."')\">";
-		        	$html .= "<option>".display('select_one')."</option>";
+		        	$html .= "<option value=\"\">".display('select_one')."</option>";
 		        	foreach ($batch as $product) {
 		        		   $this->db->select('a.expeire_date,SUM(a.quantity) as total_purchase');
 		$this->db->from('product_purchase_details a');
@@ -717,7 +718,8 @@ class Cinvoice extends CI_Controller {
 		$total_sale_batch = $this->db->get()->row();
 		$batch_stock = ($total_purchase_batch->total_purchase - $total_sale_batch->total_sale);
 		if($batch_stock > 0){
-		    			$html .="<option value=".$product['batch_id'].">".$product['batch_id']."</option>";
+		    			$bid = html_escape($product['batch_id']);
+		    			$html .="<option value=\"".$bid."\">".$bid."</option>";
 		        	}	
 		        }
 		        $html .="</select>";

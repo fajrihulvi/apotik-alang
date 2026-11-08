@@ -377,6 +377,14 @@ function product_stock(sl) {
             var expire_date  = 'expire_date_'+sl;
              var csrf_test_name = $('[name="csrf_test_name"]').val();
             var base_url     = $('#base_url').val();
+
+            // Pilihan "Select One" (value kosong): cukup kosongkan info batch.
+            if (!batch_id) {
+                $('#'+expire_date).html('');
+                $('#'+available_quantity).val(0);
+                return false;
+            }
+
              $.ajax({
                 type: "POST",
                 url: base_url+"Cinvoice/retrieve_product_batchid",
@@ -384,8 +392,19 @@ function product_stock(sl) {
                 cache: false,
                 success: function(data)
                 {
-                    
+
                    var obj = JSON.parse(data);
+
+                    // Batch tidak ada di data pembelian: jangan dianggap
+                    // kedaluwarsa (expire_date-nya null, bukan tanggal lewat).
+                    if (obj.found === false) {
+                        alert('Batch "'+batch_id+'" tidak ditemukan di data pembelian. Silakan pilih batch lain.');
+                        $('#batch_id_'+sl)[0].selectedIndex = 0;
+                        $('#'+expire_date).html('');
+                        $('#'+available_quantity).val(0);
+                        return;
+                    }
+
                     var today = new Date();
                     var dd = today.getDate();
                     var mm = today.getMonth()+1; 

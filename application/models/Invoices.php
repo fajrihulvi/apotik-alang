@@ -1179,7 +1179,7 @@ public function retrieve_invoice_editdata($invoice_id)
 	   
 	    	// Select option created for product
 	        $html .="<select name=\"batch_id[]\"   class=\"batch_id_1 form-control\" id=\"batch_id_1\" required=\"required\">";
-	        	$html .= "<option>".display('select_one')."</option>";
+	        	$html .= "<option value=\"\">".display('select_one')."</option>";
 	        	foreach ($content as $product) {
 	    $this->db->select('a.expeire_date,SUM(a.quantity) as total_purchase');
 		$this->db->from('product_purchase_details a');
@@ -1195,7 +1195,11 @@ public function retrieve_invoice_editdata($invoice_id)
 		$total_sale_batch = $this->db->get()->row();
 		$batch_stock = ($total_purchase_batch->total_purchase - $total_sale_batch->total_sale);
 		      if($batch_stock > 0){
-	    			$html .="<option value=".$product['batch_id'].">".$product['batch_id']."</option>";
+	    			// Nilai value wajib diberi tanda kutip. Tanpa kutip, batch
+	    			// yang mengandung spasi (mis. "T 07077") terpotong menjadi "T"
+	    			// sehingga batch tidak ditemukan saat dipilih.
+	    			$bid = html_escape($product['batch_id']);
+	    			$html .="<option value=\"".$bid."\">".$bid."</option>";
 		      }
 	        	}	
 	        $html .="</select>";
@@ -1370,6 +1374,10 @@ public function retrieve_invoice_editdata($invoice_id)
 		
 		$data['total_product'] = $available_quantity;
 		$data['expire_date']   = $total_purchase->expeire_date;
+		// Tanpa baris pembelian, SUM() menghasilkan NULL. Penanda ini
+		// dipakai invoice.js supaya batch yang tidak ada tidak dilaporkan
+		// sebagai "Date Expired".
+		$data['found']         = ($total_purchase->total_purchase !== null);
 
 		return $data;
 	}
